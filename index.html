@@ -3183,7 +3183,11 @@ const DEFAULT_COVERAGE = { OF: "cov_man", EZ: "cov_ez_man" };
 const SLOTS = ["A", "B", "C", "D"];
 const SINGLE_HIGH_DEPTH = 12;                        // S+ bei Single-High auf ca. 12 yd
 const LINE_Y_MIN = 1.5;                              // DBs nie näher als 1,5 yd an der LOS
-const MAN_SHADE = 0.8;                               // Man-DB steht leicht innen über seinem Gegenspieler
+const MAN_SHADE = 0.8;                               // DB steht leicht innen (Innenschulter) über seinem Receiver
+const CENTER_SHADE = 1.0;                            // DB auf dem Center: leicht nach außen (zu seiner Seite)
+const SH_OFFSET = 1.5;                               // Single-High: Safeties leicht neben dem Center
+const TIGHT_GAP = 2.5;                               // Receiver so nah beieinander = Bunch/Stack
+const TIGHT_SETS = ["3-Bunch", "4-Bunch", "Trips", "Wing"]; // enge Formationen (Single-High: tiefer Safety über der Formation)
 const SWITCH_GAP = 4;                                // Gegenspieler höchstens so weit auseinander → gemeinsamer Switch
 
 const num = (v, d) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -3254,7 +3258,7 @@ function sanitizeDef(d, scope) {
     const role = COV_ROLES.includes(b.role) ? b.role : "man";
     const pos = P2(b.pos, 3 + i * 6.3, 7) || [3 + i * 6.3, field === "EZ" ? 0 : 7];
     const z = b.zone && Array.isArray(b.zone.c) ? { c: [num(b.zone.c[0], pos[0]), num(b.zone.c[1], pos[1])], w: Math.max(1, num(b.zone.w, 8)), h: Math.max(1, num(b.zone.h, 6)) } : null;
-    return { slot, kind: b.kind === "S" ? "S" : b.kind === "CB" ? "CB" : (i === 1 || i === 2 ? "S" : "CB"), lev: levOf(b.lev), role, pos, zone: z };
+    return { slot, kind: b.kind === "S" ? "S" : b.kind === "CB" ? "CB" : (i === 1 || i === 2 ? "S" : "CB"), lev: levOf(b.lev), role, pos, zone: z, ...(b.pos_fixed ? { pos_fixed: true } : {}) };
   });
   const looksOk = field === "EZ" ? ["goal_line"] : ["line", "single_high"];
   const looks = (Array.isArray(d.params?.looks) ? d.params.looks : []).filter((l) => looksOk.includes(l));
@@ -3439,18 +3443,30 @@ function resolveDefense(play, def, setting, opts = {}) {
   const sgn = flip ? -1 : 1; // Richtung der Strong Side (in Feld-x)
   const targets = eligibleTargets(play);
   const zoneLook = look === "zone";
+  // Aimpoint der Zonen (Nutzer 20.10.2026): bei engen Formationen (Trips, Wing, 4-Bunch) rücken die Zonen der Coverage zur
+  // Formation hin, statt unnötig nah an die Seitenlinie zu gehen – halber Weg zur auf die Formation (± 3 yd) gestauchten Lage
+  const { aim } = zoneAim(play);
+  // 3-Bunch: mittlerer Bunch-Spieler; enge Formation: Single-High-Safety über der Formation statt neben dem Center
+  let bunchMid = null;
+  if (play.formation?.value === "3-Bunch" && targets.length >= 3) {
+    const xs = [...targets].sort((a, b) => a.x - b.x); let best = Infinity;
+    for (let i = 0; i + 2 < xs.length; i++) { const sp = xs[i + 2].x - xs[i].x; if (sp < best) { best = sp; bunchMid = xs[i + 1].label; } }
+  }
+  const tightSet = TIGHT_SETS.includes(play.formation?.value);
+  const meanX = targets.reduce((a, t) => a + t.x, 0) / (targets.length || 1);
+  const shInfo = { deepX: tightSet ? clamp(meanX, 8.5, 16.5) : null, shortX: bunchMid ? targets.find((t) => t.label === bunchMid).x : null };
 
   const dbs = def.dbs.map((b, i) => {
     const o = s.overrides[b.slot] || {};
     const role = o.role || b.role, lev = "lev" in o ? o.lev : b.lev;
     let x = mx(b.pos[0]), y = my(b.pos[1]);
-    const lookPos = look === "single_high" && def.frame === "los" ? singleHighPos(def, b, sgn, mx, my) : null;
+    const lookPos = look === "single_high" && def.frame === "los" ? singleHighPos(def, b, sgn, mx, my, shInfo) : null;
     if (lookPos) { x = lookPos[0]; y = lookPos[1]; }
     // Zone: Anpassung des Plays, sonst die der Coverage; wechselt die Rolle zwischen tief und kurz (oder hat die Coverage
     // für diesen DB keine Zone), eine Standardzone für die neue Rolle an seiner Position
     const sameClass = (r1, r2) => (r1 === "deep") === (r2 === "deep");
     const z = COV_ZONE_ROLES.includes(role) ? (o.zone ? { cx: o.zone.c[0], cy: o.zone.c[1], w: o.zone.w, h: o.zone.h }
-      : b.zone && sameClass(role, b.role) ? { cx: mx(b.zone.c[0]), cy: my(b.zone.c[1]), w: b.zone.w, h: b.zone.h }
+      : b.zone && sameClass(role, b.role) ? { cx: aim(mx(b.zone.c[0])), cy: my(b.zone.c[1]), w: b.zone.w, h: b.zone.h }
       : autoZone(role, x, fk === "EZ" ? (d ?? 5) : null)) : null;
     // Look „Zone“: Zonen-DBs stehen in der Mitte ihrer Zone (bzw. wo die Coverage oder das Play sie hinsetzt)
     let zl = null;
@@ -3459,7 +3475,8 @@ function resolveDefense(play, def, setting, opts = {}) {
     if (zl) { x = zl[0]; y = zl[1]; }
     // home = Seite des DBs in der Coverage (für gleichmäßiges Ausweichen beim Spiegeln); fix = Position aus dem Look „Zone“
     const home = Math.sign(b.pos[0] - 12.5) * sgn || (i < 2 ? -sgn : sgn);
-    return { slot: b.slot, kind: b.kind, lev, role, x, y, lookMoved: !!lookPos || !!zl, pos, fix: !!zl && !!(o.zpos || def.zone_look?.[b.slot]), home, zone: z, target: undefined, ov: o, color: COV_COLORS[i] };
+    const bunchS = !!lookPos && shInfo.shortX != null && !def.single_high?.[b.slot] && b.kind === "S" && lookPos[1] < SINGLE_HIGH_DEPTH;
+    return { slot: b.slot, kind: b.kind, lev, role, x, y, lookMoved: !!lookPos || !!zl, bunchS, posFixed: !!b.pos_fixed, pos, fix: !!zl && !!(o.zpos || def.zone_look?.[b.slot]), home, zone: z, target: undefined, ov: o, color: COV_COLORS[i] };
   });
 
   // Blitz: auf den zweiten Mann im Backfield (Offset Back oder Route ins Backfield), nicht auf den QB; ohne einen
@@ -3483,15 +3500,47 @@ function resolveDefense(play, def, setting, opts = {}) {
   manDbs.forEach((b) => { if (b.ov.target !== undefined) b.target = targets.some((t) => t.label === b.ov.target) ? b.ov.target : null; });
   dbs.forEach((b) => { if (!COV_MAN_ROLES.includes(b.role) && b.role !== "blitz") b.target = null; });
 
-  // Man-DB seitlich über seinem Gegenspieler (leicht innen); die Tiefe bleibt die der Coverage – auch wenn der
-  // Gegenspieler im Backfield steht (Offset Back)
+  // Alignment (Nutzer 20.10.2026), seitlich – die Tiefe bleibt die der Coverage (auch gegen einen Back im Backfield):
+  // Man-DB über seinem Gegenspieler. Line (sonst): CB innen am äußersten Receiver seiner Seite, Strong Safety innen am Slot,
+  // Weak Safety außen am Center. Single-High: CBs wie Line, Safeties leicht neben dem Center (singleHighPos).
+  // Receiver: Innenschulter (leicht zur Mitte), Center: leicht nach außen zur Seite des DBs. Gegen 3-Bunch steht der DB
+  // des mittleren Bunch-Spielers 1 yd tiefer. Vom Nutzer verschobene (bzw. in der Coverage fest gesetzte) DBs bleiben.
   const qbX = play.players?.qb ? startPos(play.players.qb).x : 12.5;
+  const center = targets.find((t) => t.label === "C"), recv = targets.filter((t) => t.label !== "C");
+  const sideOf = (x) => (x < 12.25 ? -1 : x > 12.75 ? 1 : 0);
+  const outward = (t) => Math.abs(t.x - 12.5);
+  const alignOn = (b) => {
+    if (COV_MAN_ROLES.includes(b.role)) return b.target ? targets.find((t) => t.label === b.target) || null : null;
+    if (def.frame !== "los" || !(look === "line" || look === "single_high") || b.posFixed) return null;
+    if (b.kind === "CB") { const on = recv.filter((t) => sideOf(t.x) === b.home); return on.length ? on.reduce((m, t) => (outward(t) > outward(m) ? t : m)) : null; }
+    if (look !== "line") return null;
+    if (b.home === sgn) { const on = recv.filter((t) => sideOf(t.x) === sgn).sort((p, q) => outward(q) - outward(p)); return on[1] || center || null; }
+    return center || null;
+  };
+  // 3-Bunch (Nutzer 20.10.2026): den mittleren Bunch-Spieler nimmt ein Safety, kein CB – sonst tauscht der CB das Ziel mit
+  // dem nächsten Safety im Bunch (nur automatische Man-Zuordnung, nicht per Hand gesetzte Ziele)
+  if (bunchMid && def.frame === "los") {
+    const m = dbs.find((b) => COV_MAN_ROLES.includes(b.role) && b.target === bunchMid);
+    if (m && m.kind === "CB" && m.ov.target === undefined) {
+      const tx = (b) => targets.find((t) => t.label === b.target)?.x ?? 99;
+      const sw = dbs.filter((b) => b.kind === "S" && COV_MAN_ROLES.includes(b.role) && b.target && b.ov.target === undefined)
+        .sort((a, b) => Math.abs(tx(a) - tx(m)) - Math.abs(tx(b) - tx(m)))[0];
+      if (sw) [m.target, sw.target] = [sw.target, m.target];
+    }
+  }
+  let midDb = dbs.find((b) => b.bunchS && !b.pos) || null;
+  if (midDb) midDb.fix = true;
   dbs.forEach((b) => {
     if (b.pos) { b.x = b.pos[0]; b.y = b.pos[1]; return; }
-    if (COV_MAN_ROLES.includes(b.role) && b.target && !b.lookMoved) {
-      const t = targets.find((q) => q.label === b.target);
-      if (t) b.x = t.x + (Math.abs(t.x - 12.5) > 0.5 ? Math.sign(12.5 - t.x) * MAN_SHADE : 0);
-    }
+    if (b.lookMoved) return;
+    const t = alignOn(b); if (!t) return;
+    // DB des mittleren Bunch-Spielers: mittig über ihm, 1 yd tiefer (bleibt beim Auseinanderrücken stehen)
+    if (t.label === bunchMid && def.frame === "los" && (!midDb || midDb === b) && (b.target === bunchMid || !dbs.some((q) => q.target === bunchMid && !q.pos && !q.lookMoved))) { b.x = t.x; b.y += 1; b.fix = true; midDb = b; return; }
+    // Äußerer Spieler eines Bunch/Stack (Nachbar bis 2,5 yd nur auf der Innenseite): DB außen, damit der Bunch nicht zuläuft
+    const out = Math.sign(t.x - 12.5);
+    const rel = (q) => (q.x - t.x) * out; // > 0 = weiter außen
+    const clusterOuter = out !== 0 && targets.some((q) => q !== t && rel(q) < 0 && -rel(q) <= TIGHT_GAP) && !targets.some((q) => q !== t && rel(q) > 0 && rel(q) <= TIGHT_GAP);
+    b.x = t.label === "C" ? t.x + b.home * CENTER_SHADE : t.x + (Math.abs(t.x - 12.5) > 0.5 ? (clusterOuter ? out : -out) * MAN_SHADE : 0);
   });
   dbs.forEach((b) => { b.x = clamp(b.x, B.minX, B.maxX); b.y = clamp(b.y, B.minY, B.maxY); });
 
@@ -3501,7 +3550,26 @@ function resolveDefense(play, def, setting, opts = {}) {
   const rusher = { x: ro.pos ? ro.pos[0] : r2(clamp(qbX, 1, 24)), y: ro.pos ? ro.pos[1] : RUSHER_DEPTH, target: rTarget,
     hidden: opts.showRusher === false || (typeof ro.hidden === "boolean" ? ro.hidden : !!def.rusher.hidden), moved: !!ro.pos };
 
-  declash(dbs, rusher.hidden ? null : rusher, B);
+  // Rusher immer auf 7 yd (Flag-Regel). DBs rücken untereinander auseinander; der Rusher sucht sich auf 7 yd einen freien
+  // Platz bis 2 yd neben dem QB, zuerst zur Strong Side (Nutzer 20.10.2026). Nur wenn dort keiner frei ist, steht er
+  // leicht zur Strong Side versetzt und die DBs rücken um ihn herum. Das gilt auch bei ausgeblendetem Rusher – darum
+  // ändert das Ein- und Ausblenden das Alignment nicht.
+  // Gegen 3-Bunch: passt der Rusher nicht vor den mittleren DB (8 yd), geht dieser auf 9 yd.
+  declash(dbs, null, B);
+  if (!rusher.moved) {
+    const x0 = rusher.x;
+    const findSpot = () => {
+      for (let dd = 0; dd <= 2 + 1e-9; dd += 0.5) for (const side of [1, -1]) {
+        const x = clamp(x0 + side * sgn * dd, 1, 24);
+        if (dbs.every((b) => !iconsClash(b, { x, y: rusher.y }))) return x;
+      }
+      return null;
+    };
+    let spot = findSpot();
+    if (spot == null && midDb) { midDb.y += 1; declash(dbs, null, B); spot = findSpot(); }
+    if (spot != null) rusher.x = r2(spot);
+    else { rusher.x = r2(clamp(x0 + sgn * 0.5, 1, 24)); declash(dbs, rusher, B); }
+  } else declash(dbs, rusher, B);
   dbs.forEach((b) => { b.x = r2(b.x); b.y = r2(b.y); b.label = b.kind; });
 
   // Switch-Gruppen: gespeichert im Play, sonst nach der Regel der Coverage (nur Man-DBs mit Switch)
@@ -3512,7 +3580,7 @@ function resolveDefense(play, def, setting, opts = {}) {
 
   return {
     id: def.id, name: def.name, field: fk, strong: strong.side, strongInfo: strong, side: flip ? "left" : "right", sideMode, look, looks,
-    dbs: dbs.map(({ ov, lookMoved, pos, fix, home, ...b }) => ({ ...b, moved: !!pos })), rusher, switches, drawings: s.drawings,
+    dbs: dbs.map(({ ov, lookMoved, bunchS, posFixed, pos, fix, home, ...b }) => ({ ...b, moved: !!pos })), rusher, switches, drawings: s.drawings,
     switchDepth: switches.length && !fallback ? def.switch_depth || null : null, fallback,
     avoid: !!(formation && def.avoid && def.avoid.includes(formation)),
   };
@@ -3575,24 +3643,19 @@ function autoZone(role, x, gl) {
   return role === "deep" ? { cx: x, cy: 14, w: 12, h: 10 } : role === "robber" ? { cx: x, cy: 6.5, w: 8, h: 6 } : { cx: x, cy: 6, w: 8, h: 7 };
 }
 // Dreiecke dürfen sich nicht überlappen (wie die Spieler-Icons, §6): automatisch platzierte DBs (z. B. Man gegen Bunch)
-// rücken seitlich auseinander – auch vom Rusher weg, die Tiefe bleibt. Vom Nutzer verschobene DBs und der Rusher bleiben.
+// rücken seitlich auseinander, die Tiefe bleibt. Versetzt stehende Dreiecke (≥ 0,9 yd Tiefenunterschied, z. B. der
+// mittlere DB gegen 3-Bunch 1 yd tiefer) dürfen enger stehen. Vom Nutzer verschobene DBs und der Rusher bleiben.
 const DEF_MIN_SEP = 2.2;   // ≥ Breite eines Dreiecks (17 px = 2,1 yd)
+const sepFor = (dy) => (dy >= 1.9 ? 0 : dy >= 0.9 ? 1.2 : DEF_MIN_SEP);
+function iconsClash(a, b) { return Math.abs(a.x - b.x) < sepFor(Math.abs(a.y - b.y)) - 1e-6; }
 function declash(dbs, rusher, B) {
-  if (rusher) dbs.forEach((b) => {
-    if (b.pos || b.fix) return;
-    const dy = Math.abs(b.y - rusher.y);
-    if (dy >= DEF_MIN_SEP || Math.abs(b.x - rusher.x) >= Math.sqrt(DEF_MIN_SEP ** 2 - dy ** 2)) return;
-    const dir = Math.abs(b.x - rusher.x) > 0.05 ? Math.sign(b.x - rusher.x) : b.home;
-    b.x = clamp(rusher.x + dir * Math.sqrt(DEF_MIN_SEP ** 2 - dy ** 2), B.minX, B.maxX);
-  });
   const fixedR = rusher ? { ...rusher, pos: true, slot: "R" } : null;
-  for (let pass = 0; pass < 12; pass++) {
+  for (let pass = 0; pass < 16; pass++) {
     let moved = false;
     const all = fixedR ? [...dbs, fixedR] : dbs;
     for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
-      const a = all[i], b = all[j], dy = Math.abs(a.y - b.y);
-      if (dy >= DEF_MIN_SEP) continue;
-      const need = Math.sqrt(DEF_MIN_SEP ** 2 - dy ** 2), cur = Math.abs(b.x - a.x);
+      const a = all[i], b = all[j], need = sepFor(Math.abs(a.y - b.y));
+      const cur = Math.abs(b.x - a.x);
       if (cur >= need - 1e-6) continue;
       const dir = Math.abs(b.x - a.x) > 0.05 ? Math.sign(b.x - a.x) : (b.home ?? 1) >= (a.home ?? -1) ? 1 : -1, gap = need - cur;
       const fa = !!(a.pos || a.fix), fb = !!(b.pos || b.fix);
@@ -3604,13 +3667,22 @@ function declash(dbs, rusher, B) {
     if (!moved) break;
   }
 }
-// Single-High: S+ tief (ca. 12 yd, leicht zur Strong Side), S− auf der Weak Side neben dem Center. Ohne +/− gilt der
+// Aimpoint der Zonen je Formation (s. resolveDefense) und die Umkehrung (für „neuer Standard“)
+function zoneAim(play) {
+  const txs = eligibleTargets(play).map((t) => t.x), zL = Math.max(0, Math.min(...txs) - 3), zR = Math.min(25, Math.max(...txs) + 3);
+  const k = 0.5 + 0.5 * (zR - zL) / 25;
+  return { aim: (cx) => r2(cx * k + 0.5 * zL), unaim: (cx) => r2((cx - 0.5 * zL) / k) };
+}
+// Single-High: S+ tief (ca. 12 yd, leicht zur Strong Side), S− leicht zur Weak Side neben dem Center (beide 1,5 yd). Ohne +/− gilt der
 // Safety auf der Strong Side (in der Definition rechts) als S+. Eine Coverage kann eigene Positionen festlegen (single_high).
-function singleHighPos(def, b, sgn, mx, my) {
+// Enge Formationen (Nutzer 20.10.2026): tiefer Safety über der Mitte der Formation; gegen 3-Bunch steht der kurze Safety
+// mittig über dem mittleren Bunch-Spieler, 1 yd tiefer (bzw. 2 yd, wenn der Rusher sonst nicht passt).
+function singleHighPos(def, b, sgn, mx, my, sh = {}) {
   if (def.single_high && def.single_high[b.slot]) { const p = def.single_high[b.slot]; return [mx(p[0]), my(p[1])]; }
   if (b.kind !== "S") return null;
   const plus = b.lev ? b.lev === "+" : b.pos[0] > 12.5;
-  return plus ? [12.5 + sgn * 1.5, SINGLE_HIGH_DEPTH] : [12.5 - sgn * 3, my(b.pos[1])];
+  if (plus) return [sh.deepX != null ? r2(sh.deepX) : 12.5 + sgn * SH_OFFSET, SINGLE_HIGH_DEPTH];
+  return sh.shortX != null ? [sh.shortX, my(b.pos[1]) + 1] : [12.5 - sgn * SH_OFFSET, my(b.pos[1])];
 }
 // Zuordnung a[i] → b[j] (injektiv), minimale Summe |a − b| (kleine Listen: alle Möglichkeiten). Ergebnis: Index in b je a.
 function bestPairing(a, b) {
@@ -3682,7 +3754,7 @@ function segDist(p, a, b) {
 // relativ zur Goal-Line). Name, Feld, Parameter und Notiz bleiben. Positionen gehen in den aktuellen Look: Line/Goal Line
 // → pos, Single-High → single_high, Zone → zone_look (nur verschobene Zonen-DBs; sonst Mitte der Zone).
 function defaultFromDefense(play, def, defense) {
-  const d = losDist(play), flip = defense.side === "left";
+  const d = losDist(play), flip = defense.side === "left", { unaim } = zoneAim(play);
   const ux = (x) => r2(flip ? 25 - x : x);
   const uy = (y) => r2(def.frame === "goal_line" ? y - (d ?? 5) : y);
   const look = defense.look;
@@ -3691,15 +3763,16 @@ function defaultFromDefense(play, def, defense) {
     const x = defense.dbs.find((q) => q.slot === b.slot);
     if (!x) return clone(b);
     const isZone = COV_ZONE_ROLES.includes(x.role);
-    const zone = isZone && x.zone ? { c: [ux(x.zone.cx), uy(x.zone.cy)], w: r2(x.zone.w), h: r2(x.zone.h) } : null;
+    const zone = isZone && x.zone ? { c: [ux(unaim(x.zone.cx)), uy(x.zone.cy)], w: r2(x.zone.w), h: r2(x.zone.h) } : null;
     // Man-DBs stehen beim Anzeigen über ihrem Gegenspieler; als Standard zählt die Position nur, wenn sie verschoben wurde
-    const keepPos = COV_MAN_ROLES.includes(x.role) && !x.moved;
+    // Positionen gehen nur für verschobene DBs in die Definition (dann fest, ohne Alignment-Regeln); alle anderen
+    // richten sich weiter nach den Regeln (Nutzer 20.10.2026)
     const at = [ux(x.x), uy(x.y)];
-    let pos = clone(b.pos);
-    if (look === "zone") { if (isZone && x.moved) zl[b.slot] = at; else if (isZone) delete zl[b.slot]; else if (!keepPos) pos = at; }
-    else if (look === "single_high") { if (!keepPos) sh[b.slot] = at; }
-    else if (!keepPos) pos = at;
-    return { slot: b.slot, kind: b.kind, lev: x.lev, role: x.role, pos, zone: zone || (isZone ? clone(b.zone) : null) };
+    let pos = clone(b.pos), fixed = !!b.pos_fixed;
+    if (look === "zone") { if (isZone && x.moved) zl[b.slot] = at; else if (isZone) delete zl[b.slot]; else if (x.moved) { pos = at; fixed = true; } }
+    else if (look === "single_high") { if (x.moved) sh[b.slot] = at; }
+    else if (x.moved) { pos = at; fixed = true; }
+    return { slot: b.slot, kind: b.kind, lev: x.lev, role: x.role, pos, zone: zone || (isZone ? clone(b.zone) : null), ...(fixed ? { pos_fixed: true } : {}) };
   });
   const out = { ...clone(def), dbs, rusher: { target: def.rusher.target, hidden: !!defense.rusher.hidden } };
   if (Object.keys(sh).length) out.single_high = sh; else delete out.single_high;
