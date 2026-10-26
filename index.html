@@ -3,7 +3,7 @@
 // Flag Scout Tool als Web-App (Backlog P25f): eigenes Skript im <head>, nur mit der Option pwa (tools/playbook-seite/pwa.mjs).
 // Steht bewusst nicht im Seiten-Skript – der Offline-HTML-Export (PAGE_SRC) nimmt es so nicht mit.
 // 1. Meldet den Service Worker (sw.js) an – nur über https bzw. localhost, nicht in einer gespeicherten Datei.
-// 2. Einmaliger Hinweis in Safari auf iPhone/iPad (nicht in der Home-Bildschirm-App), wenn schon Plays im Browser liegen:
+// 2. Einmaliger Hinweis in Safari auf iPhone/iPad (nicht in der Home-Bildschirm-App), sobald Plays im Browser liegen:
 //    die Home-Bildschirm-App hat einen eigenen Speicher – vorher sichern, dort importieren. Text: TOOL_HINWEIS_HOMESCREEN in
 //    tools/playbook-seite/tool-variant.mjs. „Got it“ merkt sich der Browser (localStorage), danach kommt er nicht wieder.
 (() => {
@@ -48,7 +48,18 @@
     const vor = document.getElementById("backupBar");
     if (vor) vor.before(bar);
   };
-  addEventListener("load", () => { playsDa().then((da) => { if (da) zeigen(); }, () => {}); });
+  // beim Öffnen und immer, wenn sich die Zeile mit der Anzahl der Plays ändert (z. B. das erste Play gezeichnet oder
+  // importiert, ohne neu zu laden) – höchstens einmal pro Aufruf
+  let gezeigt = false, beobachter = null;
+  const pruefen = () => playsDa().then((da) => {
+    if (!da || gezeigt) return;
+    gezeigt = true; beobachter?.disconnect(); zeigen();
+  }, () => {});
+  addEventListener("load", () => {
+    pruefen();
+    const st = document.getElementById("status");
+    if (st && !gezeigt) (beobachter = new MutationObserver(pruefen)).observe(st, { childList: true, characterData: true, subtree: true });
+  });
 })();
 </script>
 </head><body>
