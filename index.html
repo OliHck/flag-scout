@@ -11,7 +11,7 @@
     addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { /* ohne Offline-Start weiter */ }); });
   }
 
-  const HINWEIS = {"text":"Adding Flag Scout Tool to your Home Screen? On iPhone and iPad the Home Screen app has its own storage – your plays here in Safari won't be there. Back them up first (Expert → Export ▾ → Export all plays as JSON), then open the Home Screen app and import the file (Expert → Import).","knopf":"Got it"}, GESEHEN = "flag-scout-hinweis-homescreen";
+  const HINWEIS = {"text":"Adding Flag Scout Tool to your Home Screen? On iPhone and iPad the Home Screen app has its own storage – your plays here in Safari won't be there. Back them up first (Export ▾ → Export all plays as JSON), then open the Home Screen app and import the file (Import).","knopf":"Got it"}, GESEHEN = "flag-scout-hinweis-homescreen";
   const ua = navigator.userAgent;
   const ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const safari = ios && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
@@ -83,6 +83,8 @@
   --bg:#141814; --surface:#1d221d; --surface-2:#262c26; --fg:#e7ebe3; --muted:#9aa49b;
   --line:#343b34; --accent:#6dbb83; --accent-ink:#0f1a12; --heat:#6dbb83; --warn:#f0b35a; --warn-bg:#3a2c16; color-scheme:dark}
 *{box-sizing:border-box}
+/* P35: Antippen ohne Verzögerung – Safari am iPhone wartet sonst, ob ein Doppeltipp (Zoom) folgt. Pinch-Zoom bleibt erlaubt. */
+button,a,label,select,input,textarea,summary,[role=button],[role=tab],.card,.tip{touch-action:manipulation}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
@@ -97,7 +99,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,6vw,40px);lin
 .tab{font:700 17px var(--display);text-transform:uppercase;letter-spacing:.06em;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 14px 7px;cursor:pointer}
 .tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 .controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
-/* Zusatzfilter einklappbar (P28.1): eingeklappt blendet die Expert-Filter Direction … Must-know aus */
+/* Zusatzfilter einklappbar (P28.1): eingeklappt blendet die Zusatzfilter Direction … Search aus */
 .controls.fold .xmore{display:none!important}
 #fMoreN{font:500 12px var(--mono)}
 .ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -118,9 +120,14 @@ input[type=search]{width:200px}
 .starchk:hover .starbox{background:var(--surface-2)}
 .starchk input:focus-visible+.starbox{outline:2px solid var(--accent);outline-offset:1px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+/* Katalog (P32): immer große Karten ohne Chips – Grafik, Play-ID, Stern; Details nur in der Detailansicht */
+#grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:18px}
+#grid .pid{font-size:14px}
 /* Trennlinie Open Field | Endzone im Katalog (Backlog P17) – zwischen den Distanz-Gruppen keine Linie */
 .ezsep{grid-column:1/-1;height:0;border-top:2px solid var(--line);margin:6px 0 2px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+/* P35: Karten außerhalb des Bildschirms erst beim Hinscrollen zeichnen – Reiterwechsel auf „Catalog“ am iPhone schneller */
+#grid .card{content-visibility:auto;contain-intrinsic-size:auto 420px}
 .card:hover{border-color:var(--accent)}
 /* Play-Auswahl (P27) */
 #grid.selmode .card{position:relative;user-select:none;-webkit-user-select:none}
@@ -208,6 +215,11 @@ input[type=search]{width:200px}
 .stats .sel .bar[aria-pressed="false"]:hover{opacity:.8}
 .bar.more{min-height:32px;color:var(--muted);font-size:13px}
 .bar.static{cursor:default}.bar.static:hover{background:none}
+/* P32: Heatmap-Optionen hinter „Options ▸“, Matchups als Klappbereich */
+.controls.zfold .zmore{display:none!important}
+.anah .anatog{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;background:none;border:0;padding:2px 0;cursor:pointer;display:inline-flex;align-items:baseline;gap:8px}
+.anasec.fold > :not(h2){display:none!important}
+.anasec.fold{padding-bottom:4px}
 .xf{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .xchip{display:inline-flex;align-items:center;gap:6px;font:600 13px var(--body);background:color-mix(in oklab,var(--accent) 14%,var(--surface));color:var(--fg);border:1px solid var(--accent);border-radius:999px;padding:5px 6px 5px 11px;cursor:pointer}
 .xchip span{font-size:15px;line-height:1;color:var(--muted)}
@@ -231,7 +243,7 @@ details.ex .card{cursor:default}
 .overlay{position:fixed;inset:0;background:rgba(10,14,10,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 16px;overflow:auto;z-index:10}
 .panel{background:var(--surface);border-radius:10px;max-width:1240px;width:100%;padding:20px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:20px;align-items:start}
 .panel .field{grid-column:1;grid-row:1 / span 5;display:flex;justify-content:center}
-/* Kopfzeile der Detailansicht (Backlog P24): Simple/Expert, Vor/Zurück, Schließen – am Handy ganz oben */
+/* Kopfzeile der Detailansicht (Backlog P24): Present, Vor/Zurück, Schließen – am Handy ganz oben */
 .panel .dtop{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .dtop .seg.mode{margin-top:0}
 .dnav{display:flex;align-items:center;gap:4px;margin-left:auto}
@@ -247,6 +259,31 @@ dt{color:var(--muted)}
 dd{margin:0}
 .panel pre{font:12px var(--mono);background:var(--surface-2);padding:10px;border-radius:6px;overflow:auto;max-height:280px;grid-column:1/-1;margin:0}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* P32: Play-Details als Chips, darunter Team/Saison/Gegner, Kommentar, graue Fußzeile */
+.dinfo{display:flex;flex-direction:column;gap:6px}
+.dchips{display:flex;flex-wrap:wrap;gap:5px}
+.dchips .chip{font-size:12.5px;padding:3px 9px}
+button.dchip{border:1px solid transparent;cursor:pointer;font-family:inherit;line-height:inherit}
+button.dchip:hover{border-color:var(--accent)}
+.dchipsel{font:600 12.5px var(--body);padding:2px 6px;border-radius:999px;border:1px solid var(--accent);background:var(--surface)}
+.dinfo p{margin:0}
+.dline{font-size:13.5px}
+.dcomment{font-size:13.5px;white-space:pre-wrap}
+.dfoot{font-size:11.5px;color:var(--muted)}
+/* P32: Bereiche zum Aufklappen (Game log, Defense, JSON) – ohne Inhalt ganz ausgeblendet */
+.dsec{border-top:1px solid var(--line);margin-top:12px}
+.dsec:has(> .dcov[hidden]){display:none}
+.dsec > summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:8px;padding:10px 0 2px;font:700 18px var(--display);text-transform:uppercase;letter-spacing:.03em}
+.dsec > summary::-webkit-details-marker{display:none}
+.dsec > summary::after{content:"▸";font:600 14px var(--body);color:var(--muted)}
+.dsec[open] > summary::after{content:"▾"}
+.dsec .dsum{font:500 12.5px var(--body);text-transform:none;letter-spacing:0;color:var(--muted)}
+.dsec > .dcov{border-top:0;margin-top:4px;padding-top:4px}
+.djson{grid-column:1/-1}
+.djson > summary{font-size:15px}
+.djson pre{margin-top:6px}
+.panel > .toast:empty{display:none}
+.panel > .djson{margin-top:0}
 .exp{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .exp .toast{text-align:right}
 .exp .chk{padding-bottom:0}
@@ -285,6 +322,7 @@ dd{margin:0}
 .btn.danger{border-color:var(--warn);color:var(--warn)}
 .chip.mark{background:color-mix(in oklab,#d4a017 22%,var(--surface));color:var(--fg)}
 .pidrow{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.pidrow .hidtag{font:600 11px var(--body);color:var(--muted);border:1px dashed var(--muted);border-radius:10px;padding:1px 7px;margin-left:auto}
 .star{font-size:18px;line-height:1;color:#c99400;padding:0 2px;border-radius:4px}
 .star.off{color:var(--muted);opacity:.55}
 .star[role="button"]{cursor:pointer}.star[role="button"]:hover{opacity:1;background:var(--surface-2)}
@@ -300,15 +338,8 @@ dd{margin:0}
 .ilist .why{color:var(--muted)}
 .restore h3{font:700 18px var(--display);text-transform:uppercase;margin:0}
 .restore input[type=file]{font:13px var(--body);color:var(--fg);max-width:100%}
-.chip.hiddenteam{background:var(--surface-2);color:var(--muted);border:1px dashed var(--muted)}
 @media (max-width:620px){.dtop .dpl{display:none}.dtop .dpres{font-size:17px;padding:5px 9px;line-height:1.2}.exp{width:100%;align-items:stretch}.exp .toast{text-align:left}.exprow{justify-content:flex-start}.exp input{flex:1 1 100%;width:100%}.menu .mlist{right:auto;left:0}.panel .dtop{grid-column:auto;grid-row:auto;flex-wrap:nowrap;gap:6px}.dnav .btn,.dtop .dx{min-width:36px;padding:5px 8px}.dpos{min-width:44px;font-size:12px}.panel .field{grid-column:auto}.stats{padding:12px}.zones.big .heat{grid-template-columns:50px repeat(5,1fr) 34px;gap:2px}.zones.big .heat .c{aspect-ratio:1/0.78;font-size:12px}.zones.big .heat .rl{font-size:10.5px}.zones.big .heat .cl{font-size:9.5px}.zones.big .zone{padding:12px}.panel{grid-template-columns:1fr;padding:16px}.panel .field{grid-row:auto}.panel .field svg{width:100%;height:auto;min-height:0}input[type=search]{width:100%}}
-/* Simple/Expert-Modus: Simple blendet nur aus und vergrößert die Plays, die Oberfläche bleibt gleich */
-.seg.mode{margin-top:10px}
 .hidf .lbl{margin-right:2px}
-body.simple .xp{display:none!important}
-body.simple #grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:18px}
-body.simple #grid .chips,body.simple #grid .card > .note{display:none}
-body.simple #grid .pid{font-size:14px}
 /* Entwürfe-Reiter (nur Besitzer): erkannte Plays prüfen, korrigieren, freigeben */
 .tab .tabn{font:500 12px var(--mono);letter-spacing:0;background:var(--warn-bg);color:var(--warn);border-radius:999px;padding:1px 7px;margin-left:5px;vertical-align:3px}
 .dbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:4px 0 6px}
@@ -423,17 +454,16 @@ body.simple #grid .pid{font-size:14px}
     <div>
       <h1>Flag Scout Tool</h1>
       <div class="sub" id="status">Connecting to database …</div>
-      <div class="seg mode" id="modeSeg" role="group" aria-label="View mode"><button type="button" data-v="simple" aria-pressed="true">Simple</button><button type="button" data-v="expert" aria-pressed="false">Expert</button></div>
     </div>
     <div class="exp">
       <div class="exprow">
         <button class="btn primary" id="pdfBtn" type="button" hidden>Export as PDF</button>
-        <details class="menu xp" id="expMenu"><summary class="btn" title="Backups and offline version">Export ▾</summary><div class="mlist">
-          <button class="btn xp" id="exportBtn" type="button" hidden title="All plays – with their game log while “Include game log” is ticked (untick it when you share plays)">Export all plays as JSON</button>
+        <details class="menu" id="expMenu"><summary class="btn" title="Backups and offline version">Export ▾</summary><div class="mlist">
+          <button class="btn" id="exportBtn" type="button" hidden title="All plays – with their game log while “Include game log” is ticked (untick it when you share plays)">Export all plays as JSON</button>
           <label class="chk" id="expLogCtl" style="padding:4px 10px 6px" title="Uses, targets and downs of each play go into the play file – Import and Restore bring them back. Untick it when you share plays with others."><input type="checkbox" id="expLog" checked autocomplete="off" style="flex:none;width:auto"> Include game log</label>
-          <button class="btn xp" id="offlineBtn" type="button" hidden title="Standalone HTML file with the current plays – works without internet">Save offline version (HTML)</button>
+          <button class="btn" id="offlineBtn" type="button" hidden title="Standalone HTML file with the current plays – works without internet">Save offline version (HTML)</button>
         </div></details>
-        <button class="btn xp" id="importBtn" type="button" hidden title="Import plays from a JSON file – to Drafts or directly to the catalog">Import</button>
+        <button class="btn" id="importBtn" type="button" hidden title="Import plays from a JSON file – to Drafts or directly to the catalog">Import</button>
       </div>
       <span class="toast" id="toast" role="status"></span>
     </div>
@@ -446,23 +476,23 @@ body.simple #grid .pid{font-size:14px}
     <button class="tab" role="tab" id="tab-drafts" aria-selected="false" type="button" hidden title="Plays waiting for review before they go into the catalog">Drafts<span class="tabn" id="draftN" hidden></span></button>
     <button class="tab" role="tab" id="tab-draw" aria-selected="false" type="button" hidden title="Draw plays with pen, finger or mouse">Draw</button>
   </nav>
-  <!-- Reiter „Analysis“: Heatmap, darunter Matchups (nur Expert) – P28.3, vorher Umschalter (21.10.2026) -->
+  <!-- Reiter „Analysis“: Heatmap, darunter Matchups (Klappbereich, P32) – P28.3, vorher Umschalter (21.10.2026) -->
 
     <div class="controls fold" id="filters">
       <div class="ctl"><label for="fTeam">Team</label><select id="fTeam"></select></div>
-      <div class="ctl xp" id="teamAdminCtl" hidden><button class="btn" id="teamAdminBtn" type="button" title="Hide, show or delete teams (owner only)">Manage teams</button></div>
+      <div class="ctl" id="teamAdminCtl" hidden><button class="btn" id="teamAdminBtn" type="button" title="Hide, show or delete teams (owner only)">Manage teams</button></div>
       <div class="ctl" id="fFieldCtl"><label for="fField">Field</label><select id="fField"></select></div>
       <div class="ctl"><label for="fForm">Formation</label><select id="fForm"></select></div>
       <label class="chk starchk" id="fMarkedCtl" title="Only plays marked as must-know"><input type="checkbox" id="fMarked" aria-label="Must-know only"><span class="starbox" aria-hidden="true"></span></label>
-      <div class="ctl xp"><button class="btn" id="fMore" type="button" aria-expanded="false" aria-controls="filters" title="Show or hide the additional filters (Direction to Search)">More filters <span id="fMoreN"></span> ▸</button></div>
-      <div class="ctl xp xmore"><label for="fDir">Direction</label><select id="fDir"></select></div>
-      <div class="ctl xp xmore"><label for="fConc">Concept</label><select id="fConc"></select></div>
-      <div class="ctl xp xmore"><label for="fDepth" title="Number of routes short-intermediate-deep (center + 3 receivers)">Depth S-I-D</label><select id="fDepth"></select></div>
-      <div class="ctl xp xmore"><label for="fSeason">Season</label><select id="fSeason"></select></div>
-      <div class="ctl xp xmore"><label for="fOpp" title="Opponent the play was used against (P16)">Opponent</label><select id="fOpp"></select></div>
-      <div class="ctl xp xmore"><label for="fTarget" title="Plays where this receiver was targeted (from the game log)">Target</label><select id="fTarget"></select></div>
-      <div class="ctl xp xmore"><label for="fDown" title="Down the play was used on (from the game log; uses without a down drop out)">Down</label><select id="fDown"></select></div>
-      <div class="ctl xp xmore"><label for="fSearch">Search</label><input type="search" id="fSearch" placeholder="ID, Comment, Concept"></div>
+      <div class="ctl"><button class="btn" id="fMore" type="button" aria-expanded="false" aria-controls="filters" title="Show or hide the additional filters (Direction to Search)">More filters <span id="fMoreN"></span> ▸</button></div>
+      <div class="ctl xmore"><label for="fDir">Direction</label><select id="fDir"></select></div>
+      <div class="ctl xmore"><label for="fConc">Concept</label><select id="fConc"></select></div>
+      <div class="ctl xmore"><label for="fDepth" title="Number of routes short-intermediate-deep (center + 3 receivers)">Depth S-I-D</label><select id="fDepth"></select></div>
+      <div class="ctl xmore"><label for="fSeason">Season</label><select id="fSeason"></select></div>
+      <div class="ctl xmore"><label for="fOpp" title="Opponent the play was used against (P16)">Opponent</label><select id="fOpp"></select></div>
+      <div class="ctl xmore"><label for="fTarget" title="Plays where this receiver was targeted (from the game log)">Target</label><select id="fTarget"></select></div>
+      <div class="ctl xmore"><label for="fDown" title="Down the play was used on (from the game log; uses without a down drop out)">Down</label><select id="fDown"></select></div>
+      <div class="ctl xmore"><label for="fSearch">Search</label><input type="search" id="fSearch" placeholder="ID, Comment, Concept"></div>
       <div class="ctl"><button class="btn reset" id="fReset" type="button" hidden title="Reset all filters (Team to Search)">Clear filters <span id="fResetN"></span></button></div>
     </div>
     <div class="xf hidf" id="hiddenF" role="status" hidden></div>
@@ -471,7 +501,7 @@ body.simple #grid .pid{font-size:14px}
   <section id="view-katalog">
     <div class="countbar">
       <p class="note" id="countLine"></p>
-      <button class="btn" id="selBtn" type="button" aria-pressed="false" hidden title="Pick single plays – for a PDF across teams, or (Expert) to export, mark, edit or delete several at once">Select</button>
+      <button class="btn" id="selBtn" type="button" aria-pressed="false" hidden title="Pick single plays – for a PDF across teams, or to export, mark, edit or delete several at once">Select</button>
       <label class="sort" for="fSort">Sort <select id="fSort"><option value="name">Name</option><option value="formation">Formation</option><option value="new" title="Newest saved first">Date – newest</option><option value="old" title="Oldest saved first">Date – oldest</option></select></label>
     </div>
     <div class="grid" id="grid"></div>
@@ -484,10 +514,10 @@ body.simple #grid .pid{font-size:14px}
       <button class="btn" id="selClear" type="button">Clear</button>
       <span class="selgap" aria-hidden="true"></span>
       <button class="btn primary" id="selPdf" type="button" title="PDF of the selected plays in the order you picked them">PDF</button>
-      <button class="btn xp" id="selJson" type="button" hidden title="Only the selected plays – with their game log while “Include game log” (Export ▾) is ticked">JSON</button>
-      <button class="btn xp" id="selMark" type="button" hidden title="Mark the selected plays as must-know (if all are marked: remove the mark)">★</button>
-      <button class="btn xp" id="selEdit" type="button" hidden title="Change season, opponents or team of the selected plays">Edit</button>
-      <button class="btn xp danger" id="selDel" type="button" hidden title="Delete the selected plays">Delete</button>
+      <button class="btn" id="selJson" type="button" hidden title="Only the selected plays – with their game log while “Include game log” (Export ▾) is ticked">JSON</button>
+      <button class="btn" id="selMark" type="button" hidden title="Mark the selected plays as must-know (if all are marked: remove the mark)">★</button>
+      <button class="btn" id="selEdit" type="button" hidden title="Change season, opponents or team of the selected plays">Edit</button>
+      <button class="btn danger" id="selDel" type="button" hidden title="Delete the selected plays">Delete</button>
       <button class="btn" id="selDone" type="button" title="Leave selection mode – the selection stays until you reload">Done</button>
       <span class="toast" id="selToast" role="status"></span>
     </div>
@@ -495,9 +525,9 @@ body.simple #grid .pid{font-size:14px}
       <h2>No plays saved yet</h2>
       <p>Your plays are saved in this browser on this device – nothing is uploaded.</p>
       <ol>
-        <li>Draw a play in the <b>Draw</b> tab (pen, finger or mouse), or import a JSON file: switch to <b>Expert</b> and use <b>Import</b> (next to Export as PDF).</li>
+        <li>Draw a play in the <b>Draw</b> tab (pen, finger or mouse), or import a JSON file with <b>Import</b> (next to Export as PDF).</li>
         <li>New plays wait in the <b>Drafts</b> tab. Check them there and approve – approved plays appear here.</li>
-        <li>Back up regularly with <b>Export ▾ → Export all plays as JSON</b> (Expert). The file is also how you share plays or move them to another device.</li>
+        <li>Back up regularly with <b>Export ▾ → Export all plays as JSON</b>. The file is also how you share plays or move them to another device.</li>
       </ol>
     </div>
   </section>
@@ -536,7 +566,7 @@ body.simple #grid .pid{font-size:14px}
     <div class="dw-main">
       <div class="dw-left">
         <div class="dw-tools">
-          <div class="seg" id="wTool" role="group" aria-label="Tool"><button type="button" data-v="route">Route</button><button type="button" data-v="option">Option</button><button type="button" data-v="motion">Motion</button><button type="button" data-v="ball">Ball</button><button type="button" data-v="move">Move</button></div>
+          <div class="seg" id="wTool" role="group" aria-label="Tool"><button type="button" data-v="route">Route</button><button type="button" data-v="option">Option</button><button type="button" data-v="delay" title="Tap a route to add a short zigzag (delay, stutter) there">Delay</button><button type="button" data-v="motion">Motion</button><button type="button" data-v="ball">Ball</button><button type="button" data-v="move">Move</button></div>
           <div class="seg" id="wLine" role="group" aria-label="Line style for new lines" title="Line style for the next lines you draw"><button type="button" data-v="auto" title="Shape from your stroke: sharp bends become cuts">Auto</button><button type="button" data-v="curved" title="Smooth curve that follows your stroke">Curve</button><button type="button" data-v="straight" title="Straight lines with clear cuts">Straight</button></div>
           <button class="btn" type="button" id="wUndo" title="Undo (Ctrl+Z)">Undo</button>
           <button class="btn" type="button" id="wRedo" title="Redo (Ctrl+Y)">Redo</button>
@@ -568,17 +598,19 @@ body.simple #grid .pid{font-size:14px}
   </section>
 
   <section id="view-zonen" hidden aria-label="Heatmap">
-    <h2 class="anah xp">Heatmap</h2>
+    <h2 class="anah">Heatmap</h2>
     <div class="controls">
       <div class="ctl"><span class="lbl">Field</span><div class="seg" id="zField"><button type="button" data-v="Open Field" aria-pressed="true">Open Field</button><button type="button" data-v="Endzone" aria-pressed="false">Endzone</button></div></div>
       <div class="ctl"><span class="lbl">Side</span><div class="seg" id="zSide"><button type="button" data-v="real" aria-pressed="true">Real side</button><button type="button" data-v="strong" aria-pressed="false">Strong side right</button></div></div>
       <div class="ctl"><label for="zGroup">Group by</label><select id="zGroup">
         <option value="">none</option><option value="formation">Formation</option><option value="team">Team</option>
-        <option value="direction">Direction</option><option value="play_concept">Concept</option><option value="depth">Depth S-I-D</option><option value="season">Season</option><option value="opponent" class="xp">Opponent</option></select></div>
-      <label class="chk xp"><input type="checkbox" id="zOpt" checked> Split option endings</label>
-      <label class="chk xp"><input type="checkbox" id="zRoutes"> Show routes</label>
-      <div class="ctl xp"><span class="lbl" title="From the game log in the play details: how often a play was used and who was targeted">Count</span><div class="seg" id="zCount"><button type="button" data-v="plays" aria-pressed="true" title="Every play counts once">Every play once</button><button type="button" data-v="freq" aria-pressed="false" title="Plays count as often as they were used (plays without entries count once)">By frequency</button><button type="button" data-v="targets" aria-pressed="false" title="Only route ends that were targeted">Targets only</button></div></div>
+        <option value="direction">Direction</option><option value="play_concept">Concept</option><option value="depth">Depth S-I-D</option><option value="season">Season</option><option value="opponent">Opponent</option></select></div>
+      <div class="ctl"><button class="btn" id="zMore" type="button" aria-expanded="false" title="More options: option endings, routes next to the heatmap, count by game log">Options <span id="zMoreN"></span> ▸</button></div>
+      <label class="chk zmore"><input type="checkbox" id="zOpt" checked> Split option endings</label>
+      <label class="chk zmore"><input type="checkbox" id="zRoutes"> Show routes</label>
+      <div class="ctl zmore"><span class="lbl" title="From the game log in the play details: how often a play was used and who was targeted">Count</span><div class="seg" id="zCount"><button type="button" data-v="plays" aria-pressed="true" title="Every play counts once">Every play once</button><button type="button" data-v="freq" aria-pressed="false" title="Plays count as often as they were used (plays without entries count once)">By frequency</button><button type="button" data-v="targets" aria-pressed="false" title="Only route ends that were targeted">Targets only</button></div></div>
     </div>
+    <div class="xf hidf" id="zOptChips" role="status" hidden></div>
     <div class="demo" id="zDemo" hidden></div>
     <p class="legend" id="zLegend"></p>
     <div class="xf" id="zChips" hidden></div>
@@ -594,19 +626,20 @@ body.simple #grid .pid{font-size:14px}
 <div class="overlay" id="overlay" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="dTitle">
     <div class="dtop">
-      <div class="seg mode" id="dModeSeg" role="group" aria-label="View mode"><button type="button" data-v="simple" aria-pressed="true">Simple</button><button type="button" data-v="expert" aria-pressed="false">Expert</button></div>
+
       <div class="dnav" id="dNav" hidden><button class="btn" id="dPrev" type="button" aria-label="Previous play" title="Previous play (← key, or swipe right)">‹</button><span class="dpos" id="dPos"></span><button class="btn" id="dNext" type="button" aria-label="Next play" title="Next play (→ key, or swipe left)">›</button></div>
       <button class="btn dx" id="dX" type="button" aria-label="Close" title="Close (Esc)">×</button>
     </div>
     <div class="field" id="dField"></div>
     <div>
       <h2 id="dTitle"></h2>
-      <dl id="dMeta"></dl>
-      <div class="dcov dlog xp" id="dLog" hidden></div>
+      <div class="dinfo" id="dMeta"></div>
+      <!-- P32: Bereiche zum Aufklappen (Standard zu, pro Browser gemerkt); ohne Inhalt (innerer Bereich hidden) ganz ausgeblendet -->
+      <details class="dsec" id="dLogSec" data-sec="log"><summary>Game log<span class="dsum" id="dLogSum"></span></summary><div class="dcov dlog" id="dLog" hidden></div></details>
     </div>
-    <div class="row"><button class="btn primary" id="dEdit" type="button" hidden>Edit</button><button class="btn" id="dDraw" type="button" hidden title="Change routes and line-up in the Draw tab">Edit in Draw</button><button class="btn" id="dUndo" type="button" hidden title="Restore the version before the last edit in Draw">Undo last edit</button><button class="btn primary" id="dSave" type="button" hidden>Save</button><button class="btn" id="dCancel" type="button" hidden>Cancel</button><button class="btn" id="dStar" type="button" hidden>☆ Must-know</button><button class="btn xp" id="dJson" type="button">Show JSON</button><button class="btn" id="dClose" type="button">Close</button></div>
+    <div class="row"><button class="btn primary" id="dEdit" type="button" hidden>Edit</button><button class="btn" id="dDraw" type="button" hidden title="Change routes and line-up in the Draw tab">Edit in Draw</button><button class="btn" id="dUndo" type="button" hidden title="Restore the version before the last edit in Draw">Undo last edit</button><button class="btn primary" id="dSave" type="button" hidden>Save</button><button class="btn" id="dCancel" type="button" hidden>Cancel</button><button class="btn" id="dStar" type="button" hidden>☆ Must-know</button><button class="btn" id="dClose" type="button">Close</button></div>
     <span class="toast" id="dToast" role="status"></span>
-    <pre class="xp" id="dPre" hidden></pre>
+    <details class="dsec djson" id="dJsonSec" data-sec="json"><summary>JSON</summary><pre id="dPre"></pre></details>
   </div>
 </div>
 
@@ -890,6 +923,65 @@ function zigzagCommands(ptsPx){
   return d;
 }
 
+// Delays (route.delays, P34): kurze Zickzack-Stücke an beliebiger Stelle der Route. Der fertige Pfad (M/L/C) wird
+// abgetastet; im Bereich jedes Delays (2 yd um die Mitte) läuft er als Zickzack, sonst als feiner Linienzug.
+// Routen ohne Delays bleiben unverändert.
+const DELAY_HALF_YD = 1;
+function samplePathPx(d){
+  const pts = [];
+  for (const m of d.matchAll(/([MLC])([^MLC]*)/g)){
+    const n = m[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    if (m[1] === "C" && pts.length){
+      const [x0, y0] = pts[pts.length - 1];
+      for (let k = 1; k <= 12; k++){
+        const t = k / 12, u = 1 - t;
+        pts.push([u*u*u*x0 + 3*u*u*t*n[0] + 3*u*t*t*n[2] + t*t*t*n[4], u*u*u*y0 + 3*u*u*t*n[1] + 3*u*t*t*n[3] + t*t*t*n[5]]);
+      }
+    } else if (n.length >= 2) pts.push([n[0], n[1]]);
+  }
+  return pts;
+}
+// ranges: [[s0, s1], …] in Pixeln Bogenlänge ab dem Pfadanfang
+function delayedPathD(d, ranges){
+  const pts = samplePathPx(d);
+  if (pts.length < 2 || !ranges.length) return d;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const T = cum[cum.length - 1];
+  const at = (s) => {
+    let j = 0; while (j < pts.length - 2 && cum[j + 1] < s) j++;
+    const l = (cum[j + 1] - cum[j]) || 1, t = Math.max(0, Math.min(1, (s - cum[j]) / l));
+    const ux = (pts[j + 1][0] - pts[j][0]) / l, uy = (pts[j + 1][1] - pts[j][1]) / l;
+    return { x: pts[j][0] + ux * l * t, y: pts[j][1] + uy * l * t, nx: -uy, ny: ux };
+  };
+  const AMP = 2.6, STEP = 3.2;
+  let out = `M${pts[0][0]} ${pts[0][1]} `, i = 1;
+  const rs = ranges.map(([a, b]) => [Math.max(0, a), Math.min(T, b)]).filter(([a, b]) => b - a > STEP * 2).sort((a, b) => a[0] - b[0]);
+  for (const [a, b] of rs){
+    while (i < pts.length && cum[i] < a){ out += `L${pts[i][0].toFixed(2)} ${pts[i][1].toFixed(2)} `; i++; }
+    const n = Math.max(3, Math.round((b - a) / STEP));
+    for (let k = 0; k <= n; k++){
+      const p = at(a + (b - a) * k / n), side = k === 0 || k === n ? 0 : (k % 2 ? AMP : -AMP);
+      out += `L${(p.x + p.nx * side).toFixed(2)} ${(p.y + p.ny * side).toFixed(2)} `;
+    }
+    while (i < pts.length && cum[i] <= b) i++;
+  }
+  for (; i < pts.length; i++) out += `L${pts[i][0].toFixed(2)} ${pts[i][1].toFixed(2)} `;
+  return out;
+}
+// Delay-Bereiche eines Pfadstücks: lo/hi = Bogenlänge (yd, Daten) am Anfang/Ende des Stücks; skipPx = Stück des
+// Datenwegs vor dem gezeichneten Anfang (Rand des Spieler-Icons); tailPx = gerades Stück vor der Pfeilspitze
+function delayRanges(route, lo, hi, skipPx, tailPx){
+  const out = [];
+  for (const dl of (Array.isArray(route.delays) ? route.delays : [])){
+    const a = Number(dl && dl.at); if (!Number.isFinite(a) || a < lo || a >= hi) continue;
+    const h = DELAY_HALF_YD * PPY, c = Math.max(2 + h, (a - lo) * PPY - skipPx); // Delay am Start: ganz hinter dem Icon
+    out.push([c - h, Math.min((hi - lo) * PPY - skipPx - tailPx, c + h)]);
+  }
+  return out;
+}
+const lenAbs = (pts) => pts.reduce((s, p, i) => i ? s + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0, 0);
+
 function legCommands(ptsPx, shape){
   if (ptsPx.length < 2) return "";
   if (shape === "zigzag") return zigzagCommands(ptsPx);
@@ -991,6 +1083,11 @@ function routeParts(play, route, icon, isMotion, startAbs){
   const stemPtsPx = stemPtsAbs.map(p => [X(p[0]), Y(p[1])]);
   const endings = route.endings || [];
   const color = route.color || FC.line;
+  // Delays (P34): Datenweg ab Stem-Start; vor dem gezeichneten Anfang liegt ggf. der Rand des Icons
+  const hasDelays = Array.isArray(route.delays) && route.delays.length && !isMotion;
+  const stemDataAbs = route.stem.points.map(p => ptAbs(play, p));
+  const skipPx = hasDelays ? Math.hypot(X(stemDataAbs[0][0]) - stemPtsPx[0][0], Y(stemDataAbs[0][1]) - stemPtsPx[0][1]) : 0;
+  const stemLenYd = hasDelays ? lenAbs(stemDataAbs) : 0;
 
   if (isMotion){
     const endPts = endings[0] ? endings[0].points.map(p => ptAbs(play, p)) : [];
@@ -1006,16 +1103,27 @@ function routeParts(play, route, icon, isMotion, startAbs){
     if (endPtsPx.length){
       d += " " + legCommands([stemPtsPx[stemPtsPx.length - 1], ...endPtsPx], endShape);
     }
+    if (hasDelays){
+      const total = stemLenYd + (ending ? lenAbs([stemDataAbs[stemDataAbs.length - 1], ...ending.points.map(p => ptAbs(play, p))]) : 0);
+      d = delayedPathD(d, delayRanges(route, 0, total + 1e-6, skipPx, 1.5 * PPY));
+    }
     return [{ d, opts: { color, dashed: false, width: 2 } }];
   }
 
   // Echte Optionen: Stem ohne eigenen Pfeil, dann jede Fortsetzung einzeln mit eigenem Pfeil.
-  const parts = [{ d: `M${stemPtsPx[0][0]} ${stemPtsPx[0][1]} ` + legCommands(stemPtsPx, stemShape), opts: { color, dashed: false, noArrow: true, width: 2 } }];
+  let stemD = `M${stemPtsPx[0][0]} ${stemPtsPx[0][1]} ` + legCommands(stemPtsPx, stemShape);
+  if (hasDelays) stemD = delayedPathD(stemD, delayRanges(route, 0, stemLenYd, skipPx, 0));
+  const parts = [{ d: stemD, opts: { color, dashed: false, noArrow: true, width: 2 } }];
   const stemEndPx = stemPtsPx[stemPtsPx.length - 1];
+  const primary = endings.find(e => e.style !== "dashed") || endings[0];
   endings.forEach(end => {
     const endShape = end.shape || "curved";
     const endPtsPx = end.points.map(p => { const a = ptAbs(play, p); return [X(a[0]), Y(a[1])]; });
-    const d = `M${stemEndPx[0]} ${stemEndPx[1]} ` + legCommands([stemEndPx, ...endPtsPx], endShape);
+    let d = `M${stemEndPx[0]} ${stemEndPx[1]} ` + legCommands([stemEndPx, ...endPtsPx], endShape);
+    if (hasDelays && end === primary){
+      const len = lenAbs([stemDataAbs[stemDataAbs.length - 1], ...end.points.map(p => ptAbs(play, p))]);
+      d = delayedPathD(d, delayRanges(route, stemLenYd, stemLenYd + len + 1e-6, 0, 1.5 * PPY));
+    }
     parts.push({ d, opts: { color, dashed: end.style === "dashed", width: 2 } });
   });
   return parts;
@@ -2731,8 +2839,19 @@ const DRAW_LIMITS = {
   revWin: 0.5,        //   … gemessen über je 0,5 yd vor und nach dem Punkt; Rücklauf mind. revMin lang
   revMin: 0.4,
   revOffset: 0.8,     // Rücklauf fast auf derselben Linie → seitlich so weit versetzt, damit er sichtbar ist
-  leadIn: 1.0,        // Ansatz am Spieler: Rohpunkte näher als 1 yd am Spieler entfallen (Zittern beim Ansetzen,
-                      //   Nutzer 19.10.2026) – die Route läuft vom Spieler direkt zum ersten Punkt danach
+  leadIn: 1.0,        // Ansatz: Rohpunkte näher als 1 yd am Aufsetzpunkt entfallen (Zittern beim Ansetzen, Nutzer 19.10.2026).
+                      //   Seit P34 wird der Strich so geglättet, wie er gezeichnet wurde, und erst danach auf den Spieler
+                      //   gesetzt – der Versatz Finger ↔ Spieler (am Handy oft 1–1,8 yd) erzeugt so keinen Zacken mehr
+  delayLen: 2,        // Delay (P34): kurzes Zickzack-Stück, 2 yd lang, an beliebiger Stelle der Route (route.delays)
+  delayMin: 1,        //   Mitte frühestens 1 yd nach dem Start …
+  delayTail: 1.5,     //   … und spätestens 1,5 yd vor der Pfeilspitze
+  delayHit: 1.5,      //   Antippen näher als 1,5 yd an einem vorhandenen Delay entfernt es
+  delayMax: 4,        //   höchstens 4 je Route
+  zigTurn: 70,        // Erkennung gezeichneter Zickzacks: Knick ≥ 70° mit wechselnder Richtung …
+  zigSeg: 3,          //   … Zacken 0,4–3 yd lang (am Handy ist 1 yd nur ca. 2 mm) …
+  zigMinSeg: 0.4,
+  zigTeeth: 3,        //   … mindestens 3 Knicke hintereinander
+  zigTol: 0.2,        //   Vereinfachung, auf der die Knicke gesucht werden
   tailMax: 1.0,       // Haken am Strichende kürzer als 1 yd, der deutlich abknickt (> tailDeg), wird abgeschnitten:
   tailDeg: 60,        //   Finger am Ende leicht zurückbewegt → Pfeil zeigt trotzdem in Routenrichtung (Nutzer 19.10.2026)
   minStep: 0.15,      // Rohpunkte näher als das werden verworfen
@@ -3134,23 +3253,109 @@ function suggestsComeback(points) {
   return a.y > 1 && dy < -1 && dy / len < -0.45;
 }
 
-// Route aus einem Strich, Start = Spieler beim Snap. Letzter Punkt wird das (solide) Ending, der Rest der Stem.
-// Ansatz bereinigen: alles im Umkreis von leadIn um den Startpunkt fällt weg (dort ist der Strich beim Aufsetzen
-// meist zittrig und erzeugt Ecken direkt am Spieler). Kurze Striche, die den Umkreis nie verlassen, bleiben.
+// Ansatz bereinigen: alles im Umkreis von leadIn um den Aufsetzpunkt fällt weg (dort ist der Strich beim Aufsetzen
+// meist zittrig). Kurze Striche, die den Umkreis nie verlassen, bleiben. Ohne at: Aufsetzpunkt = erster Rohpunkt.
 function cleanLeadIn(start, raw, L = DRAW_LIMITS) {
   const i = raw.findIndex((p) => Math.hypot(p.x - start.x, p.y - start.y) > L.leadIn);
   return i < 0 ? [start, ...raw.slice(1)] : [start, ...raw.slice(i)];
 }
+// Bogenlänge (yd) bis zum Punkt p auf einer Punktkette (Projektion)
+function arcAt(chain, p) {
+  const pr = projectOnChain(chain, p);
+  let s = 0;
+  for (let i = 0; i < pr.i; i++) s += Math.hypot(chain[i + 1].x - chain[i].x, chain[i + 1].y - chain[i].y);
+  return s + Math.hypot(pr.q.x - chain[pr.i].x, pr.q.y - chain[pr.i].y);
+}
+// Gezeichnete Zickzacks im Strich finden (P34, Variante a): mindestens zigTeeth kurze Zacken mit wechselnder Richtung.
+// Das Stück wird durch eine Gerade über die Mitten der äußeren Zacken ersetzt (die Glättung danach kennt keine Zacken
+// mehr) – zurück kommen die Punkte und die Mittelpunkte der Zickzacks (daraus werden route.delays).
+function resample(pts, step) {
+  const out = [{ ...pts[0] }];
+  let carry = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], l = Math.hypot(b.x - a.x, b.y - a.y);
+    for (let d = step - carry; d <= l; d += step) out.push({ x: a.x + (b.x - a.x) * d / l, y: a.y + (b.y - a.y) * d / l });
+    carry = (carry + l) % step;
+  }
+  const e = pts.at(-1); if (Math.hypot(e.x - out.at(-1).x, e.y - out.at(-1).y) > 1e-6) out.push({ ...e });
+  return out;
+}
+function findZigzags(pts0, L = DRAW_LIMITS) {
+  if (pts0.length < 3 || strokeLength(pts0) < 2) return { points: pts0, centers: [] };
+  // Suche auf einer gleichmäßig abgetasteten, geglätteten Fassung (gleitender Mittelwert), damit Zittern keine Zacken bildet
+  const pts = resample(pts0, L.minStep);
+  const sm = pts.map((p, i) => { const w = pts.slice(Math.max(0, i - 2), i + 3); return { x: w.reduce((a, q) => a + q.x, 0) / w.length, y: w.reduce((a, q) => a + q.y, 0) / w.length, i }; });
+  const v = rdp(sm, L.zigTol), n = v.length, seg = (i) => Math.hypot(v[i + 1].x - v[i].x, v[i + 1].y - v[i].y);
+  const turn = (i) => { const a = v[i - 1], b = v[i], c = v[i + 1]; const cr = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x); return Math.sign(cr) * turnDeg(a, b, c); };
+  const tooth = (i) => seg(i) >= L.zigMinSeg && seg(i) <= L.zigSeg;
+  // Knick einer Zacke: scharf, mindestens einer der beiden Schenkel ist ein Zahn (der Ansatz davor/danach darf lang sein)
+  const sharp = (i) => Math.abs(turn(i)) >= L.zigTurn && (tooth(i - 1) || tooth(i)) && seg(i - 1) >= L.zigMinSeg && seg(i) >= L.zigMinSeg;
+  const runs = [];
+  for (let i = 1; i < n - 1; i++) {
+    if (!sharp(i)) continue;
+    const r = runs.at(-1);
+    if (r && r.b === i - 1 && tooth(i - 1) && Math.sign(turn(i)) !== Math.sign(turn(i - 1))) r.b = i; else runs.push({ a: i, b: i });
+  }
+  const zz = runs.filter((r) => r.b - r.a + 1 >= L.zigTeeth);
+  if (!zz.length) return { points: pts0, centers: [] }; // nichts gefunden: Strich bleibt unverändert
+  const mid = (p, q) => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 });
+  const out = [], centers = [];
+  let k = 0;
+  for (const r of zz) {
+    const m1 = mid(v[r.a], v[r.a + 1]), m2 = mid(v[r.b - 1], v[r.b]);
+    out.push(...pts.slice(k, v[r.a - 1].i + 1), m1, m2); // Ansatz bis vor die erste Zacke, dann über die Mitten
+    centers.push(mid(m1, m2));
+    k = v[r.b + 1].i;
+  }
+  out.push(...pts.slice(k));
+  return { points: out, centers };
+}
+// Delays (P34) auf einer Route: { at } = Mitte des Zickzacks in yd entlang Stem + primärem Ending ab dem Start
+function chainLength(rt) { return strokeLength(primaryChain(rt)); }
+function cleanDelays(rt, list) {
+  const T = chainLength(rt), L = DRAW_LIMITS;
+  const out = [];
+  for (const at of list.map((d) => Math.round(Math.min(Math.max(d, L.delayMin), T - L.delayTail) * 10) / 10).sort((a, b) => a - b))
+    if (T >= L.delayMin + L.delayTail && (!out.length || at - out.at(-1) >= L.delayLen)) out.push(at);
+  return out.slice(0, L.delayMax);
+}
+function setDelays(rt, list) {
+  const d = cleanDelays(rt, list);
+  if (d.length) rt.delays = d.map((at) => ({ at })); else delete rt.delays;
+  return rt;
+}
+// Werkzeug „Delay“: Stelle auf der Route antippen → Delay dort; Antippen eines vorhandenen entfernt es.
+// Gibt { route, error, removed } zurück.
+function toggleDelay(rt, p, { maxD = DRAW_LIMITS.snapEnd } = {}) {
+  const r = dClone(rt), chain = primaryChain(r), L = DRAW_LIMITS;
+  if (projectOnChain(chain, p).d > maxD) return { route: rt, error: "Tap on the route where the delay should be." };
+  const at = arcAt(chain, p), cur = (r.delays || []).map((d) => d.at);
+  const hit = cur.findIndex((x) => Math.abs(x - at) < L.delayHit);
+  if (hit >= 0) { cur.splice(hit, 1); return { route: setDelays(r, cur), error: null, removed: true }; }
+  if (chainLength(r) < L.delayMin + L.delayTail) return { route: rt, error: "This route is too short for a delay." };
+  if (cur.length >= L.delayMax) return { route: rt, error: `At most ${L.delayMax} delays per route.` };
+  const before = cur.length;
+  setDelays(r, [...cur, at]);
+  if ((r.delays || []).length === before) return { route: rt, error: "Too close to the next delay – tap a bit further away." };
+  return { route: r, error: null, removed: false };
+}
+// Route aus einem Strich, Start = Spieler beim Snap. Letzter Punkt wird das (solide) Ending, der Rest der Stem.
+// P34: gezeichnete Zickzacks werden zu Delays; der Strich wird so geglättet, wie er gezeichnet wurde (ab dem Aufsetzpunkt),
+// und erst danach beginnt die Route am Spieler – der Abstand Finger ↔ Spieler wird nicht mehr zum Knick.
 function routeFromStroke(start, raw, { color = "#000000", mode = "auto" } = {}) {
-  const s = simplifyStroke(cleanLeadIn(start, raw), DRAW_LIMITS, mode);
+  if (!raw.length) return null;
+  const zz = findZigzags(thinPoints(raw, DRAW_LIMITS.minStep));
+  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points), DRAW_LIMITS, mode);
   const pts = s.points; pts[0] = pt(start);
   if (pts.length < 2) return null;
   const stem = pts.slice(0, -1), last = pts.at(-1);
-  return {
+  const rt = {
     color: color || "#000000",
     stem: { points: stem, shape: s.shape },
     endings: [{ points: [last], style: "solid", shape: "straight", ...(suggestsComeback(pts) ? { is_comeback: true } : {}) }],
   };
+  if (zz.centers.length) setDelays(rt, zz.centers.map((c) => arcAt(pts, c)));
+  return rt;
 }
 
 // Endpunkt eines Endings bzw. der Route (primäres Ending)
@@ -3164,15 +3369,20 @@ function primaryChain(rt) { const e = (rt.endings || []).find((x) => x.style !==
 // Strich am Ende einer Route mit Werkzeug „Route“ → Fortsetzung (Route wird länger, Optionen entfallen)
 function extendRoute(rt, raw, { mode = "auto" } = {}) {
   const chain = primaryChain(rt);
-  const s = simplifyStroke([chain.at(-1), ...raw.slice(1)], DRAW_LIMITS, mode);
+  // wie routeFromStroke: Strich ab dem Aufsetzpunkt glätten, dann an das Routenende hängen (P34)
+  const zz = findZigzags(thinPoints(raw, DRAW_LIMITS.minStep));
+  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points), DRAW_LIMITS, mode);
   const all = [...chain, ...s.points.slice(1)];
   if (all.length < 2) return rt;
   const shape = mode === "curved" ? "curved" : mode === "straight" ? "straight" : s.shape === "straight" || rt.stem.shape === "straight" ? "straight" : "curved";
-  return {
+  const out = {
     color: rt.color || "#000000",
     stem: { points: all.slice(0, -1), shape },
     endings: [{ points: [all.at(-1)], style: "solid", shape: "straight", ...(suggestsComeback(all) ? { is_comeback: true } : {}) }],
   };
+  const L0 = strokeLength(chain), sp = [chain.at(-1), ...s.points.slice(1)];
+  const ds = [...(rt.delays || []).map((d) => d.at), ...zz.centers.map((c) => L0 + arcAt(sp, c))];
+  return ds.length ? setDelays(out, ds) : out;
 }
 // Nächster Punkt auf einer Punktkette: { i (Abschnitt i → i+1), q, d, t (0–1 im Abschnitt) }
 function projectOnChain(chain, p) {
@@ -3317,7 +3527,7 @@ function finishDrawPlay(play, { concept = null, comment = null, situation, sourc
   return p;
 }
 
-return { DRAW_LIMITS, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, simplifyStroke, suggestsComeback, cleanLeadIn, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
+return { DRAW_LIMITS, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
@@ -3701,14 +3911,14 @@ return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMar
 })();
 
 // Grundgerüst der Seite (Modul core, P25c Schritt 2): gemeinsamer Zustand S, Hilfen ($, esc, val), Play-Hilfen (Saison,
-// Tiefe S-I-D, Namensvergleich, Chip, Grafik), Simple/Expert-Modus, Reiter mit render() und setTab(). Alle anderen Teile
+// Tiefe S-I-D, Namensvergleich, Chip, Grafik), Klappbereiche der Detailansicht (P32), Reiter mit render() und setTab(). Alle anderen Teile
 // importieren das hier.
 // core ruft Funktionen der übrigen Teile (Katalog, Heatmap, Drafts, Draw, Coverages, Matchups, Game log) nicht direkt auf,
 // sondern über ui – die Teile tragen sie mit registerUi() ein. Direkte Aufrufe würde Rollup beim Zusammenfassen
 // umbenennen (Name mit angehängtem $1) und damit ins Leere zeigen lassen. Über ui rufen auch die Module die Teile auf, die
 // später abschaltbar sein sollen (Coverages, Matchups); fehlen sie, greifen die Ersatz-Funktionen in ui.
 // Datenbank: die Module melden ihre Listener mit onDb() an, der Datenbank-Block in app/main.js ruft sie auf.
-// Auf Ladezeit wirkende Anmeldungen (Klick-Handler, gemerkter Modus) laufen erst mit initModus()/initReiter() – die ruft
+// Auf Ladezeit wirkende Anmeldungen (Klick-Handler, gemerkte Klappbereiche) laufen erst mit initAnsicht()/initReiter() – die ruft
 // app/main.js an der alten Stelle auf, damit die Reihenfolge beim Start gleich bleibt.
 
 
@@ -3810,7 +4020,7 @@ const ui = {
   covDetailRender(){
     const p = (S.plays || []).find(x => x.play_id === S.detailId); if (!p) return;
     if ($("dCov")) $("dCov").hidden = true;
-    $("dField").innerHTML = S.editing || isSimple() ? svgFor(p) : ui.svgDetail(p);
+    $("dField").innerHTML = S.editing ? svgFor(p) : ui.svgDetail(p);
   },
   muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){},
 };
@@ -3840,28 +4050,35 @@ function onDb(art, h){
 const playDocIds = [];
 function onPlayDoc(fn){ playDocIds.push(fn); }
 
-// ---------- Simple/Expert-Modus ----------
-// Standard Simple, Wahl wird pro Browser gemerkt. Filter werden beim Wechsel NICHT zurückgesetzt; ist im
-// Simple-Modus ein ausgeblendeter Filter aktiv (auch per Klick in der Analyse), zeigt eine Zeile ihn zum Entfernen.
+// ---------- Ohne Simple/Expert (P32) ----------
+// Den globalen Schalter gibt es nicht mehr: erweiterte Funktionen sind dort ausklappbar, wo sie gebraucht werden (More filters,
+// Options der Heatmap, Matchups, Bereiche der Detailansicht). Jeder Bereich merkt sich pro Browser, ob er offen ist.
+// Übernahme: wer zuletzt Expert hatte (playbook-view-mode), bekommt „More filters“ und „Options“ einmalig offen; der alte
+// Schlüssel wird danach entfernt. Gefilterte Werte bleiben nie unsichtbar aktiv: zugeklappt stehen sie als Chips da.
 const MODE_KEY = "playbook-view-mode";
-function isSimple(){ return document.body.classList.contains("simple"); }
-function setMode(m, save){
-  document.body.classList.toggle("simple", m !== "expert");
-  // Schalter im Kopf und in der Detailansicht (P24 Punkt 2) zeigen immer denselben Modus
-  ["modeSeg", "dModeSeg"].forEach(id => $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === (m === "expert" ? "expert" : "simple"))));
-  if (save) { try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* ohne Speicher: nur für diese Sitzung */ } }
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* nur Komfort */ } };
+function migrateMode(){
+  const m = lsGet(MODE_KEY); if (m == null) return;
+  if (m === "expert") ["playbook-filters-open", "playbook-zopts-open"].forEach(k => { if (lsGet(k) == null) lsSet(k, "1"); });
+  lsSet(MODE_KEY, null);
 }
-function onModeClick(e){
-  const b = e.target.closest("button"); if (!b) return;
-  if (e.currentTarget.id === "dModeSeg" && recentMultiTouch()) return; // iPhone: Zoom-Geste löst sonst einen Klick aus
-  setMode(b.dataset.v, true);
-  if (S.tab === "cov" && isSimple()) setTab("katalog"); else if (S.tab === "zonen") setTab(S.tab); else render(); // Analysis: Matchups ein-/ausblenden
-  if (!$("overlay").hidden && S.detailId && !S.editing){ ui.logDetailRender(); ui.covDetailRender(); ui.detailNavUpdate(); } // Defense und Game log nur im Expert-Modus
-}
-function initModus(){
-  $("modeSeg").addEventListener("click", onModeClick);
-  $("dModeSeg").addEventListener("click", onModeClick); // gleicher Schalter in der Detailansicht (P24 Punkt 2)
-  (() => { let m = "simple"; try { m = localStorage.getItem(MODE_KEY) || "simple"; } catch (e) {} setMode(m, false); })();
+// Bereiche der Detailansicht (Game log, Defense, JSON): <details class="dsec" data-sec>, Standard zu (Nutzer 26.10.2026)
+const secKey = (el) => "playbook-sec-" + el.dataset.sec;
+function initAnsicht(){
+  migrateMode();
+  document.querySelectorAll("details.dsec[data-sec]").forEach(el => {
+    el.open = lsGet(secKey(el)) === "1";
+    el.addEventListener("toggle", () => {
+      if (!(el.dataset.sec === "cov" && S.rev)) lsSet(secKey(el), el.open ? "1" : "0"); // Review öffnet „Defense“ nur vorübergehend
+      if ($("overlay").hidden || !S.detailId || S.editing) return;
+      if (el.dataset.sec === "log"){ ui.logDetailRender(); ui.covDetailRender(); } // Zahlen an den Routenenden nur bei offenem Game log
+      else if (el.dataset.sec === "cov") ui.covDetailRender();
+    });
+    // ohne Inhalt (innerer Bereich hidden) ganz ausblenden – auch in Browsern ohne CSS :has()
+    const inner = el.querySelector(".dcov");
+    if (inner) new MutationObserver(() => { el.hidden = inner.hidden; }).observe(inner, { attributes: true, attributeFilter: ["hidden"] });
+  });
 }
 
 // ---------- Render & Reiter ----------
@@ -3870,17 +4087,17 @@ function render(){
   if (S.tab === "drafts"){ $("hiddenF").hidden = true; ui.renderDrafts(); return; }
   if (S.tab === "draw"){ $("hiddenF").hidden = true; ui.wInit(); ui.wRender(); return; }
   if (S.tab === "cov"){ $("hiddenF").hidden = true; ui.renderCovTab(); return; }
-  ui.refreshFilters(); ui.updateReset(); ui.updateHiddenHint(); if (S.tab === "katalog") ui.renderGrid(); else { ui.renderZones(); ui.updatePdfBtn(); if (!isSimple()) ui.renderMatchups(); } // P28.3: Matchups unter der Heatmap
+  ui.refreshFilters(); ui.updateReset(); ui.updateHiddenHint(); if (S.tab === "katalog") ui.renderGrid(); else { ui.renderZones(); ui.updatePdfBtn(); ui.renderMatchups(); } // P28.3: Matchups unter der Heatmap
 }
 
 function setTab(t){
-  if ((t === "drafts" || t === "draw" || t === "cov") && !(S.owner && S.db)) t = "katalog";
+  if ((t === "drafts" || t === "draw") && !(S.owner && S.db)) t = "katalog";
+  if (t === "cov" && !S.db) t = "katalog"; // Coverages (P32): auch Betrachter, nur lesen
   if (!$("view-" + t) && t !== "mu") t = "katalog"; // Reiter eines ausgeschalteten Moduls (Coverages)
-  if (t === "mu") t = "zonen"; // P28.3: Analysis = Heatmap, im Expert-Modus darunter Matchups (kein eigener Zustand mehr)
-  if (t === "cov" && isSimple()) t = "katalog"; // Coverages nur im Expert-Modus
+  if (t === "mu") t = "zonen"; // P28.3: Analysis = Heatmap, darunter Matchups (kein eigener Zustand mehr)
   S.tab = t;
   ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", t === x); });
-  if ($("view-mu")) $("view-mu").hidden = t !== "zonen" || isSimple();
+  if ($("view-mu")) $("view-mu").hidden = t !== "zonen";
   $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || S.plays.length === 0; // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
   $("fFieldCtl").hidden = t === "zonen"; // in Analysis steuert der Feldtyp-Schalter der Heatmap (gilt auch für Matchups)
   if (t === "zonen" && ["Endzone", "Open Field"].includes($("fField").value)) ui.setZField($("fField").value);
@@ -4096,7 +4313,7 @@ const targetKeys = (p) => uniq(playEntries(p).map(LOG.targetKey));
 const downKeys = (p) => uniq(playEntries(p, undefined, "").map(LOG.downKey));
 
 // ---------- Gegner, Einsätze und Targets (Backlog P16, spec §7e) ----------
-// Pro Play ein Dokument settings/play-log-<Play-ID> ({ play_id, entries }). Nur Expert-Modus; ändern darf nur der
+// Pro Play ein Dokument settings/play-log-<Play-ID> ({ play_id, entries }). Bereich „Game log“ der Detailansicht; ändern darf nur der
 // Besitzer (Betrachter sehen Zahlen, Filter und Heatmap-Schalter). Neue Gegner aus einem Einsatz kommen auch in
 // play.opponents. Kern: scripts/lib/einsatz.mjs (LOG).
 function logFromSettings(docs){
@@ -4114,11 +4331,11 @@ function usesChip(p){
   const n = playEntries(p).length;
   return n ? `<span class="chip uses" title="Used ${n}× (game log${$("fOpp").value ? ", this opponent" : ""}): ${esc(LOG.summary(playEntries(p)).text)}">${n}×</span>` : "";
 }
-// Zahlen an den angeworfenen Routenenden (Detailansicht, Expert); Gegner-Filter gilt
+// Zahlen an den angeworfenen Routenenden (Detailansicht, Bereich „Game log“ offen); Gegner-Filter gilt
 // Zahlen in der Grafik nur auf Wunsch (Schalter im Game log, pro Browser gemerkt, Standard aus – Nutzer 20.10.2026)
 const LG_SHOW_KEY = "playbook-log-counts";
 function detailCounts(p){
-  if (isSimple() || S.editing || !p || !S.lgShow) return null;
+  if (S.editing || !p || !S.lgShow || !$("dLogSec")?.open) return null; // P32: nur bei offenem Bereich „Game log“
   const c = LOG.targetPicks(p, playEntries(p)).map(t => ({ ...LOG.targetEnd(p, t.target, t.ending), n: t.n })).filter(x => Number.isFinite(x.x) && Number.isFinite(x.y));
   return c.length ? c : null;
 }
@@ -4138,13 +4355,14 @@ function lgDefaultOpp(p){
 }
 function logDetailRender(){
   const box = $("dLog"), p = S.plays.find(x => x.play_id === S.detailId);
-  if (!p || !S.lg || S.lg.id !== p.play_id || S.editing || isSimple()){ box.hidden = true; lgTapClass(); return; }
+  if (!p || !S.lg || S.lg.id !== p.play_id || S.editing){ box.hidden = true; lgTapClass(); return; }
   const ed = logCanEdit(), log = logOf(p), all = log?.entries || [], op = $("fOpp").value, dn = $("fDown").value, shown = LOG.entriesFor(log, op, dn);
   if (!ed && !all.length){ box.hidden = true; lgTapClass(); return; }
   box.hidden = false;
   if (S.lg.opp === undefined || (S.lg.opp && !oppsOf(p).includes(S.lg.opp))) S.lg.opp = lgDefaultOpp(p);
   const opName = (o) => o === LOG.NO_OPPONENT ? "unknown opponent" : o;
-  let h = `<h3>Game log</h3>` + (all.length ? `<label class="chk"><input type="checkbox" data-lgc="show"${S.lgShow ? " checked" : ""}> Show targets on the graphic</label>` : "") + `<p class="lgsum">${shown.length ? `<b>${esc(LOG.summary(shown).text)}</b>` : all.length ? (dn && !op ? "Not used on this down yet." : "Not used against this opponent yet.") : "Not recorded yet."}${(op || dn) && all.length !== shown.length ? ` <span class="note">${[op ? "vs " + esc(opName(op)) : "", dn ? esc(dn === LOG.NO_DOWN ? "no down" : dn) : ""].filter(Boolean).join(" · ")} · ${all.length} in total</span>` : ""}${shown.length && LOG.downSummary(shown) ? `<br><span class="note">Downs: ${esc(LOG.downSummary(shown))}</span>` : ""}</p>`;
+  $("dLogSum").textContent = shown.length ? LOG.summary(shown).text : all.length ? `${all.length}× (other filter)` : "";
+  let h = (all.length ? `<label class="chk"><input type="checkbox" data-lgc="show"${S.lgShow ? " checked" : ""}> Show targets on the graphic</label>` : "") + `<p class="lgsum">${shown.length ? `<b>${esc(LOG.summary(shown).text)}</b>` : all.length ? (dn && !op ? "Not used on this down yet." : "Not used against this opponent yet.") : "Not recorded yet."}${(op || dn) && all.length !== shown.length ? ` <span class="note">${[op ? "vs " + esc(opName(op)) : "", dn ? esc(dn === LOG.NO_DOWN ? "no down" : dn) : ""].filter(Boolean).join(" · ")} · ${all.length} in total</span>` : ""}${shown.length && LOG.downSummary(shown) ? `<br><span class="note">Downs: ${esc(LOG.downSummary(shown))}</span>` : ""}</p>`;
   if (ed){
     const opps = oppsOf(p);
     h += `<div class="row lgopp"><label for="lgOpp">vs</label><select id="lgOpp">${["", ...opps].map(o => `<option value="${esc(o)}"${o === S.lg.opp ? " selected" : ""}>${o ? esc(o) : "unknown opponent"}</option>`).join("")}<option value="__new">+ new opponent …</option></select>` +
@@ -4270,8 +4488,8 @@ function tgTapBind(root, sel, ctx){
   });
   root.addEventListener("contextmenu", (e) => { const f = e.target.closest(sel); if (f && ctx(f)) e.preventDefault(); });
 }
-// Detailansicht (Expert, Besitzer): Target ins Game log
-const lgTapOn = () => logCanEdit() && !isSimple() && !S.editing && !S.cd?.mu && !!S.lg && S.lg.id === S.detailId && !$("overlay").hidden;
+// Detailansicht (Besitzer, Game log offen): Target ins Game log
+const lgTapOn = () => logCanEdit() && !!$("dLogSec")?.open && !S.editing && !S.cd?.mu && !!S.lg && S.lg.id === S.detailId && !$("overlay").hidden;
 function lgTapClass(){ $("dField").classList.toggle("lgtap", lgTapOn()); }
 
 // Zustand, Klick-Handler im Game log und Route antippen in der Detailansicht – aufgerufen von app/main.js an der alten Stelle
@@ -4571,6 +4789,7 @@ const W_CONCEPTS = EDIT_FIELDS.find(([k]) => k === "play_concept")[2].filter(c =
 const W_HELP = {
   route: "Draw from a player (or from the end of a route to make it longer). Tap a player to select it. Line: Auto takes the shape from your stroke, Curve draws smooth arcs, Straight clear cuts.",
   option: "Draw from the point where the route branches off – the new line becomes a dashed option with its own arrow.",
+  delay: "Tap a route where the receiver delays (stutter, hook & go) – a short zigzag appears there. Tap it again to remove it. A clear zigzag you draw yourself becomes a delay, too.",
   motion: "Draw the pre-snap motion from a player. The route then starts where the motion ends.",
   ball: "Ball path: draw from C to the player who gets the snap (side snap / pitch), or from the QB to a player (handoff).",
   move: "Drag players to a new position (sideways or into the backfield). With a pen, your finger always moves players."
@@ -4696,7 +4915,7 @@ function wAfterRestore(){ if (S.w.sel && !Z.playerRef(S.w.play, S.w.sel)) S.w.se
 function wStrokeSvg(){
   const st = S.w.stroke; let h = "";
   if (S.w.sel){ const sp = wSpots().find(([k]) => k === S.w.sel); if (sp){ const [x, y] = wPx(sp[1]); h += `<circle cx="${x}" cy="${y}" r="10.5" fill="none" stroke="#2c6a3f" stroke-width="2" stroke-dasharray="3 2"/>`; } }
-  if (st && st.mode !== "move" && st.pts.length > 1) h += `<polyline points="${st.pts.map(p => wPx(p).map(v => v.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="${st.mode === "ball" ? "#8b5e34" : st.mode === "motion" ? "#999" : "#2c6a3f"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" ${st.mode === "option" || st.mode === "motion" ? `stroke-dasharray="5 4"` : ""} opacity=".85"/>`;
+  if (st && st.mode !== "move" && st.mode !== "delay" && st.pts.length > 1) h += `<polyline points="${st.pts.map(p => wPx(p).map(v => v.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="${st.mode === "ball" ? "#8b5e34" : st.mode === "motion" ? "#999" : "#2c6a3f"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" ${st.mode === "option" || st.mode === "motion" ? `stroke-dasharray="5 4"` : ""} opacity=".85"/>`;
   $("wOver").innerHTML = h;
 }
 function wRenderField(){ $("wFieldSvg").innerHTML = svgFor(S.w.play); wStrokeSvg(); }
@@ -4733,6 +4952,16 @@ function wOnUp(e){
     if (st.who){ if (len < 0.3 && st.pushed) S.w.undo.pop(); else wFormFromLineup(); S.w.sel = st.who; }
     else if (len < 0.5) S.w.sel = wHit(p0, 1.6) || null;
     wRender(); return;
+  }
+  if (st.mode === "delay"){ // Delay (P34): Stelle auf einer Route antippen → kurzes Zickzack dort, erneut antippen entfernt es
+    const onRoute = Z.routeAt(play, p0, 1.2);
+    if (!onRoute){ wMsg("Tap on a route where the delay should be.", true); wRender(); return; }
+    const k = onRoute.who, r = Z.toggleDelay(Z.getRoute(play, k), p0, { maxD: 1.2 });
+    if (r.error){ wMsg(r.error, true); wRender(); return; }
+    const prev = wRawOk(k);
+    wChange(pl => Z.setRoute(pl, k, r.route));
+    if (prev) wRawSet(k, prev.start, prev.raw);
+    S.w.sel = k; wMsg(r.removed ? "Delay removed." : "Delay added – tap it again to remove it."); wRender(); return;
   }
   if (len < Z.DRAW_LIMITS.minLen){ // Antippen: Spieler (oder seine Route) auswählen
     S.w.sel = wHit(p0, 1.6) || Z.routeAt(play, p0, 1)?.who || null; wRender(); return;
@@ -4788,7 +5017,8 @@ function wRenderSel(){
     if (rt){
       const e = rt.endings.find(x => x.style !== "dashed") || rt.endings[0], shape = rt.stem.shape || "curved";
       h += `<div class="row"><button class="btn${e.is_comeback ? " on" : ""}" type="button" data-wact="comeback" aria-pressed="${!!e.is_comeback}" title="Arrow points back towards the LOS (hitch/comeback)">Comeback ^</button>` +
-        `<div class="seg" role="group" aria-label="Line"><button type="button" data-wshape="curved" aria-pressed="${shape === "curved"}">Curve</button><button type="button" data-wshape="straight" aria-pressed="${shape === "straight"}">Straight</button><button type="button" data-wshape="zigzag" aria-pressed="${shape === "zigzag"}" title="Delay / stutter">Zigzag</button></div></div>`;
+        `<div class="seg" role="group" aria-label="Line"><button type="button" data-wshape="curved" aria-pressed="${shape === "curved"}">Curve</button><button type="button" data-wshape="straight" aria-pressed="${shape === "straight"}">Straight</button>${shape === "zigzag" ? `<button type="button" data-wshape="zigzag" aria-pressed="true" title="Older plays: the whole line as zigzag – for a short delay use the Delay tool">Zigzag</button>` : ""}</div>` +
+        (rt.delays?.length ? `<button class="btn" type="button" data-wact="deldelays" title="Remove the zigzag (delay) from this route">Remove delay${rt.delays.length > 1 ? "s" : ""}</button>` : "") + `</div>`;
       h += `<div class="row"><button class="btn" type="button" data-wact="delroute">Delete route</button>${rt.endings.length > 1 ? `<button class="btn" type="button" data-wact="delopt">Delete last option</button>` : ""}`;
     } else h += `<p class="note" style="margin:0">No route yet – draw one from this player.</p><div class="row">`;
     if (p?.motion?.points?.length) h += `<button class="btn" type="button" data-wact="delmotion">Delete motion</button>`;
@@ -5114,7 +5344,7 @@ function initDraw(){
       const shape = t.dataset.wshape, c = wRawOk(who), old = Z.getRoute(S.w.play, who);
       if (c && shape !== "zigzag" && old.endings.length === 1){
         const nr = Z.routeFromStroke(c.start, c.raw, { mode: shape, color: old.color });
-        if (nr){ const ce = !!(old.endings[0].is_comeback); if (ce) nr.endings[0].is_comeback = true; else delete nr.endings[0].is_comeback; }
+        if (nr){ const ce = !!(old.endings[0].is_comeback); if (ce) nr.endings[0].is_comeback = true; else delete nr.endings[0].is_comeback; Z.setDelays(nr, (old.delays || []).map(d => d.at)); }
         if (nr && wChange(pl => Z.setRoute(pl, who, nr))) wRawSet(who, c.start, c.raw);
       } else wChange(pl => Z.setStemShape(Z.getRoute(pl, who), shape));
     }
@@ -5122,6 +5352,7 @@ function initDraw(){
     else if (t.dataset.whand) { S.w.handoffType = t.dataset.whand; wChange(pl => { pl.qb_handoff.type = t.dataset.whand; }); }
     else if (t.dataset.wact === "comeback" && who) wChange(pl => Z.toggleComeback(Z.getRoute(pl, who)));
     else if (t.dataset.wact === "delroute" && who) wChange(pl => Z.setRoute(pl, who, null));
+    else if (t.dataset.wact === "deldelays" && who){ const prev = wRawOk(who); wChange(pl => { Z.setDelays(Z.getRoute(pl, who), []); }); if (prev) wRawSet(who, prev.start, prev.raw); }
     else if (t.dataset.wact === "delopt" && who) wChange(pl => { Z.getRoute(pl, who).endings.pop(); });
     else if (t.dataset.wact === "delmotion" && who) wChange(pl => { const p = Z.playerRef(pl, who); delete p.motion; if (who !== "QB") p.is_motion = false; });
     else if (t.dataset.wact === "delball") wChange(pl => Z.clearBallPath(pl));
@@ -5355,7 +5586,7 @@ function buildOfflineHtml(){
   const plays = safe(S.plays);
   // Defense-Coverages (P22) nur, wenn sie beim Speichern angezeigt werden – sonst gehen keine Coverage-Daten mit
   const cov = safe(ui.covActive() ? ui.covExportEntry(S.plays.map(p => p.play_id))?._playbook_settings || null : null);
-  // Einsätze/Targets (P16b) der sichtbaren Plays immer mit (Expert-Ansicht der Datei zeigt sie wie hier)
+  // Einsätze/Targets (P16b) der sichtbaren Plays immer mit (die Datei zeigt sie wie hier)
   const logs = safe(Object.fromEntries(S.plays.map(p => [p.play_id, logOf(p)?.entries]).filter(([, e]) => e && e.length)));
   const js = (PAGE_SRC.script.slice(0, cut) + `\nconst OFFLINE_STAND = ${JSON.stringify(stand)};\nconst OFFLINE_STAMP = ${JSON.stringify(localStamp(now))};\nconst OFFLINE_PLAYS = ${plays};\nconst OFFLINE_MARKS = ${JSON.stringify(S.marks || [])};\nconst OFFLINE_COV = ${cov};\nconst OFFLINE_LOGS = ${logs};\nofflineBoot();\n`).replace(/<\/script/gi, "<\\/script");
   return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">` +
@@ -5592,7 +5823,7 @@ function initExport(){
     $("rGo").onclick = doRestore;
   });
   if (GL_EXPORT) onDb("settings", { detail: updateBackupBar }); // neue Einsätze zählen für den Backup-Hinweis (P25d)
-  onDb("owner", () => { $("importBtn").hidden = !S.owner; }); // JSON-Import: nur Besitzer, nur im Expert-Modus (Klasse xp)
+  onDb("owner", () => { $("importBtn").hidden = !S.owner; }); // JSON-Import: nur Besitzer
   onDb("downloads", (dl) => {
     if (!dl){ S.noDownloads = true; $("exportBtn").hidden = true; $("pdfBtn").hidden = true; return; }
     S.dlReady = true; S.dlSave = (o) => dl.save(o); render();
@@ -5761,6 +5992,17 @@ function losText(p){
 }
 
 
+// P35: Am iPhone kostete der Neuaufbau aller Karten beim Wechsel auf „Catalog“ spürbar Zeit. Deshalb wird die Grafik je
+// Karte gemerkt (Schlüssel = Play + Defense; der Renderer vergibt sonst bei jedem Aufruf neue Masken-IDs), und ist das
+// neue Raster gleich dem zuletzt gesetzten (z. B. Reiterwechsel ohne Änderung), bleibt der DOM stehen.
+let gridHTML = null, svgMemo = new Map();
+function cardSVG(p, used){
+  let key;
+  try { key = JSON.stringify(p) + (ui.covActive() ? JSON.stringify(ui.covDefense(p)) : ""); } catch (e) { return ui.svgCat(p); }
+  const s = svgMemo.get(key) ?? ui.svgCat(p);
+  used.set(key, s);
+  return s;
+}
 function renderGrid(){
   const list = catalogList();
   $("empty").hidden = S.plays.length > 0;
@@ -5773,14 +6015,15 @@ function renderGrid(){
   const sepAt = list.length && !isEZ(list[0]) && !selOnlyOn() ? list.findIndex(isEZ) : -1;
   const sm = S.selMode, selPos = new Map(S.sel.map((id, i) => [id, i + 1]));
   $("grid").classList.toggle("selmode", sm);
-  $("grid").innerHTML = list.map((p, i) => (i === sepAt ? `<div class="ezsep" role="separator" aria-label="Endzone plays"></div>` : "") + `
+  const used = new Map();
+  const html = list.map((p, i) => (i === sepAt ? `<div class="ezsep" role="separator" aria-label="Endzone plays"></div>` : "") + `
     <button class="card${sm && selPos.has(p.play_id) ? " sel" : ""}" type="button" data-id="${esc(p.play_id)}"${sm ? ` aria-pressed="${selPos.has(p.play_id)}"` : ""}>
       ${sm ? `<span class="selbox" aria-hidden="true">${selPos.has(p.play_id) ? "✓" : ""}</span>${selPos.has(p.play_id) ? `<span class="selord" title="Position in the PDF">${selPos.get(p.play_id)}</span>` : ""}` : ""}
-      <div class="field">${ui.svgCat(p)}</div>
-      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${starHTML(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
-      <div class="chips">${isMarked(p) ? `<span class="chip mark">Must-know</span>` : ""}${chip(p, "formation")}${chip(p, "qb_alignment")}${chip(p, "direction")}${chip(p, "play_concept")}${depthOf(p) ? `<span class="chip" title="Depth short-intermediate-deep: ${esc(depthText(p))}">${esc(depthOf(p))}</span>` : ""}${distanceChip(p)}${usesChip(p)}${(S.hidden || []).includes(p.team) ? `<span class="chip hiddenteam" title="This team is hidden for viewers">hidden</span>` : ""}</div>
-      ${p.comment ? `<div class="note">${esc(p.comment)}</div>` : ""}
+      <div class="field">${cardSVG(p, used)}</div>
+      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${starHTML(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
     </button>`).join("");
+  svgMemo = used; // nur die Grafiken des aktuellen Rasters behalten
+  if (html !== gridHTML){ $("grid").innerHTML = html; gridHTML = html; }
   selBarUpdate();
   if (!$("overlay").hidden) detailNavUpdate();
 }
@@ -5791,22 +6034,15 @@ function openDetail(id){
   restoreMeta();
   $("dField").innerHTML = svgFor(p);
   $("dTitle").textContent = p.play_id;
-  const rows = [
-    ...(isMarked(p) ? [["Mark", "★ Must-know"]] : []), ["Team", p.team], ["Season", p.season ?? "–"], ...(oppsOf(p).length ? [["Opponents", oppsOf(p).join(", ")]] : []), ["Field", val(p, "field_type")],
-    ["LOS", losText(p)], ["Formation", val(p, "formation")],
-    ["QB", val(p, "qb_alignment")], ["Direction", val(p, "direction")], ["Concept", val(p, "play_concept")], ["Depth S-I-D", depthText(p)],
-    ["Situation", p.situation ?? "–"], ["Unresolved", (p.unresolved_fields || []).join(", ") || "–"],
-    ["Comment", p.comment || "–"], ...(p._meta?.zusammengelegt?.length ? [["Merged", p._meta.zusammengelegt.join(", ")]] : []), ["Saved", p._meta?.saved_at ? new Date(p._meta.saved_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "–"], ...(p._meta?.edited_at ? [["Edited", new Date(p._meta.edited_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })]] : [])
-  ];
-  $("dMeta").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
-  $("dPre").textContent = JSON.stringify(p, null, 2); $("dPre").hidden = true; $("dJson").textContent = "Show JSON";
   S.detailId = id; S.editing = false; $("dToast").textContent = "";
+  S.chipEdit = null; renderInfo(p);
+  $("dPre").textContent = JSON.stringify(p, null, 2);
   $("dStar").hidden = !(S.owner && S.db); $("dStar").textContent = isMarked(p) ? "★ Must-know" : "☆ Must-know"; $("dStar").setAttribute("aria-pressed", isMarked(p));
-  $("dEdit").hidden = !S.db; $("dSave").hidden = true; $("dCancel").hidden = true; $("dJson").hidden = false;
+  $("dEdit").hidden = !S.db; $("dSave").hidden = true; $("dCancel").hidden = true; $("dJsonSec").hidden = false;
   $("dDraw").hidden = !(S.owner && S.db); $("dUndo").hidden = true;
   if (S.owner && S.db) wUndoInfo(p).then(u => { if (S.detailId === id && !S.editing && u) { $("dUndo").hidden = false; $("dUndo").title = `Restore the version from ${new Date(u.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`; } }).catch(() => {});
-  S.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, nur Expert)
-  ui.covDetailOpen(p); // Defense-Ebene (P22): Grafik mit Defense + Bereich „Defense“ (nur Expert)
+  S.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, Bereich „Game log“)
+  ui.covDetailOpen(p); // Defense-Ebene (P22): Grafik mit Defense + Bereich „Defense“
   $("overlay").hidden = false; detailNavUpdate(); ui.revRender();
   // Fokus auf „×“ oben, ohne zu scrollen (früher „Close“ unten – das scrollte am Handy ans Ende, P24 Punkt 6)
   if (fresh){ $("overlay").scrollTop = 0; try { $("dX").focus({ preventScroll: true }); } catch (e) { /* ohne Fokus */ } }
@@ -5833,6 +6069,58 @@ function detailStep(d){
   openDetail(ids[j]); return true;
 }
 
+// ---------- Play-Details als Chips (P32) ----------
+// Statt der Tabelle: Chips (★ · Formation · QB · Direction · Concept · S-I-D · Field/LOS · Situation · Unresolved), darunter
+// „Team · Season · vs Gegner“, Kommentar und eine graue Fußzeile (Saved/Edited/Merged). Leere Felder entfallen.
+// Besitzer: Antippen eines Chips öffnet die Auswahl dieses Felds – geändert wird nur der Eintrag, nie die Zeichnung.
+const fmtTime = (t) => new Date(t).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+const CHIP_KEYS = ["formation", "qb_alignment", "direction", "play_concept"];
+function infoChip(p, k, text, title, cls){
+  const f = EDIT_FIELDS.find(([x]) => x === k), ed = !!(S.owner && S.db && !S.offline && f);
+  if (ed && S.chipEdit === k){
+    const cur = val(p, k) ?? "Unknown", opts = f[2].includes(cur) ? f[2] : [cur, ...f[2]];
+    return `<select class="dchipsel" data-dk="${k}" aria-label="${esc(f[1])}">${opts.map(v => `<option${v === cur ? " selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+  }
+  return ed ? `<button type="button" class="chip dchip${cls ? " " + cls : ""}" data-dk="${k}" title="${esc(title)} – tap to change (only the entry, not the drawing)">${esc(text)}</button>`
+    : `<span class="chip${cls ? " " + cls : ""}" title="${esc(title)}">${esc(text)}</span>`;
+}
+function renderInfo(p){
+  if (!p || !$("dMeta").classList.contains("dinfo")) return;
+  const NAMES = { formation: "Formation", qb_alignment: "QB", direction: "Direction", play_concept: "Concept" };
+  const unsure = (k) => p[k]?.confidence && p[k].confidence !== "high" ? "unsure" : "";
+  let c = isMarked(p) ? `<span class="chip mark">★ Must-know</span>` : "";
+  for (const k of CHIP_KEYS){ const v = val(p, k); c += infoChip(p, k, v == null || v === "Unknown" ? NAMES[k] + " ?" : v, `${NAMES[k]}: ${v ?? "–"}`, unsure(k)); }
+  if (depthOf(p)) c += `<span class="chip" title="Depth short-intermediate-deep: ${esc(depthText(p))}">${esc(depthOf(p))}</span>`;
+  const ez = val(p, "field_type") === "Endzone", los = p.los_yard_line != null ? `${p.los_yard_line} yd` : ez ? "5 yd" : "";
+  c += infoChip(p, "field_type", [val(p, "field_type") || "Field ?", los].filter(Boolean).join(" · "), `Field: ${val(p, "field_type") || "–"} · LOS ${losText(p)}`, unsure("field_type"));
+  c += distanceChip(p);
+  if (p.situation) c += `<span class="chip" title="Situation">${esc(p.situation)}</span>`;
+  if ((p.unresolved_fields || []).length) c += `<span class="chip unsure" title="Not sure yet – confirm with Edit">Unresolved: ${esc(p.unresolved_fields.join(", "))}</span>`;
+  const line = [p.team, p.season, oppsOf(p).length ? "vs " + oppsOf(p).join(", ") : ""].filter(x => x != null && x !== "").map(esc).join(" · ");
+  const foot = [p._meta?.saved_at ? "Saved " + fmtTime(p._meta.saved_at) : "", p._meta?.edited_at ? "Edited " + fmtTime(p._meta.edited_at) : "", p._meta?.zusammengelegt?.length ? "Merged " + p._meta.zusammengelegt.join(", ") : ""].filter(Boolean).map(esc).join(" · ");
+  $("dMeta").innerHTML = `<div class="chips dchips">${c}</div>` + (line ? `<p class="dline">${line}</p>` : "") + (p.comment ? `<p class="dcomment">${esc(p.comment)}</p>` : "") + (foot ? `<p class="dfoot">${foot}</p>` : "");
+}
+// Ein Feld per Chip ändern: wie „Edit“ – Wert gilt als bestätigt, Korrektur in _meta, Zeichnung bleibt
+async function saveChip(k, v){
+  const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !S.db) return;
+  const cur = val(p, k) ?? "Unknown";
+  S.chipEdit = null;
+  if (v === cur){ renderInfo(p); return; }
+  const patch = { [k]: { value: v, confidence: "high" }, unresolved_fields: (p.unresolved_fields || []).filter(f => f !== k) };
+  if (k === "field_type") patch.depth_distribution = depthDistribution({ ...p, ...patch });
+  patch._meta = { edited_at: new Date().toISOString(), bestaetigt: [...new Set([...(p._meta?.bestaetigt || []), k])], korrekturen: [...(p._meta?.korrekturen || []), `${k}: ${cur} → ${v} (Seite)`] };
+  $("dToast").textContent = "Saving …";
+  try {
+    await S.db.doc("plays/" + (S.docIds.get(p.play_id) || p.play_id)).update(patch);
+    Object.assign(p, patch, { _meta: { ...(p._meta || {}), ...patch._meta } });
+    render(); if (S.detailId === p.play_id && !S.editing){ renderInfo(p); $("dPre").textContent = JSON.stringify(p, null, 2); }
+    $("dToast").textContent = "Saved.";
+  } catch (e) {
+    renderInfo(p);
+    $("dToast").innerHTML = `<span class="err">Not saved: ${esc(e && (e.code === "permission_denied" || e.code === "not_granted") ? "Only the owner can edit plays." : (e && e.message || e))}</span>`;
+  }
+}
+
 // ---------- Bearbeiten (nur feste Schema-Werte, Stand play.schema.json v3.19) ----------
 function startEdit(){
   const p = S.plays.find(x => x.play_id === S.detailId); if (!p) return;
@@ -5850,11 +6138,11 @@ function startEdit(){
   teamListFill();
   $("dMeta").outerHTML = `<div class="edit" id="dMeta">${h}</div>`;
   EDIT_FIELDS.forEach(([k]) => { const sel = $("e_" + k), c = $("c_" + k); if (c) sel.onchange = () => { if (sel.value !== sel.dataset.orig) c.checked = true; }; });
-  $("dEdit").hidden = true; $("dJson").hidden = true; $("dPre").hidden = true; $("dStar").hidden = true; $("dDraw").hidden = true; $("dUndo").hidden = true; logDetailRender(); ui.covDetailRender();
+  $("dEdit").hidden = true; $("dJsonSec").hidden = true; $("dStar").hidden = true; $("dDraw").hidden = true; $("dUndo").hidden = true; logDetailRender(); ui.covDetailRender();
   $("dSave").hidden = false; $("dCancel").hidden = false; $("dToast").textContent = ""; detailNavUpdate();
   $("e_" + EDIT_FIELDS[0][0]).focus();
 }
-function restoreMeta(){ if ($("dMeta").tagName !== "DL") $("dMeta").outerHTML = `<dl id="dMeta"></dl>`; }
+function restoreMeta(){ if (!$("dMeta").classList.contains("dinfo")) $("dMeta").outerHTML = `<div class="dinfo" id="dMeta"></div>`; }
 async function saveEdit(){
   const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !S.db) return;
   const patch = {}, confirmed = [], changes = [];
@@ -5881,7 +6169,7 @@ async function saveEdit(){
     await S.db.doc("plays/" + (S.docIds.get(p.play_id) || p.play_id)).update(patch);
     Object.assign(p, patch, { _meta: { ...(p._meta || {}), ...patch._meta } }); // sofort anzeigen, der Live-Abgleich folgt
     S.editing = false; render(); openDetail(p.play_id);
-    $("dToast").textContent = "Gespeichert.";
+    $("dToast").textContent = "Saved.";
   } catch (e) {
     $("dToast").innerHTML = `<span class="err">Not saved: ${esc(e && (e.code === "permission_denied" || e.code === "not_granted") ? "Only the owner can edit plays." : (e && e.message || e))}</span>`;
   } finally { $("dSave").disabled = false; }
@@ -5889,12 +6177,10 @@ async function saveEdit(){
 function cancelEdit(){ S.editing = false; restoreMeta(); openDetail(S.detailId); }
 function closeDetail(){ $("overlay").hidden = true; S.editing = false; S.cd = null; if (S.rev){ S.rev = null; $("dRev").hidden = true; render(); } }
 
-// ---------- Simple/Expert-Modus ----------
-// Standard Simple, Wahl wird pro Browser gemerkt. Filter werden beim Wechsel NICHT zurückgesetzt; ist im
-// Simple-Modus ein ausgeblendeter Filter aktiv (auch per Klick in der Analyse), zeigt eine Zeile ihn zum Entfernen.
-// Umschalter Simple/Expert: modules/core/index.js (isSimple, initModus)
+// ---------- Zusatzfilter „More filters ▸“ (P28.1, seit P32 für alle) ----------
+// Zugeklappt zeigt eine Zeile aktive Zusatzfilter (auch per Klick in der Analyse gesetzte) zum Entfernen – nichts filtert unsichtbar.
 const HIDDEN_FILTERS = [["fDir", "Direction"], ["fConc", "Concept"], ["fDepth", "Depth"], ["fSeason", "Season"], ["fOpp", "Opponent"], ["fTarget", "Target"], ["fDown", "Down"], ["fSearch", "Search"]];
-// P28.1: Zusatzfilter im Expert-Modus einklappbar, Standard eingeklappt; der Zustand gilt für Plays und Analysis
+// P28.1: Zusatzfilter einklappbar, Standard eingeklappt; der Zustand gilt für Plays und Analysis
 // (gemeinsame Filterzeile) und bleibt bis zum Neuladen erhalten
 function updateFold(){
   $("filters").classList.toggle("fold", !S.filtersOpen);
@@ -5906,7 +6192,7 @@ function updateFold(){
 function updateHiddenHint(){
   const box = $("hiddenF");
   updateFold();
-  if (!isSimple() && S.filtersOpen) { box.hidden = true; return; }
+  if (S.filtersOpen) { box.hidden = true; return; }
   // In der Heatmap zeigt die Auswertung Concept/Depth schon als Chips an
   const list = HIDDEN_FILTERS.filter(([id]) => !(S.tab === "zonen" && (id === "fConc" || id === "fDepth" || id === "fTarget")) && $(id).value.trim() !== "")
     .map(([id, name]) => [id, name, $(id).value.trim()]);
@@ -5935,8 +6221,8 @@ async function toggleMark(id){
 }
 
 // ---------- Play-Auswahl (Backlog P27, spec §7f) ----------
-// Temporär (nicht gespeichert), Reihenfolge = Klickreihenfolge. Simple und Expert: auswählen + PDF;
-// nur Expert: JSON; nur Expert + Besitzer: Must-know, Edit (Saison/Gegner/Team), Delete.
+// Temporär (nicht gespeichert), Reihenfolge = Klickreihenfolge. Alle: auswählen, PDF, JSON;
+// nur Besitzer: Must-know, Edit (Saison/Gegner/Team), Delete.
 const selCanOwn = () => !!(S.owner && S.db);
 function selPrune(){
   if (S.selBusy) return; // während Löschen/Bearbeiten nicht bereinigen: der Live-Abgleich zeigt Zwischenstände (alte ID weg, neue noch nicht übernommen)
@@ -6160,8 +6446,9 @@ async function onTeamAction(e){
 
 // Klick-Handler (Filterzeile, Raster, Auswahl, Detailansicht) – aufgerufen von app/main.js an der alten Stelle
 function initKatalog(){
-  S.filtersOpen = false;
-  $("fMore").onclick = () => { S.filtersOpen = !S.filtersOpen; render(); };
+  // P32: Zustand pro Browser gemerkt (wer Expert hatte, startet offen – migrateMode in core)
+  S.filtersOpen = (() => { try { return localStorage.getItem("playbook-filters-open") === "1"; } catch (e) { return false; } })();
+  $("fMore").onclick = () => { S.filtersOpen = !S.filtersOpen; try { localStorage.setItem("playbook-filters-open", S.filtersOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } render(); };
   $("hiddenF").addEventListener("click", (e) => {
     const b = e.target.closest("[data-hclear]"); if (!b) return;
     const id = b.dataset.hclear;
@@ -6290,7 +6577,18 @@ function initKatalog(){
   $("dEdit").onclick = startEdit; $("dSave").onclick = saveEdit; $("dCancel").onclick = cancelEdit;
   $("overlay").addEventListener("click", (e) => { if (e.target === $("overlay")) closeDetail(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("overlay").hidden) closeDetail(); });
-  $("dJson").onclick = () => { const pre = $("dPre"); pre.hidden = !pre.hidden; $("dJson").textContent = pre.hidden ? "Show JSON" : "Hide JSON"; };
+  // Play-Details als Chips (P32): Antippen (Besitzer) ändert nur den Eintrag, nie die Zeichnung
+  $("overlay").addEventListener("click", (e) => {
+    const b = e.target.closest("button.dchip[data-dk]"); if (!b || !$("dMeta").contains(b) || recentMultiTouch()) return;
+    S.chipEdit = b.dataset.dk; renderInfo(S.plays.find(x => x.play_id === S.detailId));
+    const sel = $("dMeta").querySelector("select[data-dk]"); if (sel){ sel.focus(); try { sel.showPicker?.(); } catch (err) { /* Auswahl öffnet beim Antippen */ } }
+  });
+  $("overlay").addEventListener("change", (e) => { const sel = e.target.closest("select[data-dk]"); if (sel && $("dMeta").contains(sel)) saveChip(sel.dataset.dk, sel.value); });
+  $("overlay").addEventListener("focusout", (e) => {
+    const sel = e.target.closest?.("select[data-dk]"); if (!sel || !$("dMeta").contains(sel)) return;
+    setTimeout(() => { if (S.chipEdit === sel.dataset.dk && document.activeElement !== sel){ S.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, 150);
+  });
+  $("overlay").addEventListener("keydown", (e) => { if (e.key === "Escape" && e.target.matches?.("select[data-dk]")){ e.stopPropagation(); S.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, true);
   // Datenbank (P25c Teil 2b): Plays, Must-know, versteckte Teams, Dialog „Manage teams“
   onDb("db", (db) => {
     db.collection("plays").onSnapshot((snap) => {
@@ -6455,8 +6753,24 @@ const EXAMPLES = [
   ], [[[12.5,0],[12.5,5]], [[[17,5]]]])
 ];
 
+// P32: „Options ▸“ statt Expert-Modus – zugeklappt stehen abweichende Optionen als Chips da (nichts wirkt unsichtbar)
+const Z_OPTS_KEY = "playbook-zopts-open";
+function zOptsSync(){
+  const open = !!S.zOptsOpen, box = $("zOptChips");
+  $("zMore").closest(".controls").classList.toggle("zfold", !open);
+  $("zMore").setAttribute("aria-expanded", String(open));
+  $("zMore").lastChild.textContent = open ? " ▾" : " ▸";
+  const list = [];
+  if (!$("zOpt").checked) list.push(["zOpt", "Option endings not split"]);
+  if ($("zRoutes").checked) list.push(["zRoutes", "Routes shown"]);
+  if (S.zCount !== "plays") list.push(["zCount", S.zCount === "freq" ? "Count: by frequency" : "Count: targets only"]);
+  $("zMoreN").textContent = !open && list.length ? `(${list.length})` : "";
+  box.hidden = open || !list.length;
+  box.innerHTML = box.hidden ? "" : `<span class="lbl">Options</span>` + list.map(([k, t]) => `<button type="button" class="xchip" data-zreset="${k}" title="Back to the default">${esc(t)} <span aria-hidden="true">×</span></button>`).join("");
+}
 function renderZones(){
-  const opt = { field: S.zField, side: S.zSide, weight: isSimple() ? true : $("zOpt").checked, count: isSimple() ? "plays" : S.zCount, opp: $("fOpp").value };
+  zOptsSync();
+  const opt = { field: S.zField, side: S.zSide, weight: $("zOpt").checked, count: S.zCount, opp: $("fOpp").value };
   const g = $("zGroup").value;
   // Noch keine Open-Field-Plays in der Datenbank: Beispiel-Plays zeigen, damit man die Ansicht beurteilen kann
   const demo = opt.field === "Open Field" && !S.plays.some(p => val(p, "field_type") === "Open Field");
@@ -6472,7 +6786,7 @@ function renderZones(){
   const plays = inField(demo ? EXAMPLES : filtered(true));
   const groups = new Map();
   const gAdd = (k, p) => { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); };
-  if (!g || (g === "opponent" && isSimple())) groups.set("All plays", plays);
+  if (!g) groups.set("All plays", plays);
   else if (g === "opponent") plays.forEach(p => oppKeys(p).filter(k => !opt.opp || k.toLowerCase() === opt.opp.toLowerCase()).forEach(k => gAdd(k, p))); // ein Play kann gegen mehrere Gegner laufen
   else plays.forEach(p => gAdd(g === "season" ? seasonOf(p) : g === "depth" ? (depthOf(p) ?? "not computed") : (val(p, g) ?? "Unknown"), p));
   const cnt = opt.count, logN = plays.reduce((a, p) => a + playEntries(p, opt.opp).length, 0);
@@ -6495,7 +6809,7 @@ function renderZones(){
   $("zones").innerHTML = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([k, ps]) => {
     const o = g === "opponent" ? { ...opt, opp: k } : opt;
     const hm = heatHTML(ps, o);
-    const body = (!isSimple() && $("zRoutes").checked) ? `<div class="zbody">${hm.html}<div class="rfield">${routesFieldSVG(ps, o)}</div></div>` : hm.html;
+    const body = $("zRoutes").checked ? `<div class="zbody">${hm.html}<div class="rfield">${routesFieldSVG(ps, o)}</div></div>` : hm.html;
     const tot = hm.total.toFixed(1).replace(".0", ""), small = cnt === "targets" ? hm.total < 5 : ps.length < 5;
     const uses = cnt === "freq" ? ` · ${ps.reduce((a, p) => a + playWeight(p, o), 0)} uses` : "";
     return `<div class="zone"><div><h3>${esc(k)}</h3><div class="meta">${ps.length} plays${uses} · ${tot} ${cnt === "targets" ? (hm.total === 1 ? "target" : "targets") : "route ends"}${small ? " · small sample" : ""}</div></div>${body}</div>`;
@@ -6608,7 +6922,7 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   }
   // Targets (P16b): Verteilung der Einsätze nach angeworfener Position (ohne „nur gespielt“), Cross-Filter wie oben
   const tm = new Map();
-  if (!demo && !isSimple()) (targetBase || []).forEach(p => playEntries(p, opt?.opp).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
+  if (!demo) (targetBase || []).forEach(p => playEntries(p, opt?.opp).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
   const tRank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
   const tRows = [...tm.entries()].sort((a, b) => tRank(a[0]) - tRank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0])), tTot = tRows.reduce((a, [, n]) => a + n, 0);
   const names = field === "Endzone" ? "before goal line – EZ short – EZ deep" : `short ≤ ${DEPTH_LIMITS.shortMax} – intermediate ≤ ${DEPTH_LIMITS.intermediateMax} – deep`;
@@ -6674,17 +6988,25 @@ function initHeatmap(){
     }
   });
   ["zGroup", "zOpt", "zRoutes"].forEach(id => $(id).onchange = renderZones);
+  S.zOptsOpen = (() => { try { return localStorage.getItem(Z_OPTS_KEY) === "1"; } catch (e) { return false; } })();
+  $("zMore").onclick = () => { S.zOptsOpen = !S.zOptsOpen; try { localStorage.setItem(Z_OPTS_KEY, S.zOptsOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } renderZones(); };
+  $("zOptChips").addEventListener("click", (e) => {
+    const k = e.target.closest("[data-zreset]")?.dataset.zreset; if (!k) return;
+    if (k === "zOpt") $("zOpt").checked = true; else if (k === "zRoutes") $("zRoutes").checked = false;
+    else { S.zCount = "plays"; $("zCount").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === "plays")); }
+    render();
+  });
   seg("zField", "zField"); seg("zSide", "zSide"); seg("zCount", "zCount");
 }
 
 registerUi({ renderZones, setZField });
 
 // Seiten-Skript (Einstieg des Vite-Builds, docs/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
-// Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Simple/Expert, Reiter): modules/core/.
+// Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
 
 initGamelog(); // Game log: Zustand, Bereich in der Detailansicht, Targets antippen (modules/gamelog/)
 initTipps(); // ⓘ-Texte (modules/core/)
-initModus();
+initAnsicht(); // Klappbereiche, Übernahme des alten Simple/Expert-Merkers (P32)
 
 // ---------- Render & Events ----------
 // render() und setTab(): modules/core/index.js

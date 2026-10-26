@@ -6,10 +6,10 @@ Draw, catalog and analyze 5-on-5 flag football plays in your browser. No account
 
 - **Draw** plays with pen, finger or mouse – formations, routes, options, motion, ball path
 - **Drafts:** check new plays before they go into the catalog
-- **Catalog** with filters, simple and expert view, **heatmap** of route ends, game log of uses and targets
+- **Catalog** with filters (more filters fold out), **heatmap** of route ends, game log of uses and targets
 - **Export** as PDF, JSON or offline HTML; **import** JSON files from others
 
-Your plays are stored only in this browser on this device. Nothing is uploaded. Use “Export all plays as JSON” (Expert view) to back up, to move plays to another device or to share them.
+Your plays are stored only in this browser on this device. Nothing is uploaded. Use “Export all plays as JSON” to back up, to move plays to another device or to share them.
 
 ## Install as an app
 
@@ -21,9 +21,9 @@ The tool works as an app on your home screen and also starts without internet.
 
 **Already have plays in Safari?** On iPhone and iPad the Home Screen app has its own storage, separate from Safari – your plays don't move over by themselves. Before you add the app:
 
-1. In Safari, switch to **Expert** and choose **Export ▾ → Export all plays as JSON** (keep “Include game log” ticked).
+1. In Safari, choose **Export ▾ → Export all plays as JSON** (keep “Include game log” ticked).
 2. Add the tool to your Home Screen and open it from there.
-3. Switch to **Expert**, tap **Import**, choose the file and import it to the catalog.
+3. Tap **Import**, choose the file and import it to the catalog.
 
 Keep using the Home Screen app from then on – Safari and the app don't share plays.
 
