@@ -192,6 +192,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Move:** drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.
 - **Line style** for the next lines: **Auto** (sharp bends become cuts), **Curve** (smooth, follows your stroke), **Straight** (straight pieces with clear cuts).
 - **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again).
+- Small wobbles are smoothed out – more with a finger (phone) than with a mouse or pen, where short stems and fake steps from about 1 yd stay.
 - A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, **Comeback ^** is set for you.
 
 ### Selected player {#draw-player}
