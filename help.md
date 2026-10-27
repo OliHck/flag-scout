@@ -67,6 +67,12 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 - On iPhone and iPad the app on the Home Screen has **its own storage**, separate from Safari – plays you saved in Safari are not in the app.
 - Before you switch: in Safari choose Export ▾ → Export all plays as JSON (keep “Include game log” ticked), open the app and **Import** the file to the catalog. From then on use only the app.
 
+### Updates {#updates}
+- When a newer version of the page is out, a bar at the top says **Update available – tap to reload**. Tap it to load the new version, or tap **✕** to hide it until the next start.
+- The page checks when you come back to it (switching apps or tabs). Nothing reloads by itself.
+- Unsaved work (a drawing in Draw, an open edit, a draft field you are typing in) is protected: the first tap only warns, tap again to reload anyway.
+- Bar still there after reloading? Close the page and open it again.
+
 ### Fold-out areas {#folding}
 - Extra options fold out where you need them: **More filters ▸** (plays and analysis), **Options ▸** (heatmap), and in a play **Game log** and **JSON**. Each remembers in this browser whether it is open.
 - Folded filters and options still work – they are listed as chips (“Also filtered”, “Options”); tap × to remove one.
