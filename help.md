@@ -8,16 +8,17 @@ Help for Flag Scout Tool (https://olihck.github.io/flag-scout/): draw, catalog a
 1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, target, down, search).
 2. Tap a card to open the play; **‹ ›** or a swipe step to the next one.
 3. **Export as PDF** prints the filtered plays. For your own choice: **Select**, tap plays, then **PDF**.
-4. Tap ☆ to mark a must-know play.
+4. Tap ☆ to mark a must-know play. Old plays: **Archive** (play details or selection) – nothing is deleted.
 
-More: [Plays](#catalog) · [Play details](#play) · [Select](#select)
+More: [Plays](#catalog) · [Play details](#play) · [Select](#select) · [Archive](#archive)
 
 ### Analysis {#qs-analysis}
 1. The heatmap shows **where the routes end** for the filtered plays – Open Field or Endzone.
 2. **Options ▸ → Count:** “By frequency” or “Targets only” use the game log.
 3. Open **Concepts & depth** and tap a bar to filter by it.
+4. Only some plays: in the Plays tab **Select** them, then **Analyze**.
 
-More: [Heatmap](#heatmap)
+More: [Heatmap](#heatmap) · [Selection](#analysis-scope)
 
 ### Drafts {#qs-drafts}
 1. New plays wait here – from Draw or from Import.
@@ -90,7 +91,8 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
 - **More filters ▸**: Direction, Concept, Depth S-I-D, Season, Opponent, Target, Down and Search (play ID, comment, concept). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
-- **Clear filters** resets all filters. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
+- **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
+- **Clear filters** resets all filters, including Show archived. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
 - Opponent, Target and Down come from the [game log](#game-log).
 
 ### Must-know {#must-know}
@@ -105,15 +107,23 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 
 ### Select plays {#select}
 - **Select** turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.
-- The bar at the bottom: **Select all** (all filtered plays), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**.
+- The bar at the bottom: **Select all** (all filtered plays, never [archived](#archive) ones), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**.
 - **PDF** prints the selection in the order you picked it – handy for a training sheet across teams.
-- **JSON** exports only the selected plays. **★**, **Edit** and **Delete** work on all selected plays.
+- **Analyze** opens the [Analysis](#analysis-scope) with only the selected plays.
+- **JSON** exports only the selected plays. **★**, **Edit**, **Archive** and **Delete** work on all selected plays.
 - The selection stays when you change filters or sorting, and is gone after reloading the page.
 
 ### Edit several plays {#bulk-edit}
 - **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents**, or move the plays to another **team**. Empty fields change nothing.
 - A new team gives the plays new IDs; their game log and must-know marks move along.
 - **Delete** asks once with the number of plays. Their game log is deleted too.
+
+### Archive {#archive}
+- **Archive** takes outdated plays out of the catalog **without deleting them**: in the play details, or **Archive (n)** in the selection bar (asks once with the number). Whole season or team: filter, **Select all**, **Archive**.
+- Archived plays never count in the [analysis](#heatmap), are not added by Select all and are not printed (PDF, offline version).
+- **More filters → Show archived** shows them greyed out with “Archived”. Open one and tap **Unarchive**, or select them and tap **Unarchive (n)**. Even when shown they do not count in the analysis.
+- Nothing is lost: the game log stay. The JSON export and the backup contain archived plays with their mark, and an import keeps it.
+- A play you draw or import again that matches an archived play is reported as “matches archived play … – unarchive?” – see [duplicates](#duplicates).
 
 ## Play details {#play}
 
@@ -219,16 +229,25 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 - **Same as …:** the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents or targets are added to the existing play.
 - **Variant of …:** same line-up, exactly one route different. “Approve merge” adds the different route as a dashed **option** to the existing play (a preview shows the result).
 - **Keep separate** turns it into a normal draft that is saved as its own play.
+- If the catalog play is [archived](#archive), the draft says “Matches archived play … – unarchive?”; **Unarchive** brings it back instead of saving the play again.
 - Plays from different seasons are never merged – you only get a note. In the Endzone mirrored plays are kept separate, too.
 
 ## Analysis: heatmap {#heatmap}
 
 ### Zones and depth {#zones}
-- Shows the **share of route ends per zone** for the filtered plays. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd), Endzone depth from the goal line.
+- Shows the **share of route ends per zone** for the filtered plays (or only the [selected plays](#analysis-scope)); [archived plays](#archive) never count. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd), Endzone depth from the goal line.
 - **Field:** Open Field or Endzone – the plays of the other field are not counted.
 - Players **without a route** are not shown in the heatmap (in Depth S-I-D they count as short).
 - A **route end is not the pass target** – for targets use [Count](#count) → “Targets only”.
 - Few plays give a “small sample” note: read the numbers with care.
+
+### Filtered or selection {#analysis-scope}
+- With plays selected ([Select](#select) in the Plays tab), the switch **Filtered / Selection (n)** appears at the top of the Analysis tab. **Filtered** (default) uses the plays that match the filters. **Selection** uses only the selected plays – across teams, the filters are ignored and hidden.
+- **Analyze** in the selection bar jumps here with Selection.
+- The banner “Analyzing 8 selected plays” shows it; with a bar filter it reads “8 selected · 3 shown”. **Back to Filtered** returns to the normal view.
+- Bar clicks in Concepts & depth narrow the selection further; the filters of the Plays tab stay as they are.
+- Count, Side and Options work as usual. Archived plays do not count here either.
+- Clearing the selection or reloading the page goes back to Filtered.
 
 ### Side {#side}
 “Real side” shows plays as drawn (not mirrored). “Strong side right” mirrors plays with direction Left, so the strong side is always right.
@@ -251,18 +270,18 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 ## Export and import {#export}
 
 ### PDF {#pdf}
-- **Export as PDF** prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation.
+- **Export as PDF** prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation. [Archived plays](#archive) are never printed.
 - First you get a **PDF title** with a suggestion from teams, field and formation; Enter or “Create PDF” makes the file.
 - Under the title a grey line lists field, formations, active filters, number of plays and date. Endzone plays start on a new page, grouped by distance.
 - To print your own choice in your own order use [Select](#select) → PDF.
 
 ### JSON {#json}
-- **Export ▾ → Export all plays as JSON**: all plays as one file – your **backup** and the way to share plays or move them to another device.
+- **Export ▾ → Export all plays as JSON**: all plays as one file – your **backup** and the way to share plays or move them to another device. Archived plays are included with their mark.
 - **Include game log** (ticked by default): uses, targets and downs of each play go into the file; Import and Restore bring them back. Untick it when you share plays with others.
 - The play details have the same data under **JSON**.
 
 ### Offline version (HTML) {#offline-html}
-- **Save offline version (HTML)**: one file with the current plays that opens in any browser without internet – e.g. for the sideline. It is a snapshot: new plays only appear with a new export.
+- **Save offline version (HTML)**: one file with the current plays (without archived ones) that opens in any browser without internet – e.g. for the sideline. It is a snapshot: new plays only appear with a new export.
 - It keeps filters, heatmap, PDF and this help, but nothing can be changed.
 
 ### Import {#import}

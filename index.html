@@ -146,6 +146,11 @@ input[type=search]{width:200px}
 .selrows{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center}
 .selrows input,.selrows select{font:14px var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
 .selprev{max-height:180px;overflow:auto;font:12px var(--mono);color:var(--muted);background:var(--surface-2);border-radius:6px;padding:8px;margin:0;white-space:pre-wrap}
+/* P38: archivierte Plays (nur mit „Show archived“) ausgegraut mit Badge „Archived“ */
+.card.archived{border-style:dashed}
+.card.archived .field,.card.archived .pid{opacity:.5}
+.pidrow .hidtag + .archtag{margin-left:6px}
+.chip.archchip{border-style:dashed;color:var(--muted)}
 .field{background:#fff;border-radius:4px;overflow:hidden;line-height:0}
 .field svg{width:100%;height:auto;display:block}
 .pid{font-family:var(--mono);font-size:12.5px;font-weight:500;overflow-wrap:anywhere}
@@ -167,6 +172,10 @@ input[type=search]{width:200px}
 .heat .cl{font-size:9.5px;color:var(--muted);text-align:center;line-height:1.15;padding-top:3px;overflow-wrap:break-word}
 .heat .los{grid-column:2 / 7;height:2px;background:var(--muted);opacity:.6}
 .legend{font-size:12px;color:var(--muted)}
+/* P37: Scope Filtered/Selection und Banner oben im Reiter Analysis */
+.ascope{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 14px;margin:4px 0 10px}
+.ascope .abanner{margin:0;padding:6px 10px;border:1px solid var(--accent);border-radius:8px;background:color-mix(in oklab, var(--accent) 12%, var(--surface));font-weight:600}
+.ascope .abanner .linkbtn{font-weight:400}
 /* P28.6: kurzer Text auf der Seite, Hintergrund als Tooltip (title) und in docs/hilfe.md */
 .tip{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;color:var(--muted);white-space:nowrap;padding:4px 2px;margin:-4px -2px}
 .tip[aria-expanded="true"]{color:var(--accent)}
@@ -382,6 +391,7 @@ button.dchip:hover{border-color:var(--accent)}
 @media (max-width:760px){.dcard,.dcard.hasorig{grid-template-columns:1fr;padding:10px}.dcard .field svg{max-height:none}
   .dview{display:inline-flex;justify-self:start}.dpair{grid-template-columns:1fr}.dpair .cap{display:none}
   .dcard.hasorig:not(.orig) .dorig-w{display:none}.dcard.hasorig.orig .dgfx-w{display:none}}
+.dbox .darch{align-items:center;flex-wrap:wrap}
 /* Zeichen-Editor (Reiter „Draw“, nur Besitzer, Backlog P19): Setup oben, Feld links, Werkzeuge + Speichern rechts */
 .dw-setup{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .dw-setup input[type=number],.dw-setup input[type=text]{font:15px var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:96px}
@@ -528,6 +538,7 @@ button.dchip:hover{border-color:var(--accent)}
       <div class="ctl xmore"><label for="fTarget" title="Plays where this receiver was targeted (from the game log)">Target</label><select id="fTarget"></select></div>
       <div class="ctl xmore"><label for="fDown" title="Down of the use (game log); uses without a down drop out">Down</label><select id="fDown"></select></div>
       <div class="ctl xmore"><label for="fSearch">Search</label><input type="search" id="fSearch" placeholder="ID, Comment, Concept"></div>
+      <label class="chk xmore" id="fArchCtl" hidden title="Also show archived plays (greyed out, never counted in the analysis)"><input type="checkbox" id="fArch" autocomplete="off"> Show archived</label>
       <div class="ctl"><button class="btn reset" id="fReset" type="button" hidden title="Reset all filters (Team to Search)">Clear filters <span id="fResetN"></span></button></div>
     </div>
     <div class="xf hidf" id="hiddenF" role="status" hidden></div>
@@ -549,9 +560,11 @@ button.dchip:hover{border-color:var(--accent)}
       <button class="btn" id="selClear" type="button" title="Empty the selection">Clear</button>
       <span class="selgap" aria-hidden="true"></span>
       <button class="btn primary" id="selPdf" type="button" title="PDF of the selected plays in the order you picked them">PDF</button>
+      <button class="btn" id="selAna" type="button" title="Analysis tab with only the selected plays">Analyze</button>
       <button class="btn" id="selJson" type="button" hidden title="The selected plays – with game log if “Include game log” is ticked">JSON</button>
       <button class="btn" id="selMark" type="button" hidden title="Mark the selected plays as must-know (or unmark, if all are marked)">★</button>
       <button class="btn" id="selEdit" type="button" hidden title="Change season, opponents or team of the selected plays">Edit</button>
+      <button class="btn" id="selArch" type="button" hidden title="Archive the selected plays (unarchive, if all are archived)">Archive</button>
       <button class="btn danger" id="selDel" type="button" hidden title="Delete the selected plays">Delete</button>
       <button class="btn" id="selDone" type="button" title="Leave selection mode – the selection stays until you reload">Done</button>
       <span class="toast" id="selToast" role="status"></span>
@@ -633,6 +646,11 @@ button.dchip:hover{border-color:var(--accent)}
   </section>
 
   <section id="view-zonen" hidden aria-label="Heatmap">
+    <!-- P37: Analyse der Auswahl – Schalter nur mit Auswahl, Banner im Scope „Selection“ -->
+    <div class="ascope" id="aScopeBar" hidden>
+      <div class="ctl"><span class="lbl">Plays</span><div class="seg" id="aScope" role="group" aria-label="Plays to analyze"><button type="button" data-v="filtered" aria-pressed="true" title="All plays that match the filters">Filtered</button><button type="button" data-v="selection" id="aScopeSel" aria-pressed="false" title="Only the selected plays, filters ignored">Selection</button></div></div>
+      <p class="abanner" id="aBanner" role="status" hidden><span id="aBannerText"></span> <button type="button" class="linkbtn" id="aBack">Back to Filtered</button></p>
+    </div>
     <h2 class="anah">Heatmap</h2>
     <div class="controls">
       <div class="ctl"><span class="lbl">Field</span><div class="seg" id="zField"><button type="button" data-v="Open Field" aria-pressed="true">Open Field</button><button type="button" data-v="Endzone" aria-pressed="false">Endzone</button></div></div>
@@ -672,7 +690,7 @@ button.dchip:hover{border-color:var(--accent)}
       <!-- P32: Bereiche zum Aufklappen (Standard zu, pro Browser gemerkt); ohne Inhalt (innerer Bereich hidden) ganz ausgeblendet -->
       <details class="dsec" id="dLogSec" data-sec="log"><summary>Game log<span class="dsum" id="dLogSum"></span></summary><div class="dcov dlog" id="dLog" hidden></div></details>
     </div>
-    <div class="row"><button class="btn primary" id="dEdit" type="button" hidden>Edit</button><button class="btn" id="dDraw" type="button" hidden title="Change routes and line-up in the Draw tab">Edit in Draw</button><button class="btn" id="dUndo" type="button" hidden title="Restore the version before the last edit in Draw">Undo last edit</button><button class="btn primary" id="dSave" type="button" hidden>Save</button><button class="btn" id="dCancel" type="button" hidden>Cancel</button><button class="btn" id="dStar" type="button" hidden>☆ Must-know</button><button class="btn" id="dClose" type="button">Close</button></div>
+    <div class="row"><button class="btn primary" id="dEdit" type="button" hidden>Edit</button><button class="btn" id="dDraw" type="button" hidden title="Change routes and line-up in the Draw tab">Edit in Draw</button><button class="btn" id="dUndo" type="button" hidden title="Restore the version before the last edit in Draw">Undo last edit</button><button class="btn primary" id="dSave" type="button" hidden>Save</button><button class="btn" id="dCancel" type="button" hidden>Cancel</button><button class="btn" id="dStar" type="button" hidden>☆ Must-know</button><button class="btn" id="dArch" type="button" hidden title="Archive: out of catalog, analysis and PDF – nothing is deleted">Archive</button><button class="btn" id="dClose" type="button">Close</button></div>
     <span class="toast" id="dToast" role="status"></span>
     <details class="dsec djson" id="dJsonSec" data-sec="json"><summary>JSON</summary><pre id="dPre"></pre></details>
   </div>
@@ -727,7 +745,7 @@ button.dchip:hover{border-color:var(--accent)}
   <div class="tpanel hpanel" role="dialog" aria-modal="true" aria-labelledby="hTitle">
     <div class="hhead"><h2 id="hTitle">Help</h2><input type="search" id="hSearch" placeholder="Search help" aria-label="Search help" autocomplete="off"><button class="btn dx" id="hX" type="button" aria-label="Close" title="Close (Esc)">×</button></div>
     <p class="note" id="hNone" role="status" hidden>Nothing found.</p>
-    <div class="hbody" id="hBody"><nav class="htoc" aria-label="Contents"><a href="#h-quick-start" data-hlink="quick-start">Quick start</a><a href="#h-start" data-hlink="start">Getting started</a><a href="#h-catalog" data-hlink="catalog">Plays</a><a href="#h-play" data-hlink="play">Play details</a><a href="#h-game-log" data-hlink="game-log">Game log</a><a href="#h-draw" data-hlink="draw">Draw</a><a href="#h-drafts" data-hlink="drafts">Drafts</a><a href="#h-heatmap" data-hlink="heatmap">Analysis: heatmap</a><a href="#h-export" data-hlink="export">Export and import</a><a href="#h-terms" data-hlink="terms">Terms</a></nav><section class="hsec" id="h-quick-start"><h2>Quick start</h2><div class="hsub" id="h-qs-plays"><h3>Plays</h3><ol><li>Narrow the plays with <b>Team</b>, <b>Field</b> and <b>Formation</b>; <b>More filters ▸</b> has the rest (concept, depth, opponent, target, down, search).</li><li>Tap a card to open the play; <b>‹ ›</b> or a swipe step to the next one.</li><li><b>Export as PDF</b> prints the filtered plays. For your own choice: <b>Select</b>, tap plays, then <b>PDF</b>.</li><li>Tap ☆ to mark a must-know play.</li></ol><p>More: <a href="#h-catalog" data-hlink="catalog">Plays</a> · <a href="#h-play" data-hlink="play">Play details</a> · <a href="#h-select" data-hlink="select">Select</a></p></div><div class="hsub" id="h-qs-analysis"><h3>Analysis</h3><ol><li>The heatmap shows <b>where the routes end</b> for the filtered plays – Open Field or Endzone.</li><li><b>Options ▸ → Count:</b> “By frequency” or “Targets only” use the game log.</li><li>Open <b>Concepts &amp; depth</b> and tap a bar to filter by it.</li></ol><p>More: <a href="#h-heatmap" data-hlink="heatmap">Heatmap</a></p></div><div class="hsub" id="h-qs-drafts"><h3>Drafts</h3><ol><li>New plays wait here – from Draw or from Import.</li><li>Check the graphic and the fields; tap <b>OK</b> on unsure values.</li><li><b>Approve</b> puts the play into the catalog (<b>Approve all</b> for many). “Same as” and “Variant of” mean the play is already in the catalog.</li></ol><p>More: <a href="#h-drafts" data-hlink="drafts">Drafts</a> · <a href="#h-duplicates" data-hlink="duplicates">Duplicates and variants</a></p></div><div class="hsub" id="h-qs-draw"><h3>Draw</h3><ol><li>Set team, season, field, direction and <b>formation</b> at the top.</li><li>Tool <b>Route</b>: draw from a player. <b>Option</b>, <b>Delay</b>, <b>Motion</b> and <b>Ball</b> for the rest; tap a player to change label or colour.</li><li>Pick the concept, then <b>Save &amp; next</b> – the play goes to Drafts, the field is ready for the next one.</li></ol><p>More: <a href="#h-draw" data-hlink="draw">Draw</a> · <a href="#h-draw-tools" data-hlink="draw-tools">Tools</a></p></div><div class="hsub" id="h-qs-export"><h3>Export, import, backup</h3><ol><li><b>Back up regularly:</b> Export ▾ → <b>Export all plays as JSON</b> (with “Include game log”). Your plays exist only in this browser.</li><li><b>Import</b> brings plays from a JSON file – your own on a new device, or plays someone sent you.</li><li><b>Save offline version (HTML)</b> makes one file to open anywhere without internet.</li><li>Add the tool to your <b>home screen</b> – it works like an app and starts offline. iPhone/iPad: the app has its own storage, so export in Safari and import in the app.</li></ol><p>More: <a href="#h-export" data-hlink="export">Export and import</a> · <a href="#h-storage" data-hlink="storage">Your data</a> · <a href="#h-app" data-hlink="app">Use it as an app</a></p></div></section><section class="hsec" id="h-start"><h2>Getting started</h2><div class="hsub" id="h-tabs"><h3>The page at a glance</h3><ul><li><b>Header:</b> the number of plays and teams, <b>Export as PDF</b>, the menu <b>Export ▾</b>, <b>Import</b> and <b>?</b> (this help).</li><li><b>Plays:</b> all plays as cards, with filters. Tap a card to open the <a href="#h-play" data-hlink="play">play details</a>.</li><li><b>Analysis:</b> the <a href="#h-heatmap" data-hlink="heatmap">heatmap</a> of route ends for the filtered plays.</li><li><b>Drafts:</b> new plays wait here until you approve them – see <a href="#h-drafts" data-hlink="drafts">Drafts</a>.</li><li><b>Draw:</b> draw plays with pen, finger or mouse – see <a href="#h-draw" data-hlink="draw">Draw</a>.</li><li>The filters at the top work for <b>Plays</b> and <b>Analysis</b> together.</li></ul></div><div class="hsub" id="h-storage"><h3>Your data stays in this browser</h3><ul><li>Your plays are saved <b>only in this browser on this device</b>. Nothing is uploaded, there is no account.</li><li>Another browser, another device or a private window does not see them. Clearing the browser data deletes them.</li><li>So <b>back up regularly</b>: Export ▾ → Export all plays as JSON – see <a href="#h-json" data-hlink="json">JSON</a> and <a href="#h-backup" data-hlink="backup">Backup and restore</a>.</li><li>The same file is how you share plays with others or <a href="#h-move" data-hlink="move">move them to another device</a>.</li></ul></div><div class="hsub" id="h-app"><h3>Use it as an app</h3><ul><li><b>iPhone / iPad:</b> open the page in Safari → Share → <b>Add to Home Screen</b>.</li><li><b>Android:</b> open the page in Chrome → menu ⋮ → <b>Add to Home screen</b> / <b>Install app</b>.</li><li><b>Computer:</b> Chrome or Edge show an install icon in the address bar.</li><li>The app starts <b>without internet</b>, too. When you are online it loads the newest version by itself.</li></ul></div><div class="hsub" id="h-iphone"><h3>iPhone and iPad: separate storage</h3><ul><li>On iPhone and iPad the app on the Home Screen has <b>its own storage</b>, separate from Safari – plays you saved in Safari are not in the app.</li><li>Before you switch: in Safari choose Export ▾ → Export all plays as JSON (keep “Include game log” ticked), open the app and <b>Import</b> the file to the catalog. From then on use only the app.</li></ul></div><div class="hsub" id="h-updates"><h3>Updates</h3><ul><li>When a newer version of the page is out, a bar at the top says <b>Update available – tap to reload</b>. Tap it to load the new version, or tap <b>✕</b> to hide it until the next start.</li><li>The page checks when you come back to it (switching apps or tabs). Nothing reloads by itself.</li><li>Unsaved work (a drawing in Draw, an open edit, a draft field you are typing in) is protected: the first tap only warns, tap again to reload anyway.</li><li>Bar still there after reloading? Close the page and open it again.</li></ul></div><div class="hsub" id="h-folding"><h3>Fold-out areas</h3><ul><li>Extra options fold out where you need them: <b>More filters ▸</b> (plays and analysis), <b>Options ▸</b> (heatmap), and in a play <b>Game log</b> and <b>JSON</b>. Each remembers in this browser whether it is open.</li><li>Folded filters and options still work – they are listed as chips (“Also filtered”, “Options”); tap × to remove one.</li><li><b>ⓘ</b> next to a text shows more background; tap it again to hide it.</li></ul></div></section><section class="hsec" id="h-catalog"><h2>Plays</h2><div class="hsub" id="h-cards"><h3>Cards and sorting</h3><ul><li>Each card shows the play's graphic, its ID and the ★ for <a href="#h-must-know" data-hlink="must-know">must-know</a>. Formation, concept, depth and comment are in the <a href="#h-play" data-hlink="play">play details</a>.</li><li>The play ID is built from team, formation, Endzone and a number, e.g. <code>TIGE_Spread_03</code> or <code>TIGE_Pro_EZ_01</code> (team “Tigers”). It changes when the formation or the field changes.</li><li><b>Sort:</b> by name, by formation or by date (newest or oldest saved first). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.</li><li>PDF and ‹ › in the play details follow the same order.</li></ul></div><div class="hsub" id="h-catalog-filters"><h3>Filters</h3><ul><li>Always visible: <b>Team</b>, <b>Field</b> (Open Field / Endzone), <b>Formation</b> and the ☆ for must-know plays only.</li><li><b>More filters ▸</b>: Direction, Concept, Depth S-I-D, Season, Opponent, Target, Down and Search (play ID, comment, concept). Folded, the button shows how many of them are set.</li><li>Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.</li><li><b>Clear filters</b> resets all filters. Filters also apply to the <a href="#h-heatmap" data-hlink="heatmap">heatmap</a>, the PDF and the exports.</li><li>Opponent, Target and Down come from the <a href="#h-game-log" data-hlink="game-log">game log</a>.</li></ul></div><div class="hsub" id="h-must-know"><h3>Must-know</h3><ul><li>Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.</li><li>Everyone sees the ★. The ☆ filter next to Formation shows only must-know plays; the PDF notes it in its filter line.</li><li>The mark belongs to the play ID – if the ID changes (new formation), the mark is lost.</li></ul></div><div class="hsub" id="h-teams"><h3>Manage teams</h3><ul><li><b>Manage teams</b> next to the Team filter: <b>Hide</b> / <b>Show</b> a team or <b>Delete</b> all its plays (you confirm by typing the team name).</li><li>Hidden teams are left out of the catalog, the heatmap and the exports. “Show hidden teams” shows them again (marked “hidden”).</li><li>The same dialog has <a href="#h-backup" data-hlink="backup">Restore from backup</a>.</li></ul></div><div class="hsub" id="h-select"><h3>Select plays</h3><ul><li><b>Select</b> turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.</li><li>The bar at the bottom: <b>Select all</b> (all filtered plays), <b>Deselect filtered</b>, <b>Only selection</b> (only the selected plays, in the order you picked them), <b>Clear</b>, <b>Done</b>.</li><li><b>PDF</b> prints the selection in the order you picked it – handy for a training sheet across teams.</li><li><b>JSON</b> exports only the selected plays. <b>★</b>, <b>Edit</b> and <b>Delete</b> work on all selected plays.</li><li>The selection stays when you change filters or sorting, and is gone after reloading the page.</li></ul></div><div class="hsub" id="h-bulk-edit"><h3>Edit several plays</h3><ul><li><b>Edit</b> in the selection bar: set or clear the <b>season</b>, <b>add</b> or <b>replace opponents</b>, or move the plays to another <b>team</b>. Empty fields change nothing.</li><li>A new team gives the plays new IDs; their game log and must-know marks move along.</li><li><b>Delete</b> asks once with the number of plays. Their game log is deleted too.</li></ul></div></section><section class="hsec" id="h-play"><h2>Play details</h2><div class="hsub" id="h-play-info"><h3>What you see</h3><ul><li>The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, <b>S-I-D</b> (routes short-intermediate-deep), Field and distance, Situation. A highlighted chip means <b>unsure</b> – the value was not clear and is not confirmed yet.</li><li>Below: team, season and opponents, the comment and when the play was saved or edited.</li><li>Fold-out areas: <a href="#h-game-log" data-hlink="game-log">Game log</a> and <b>JSON</b> (the play as data).</li></ul></div><div class="hsub" id="h-play-edit"><h3>Chips and editing</h3><ul><li>Tap a chip (Formation, QB, Direction, Concept, Field) to change that entry. <b>Only the entry changes, never the drawing.</b></li><li><b>Edit</b> changes all entries at once, plus comment and opponents, and confirms unsure values.</li><li>A new formation or field changes the play ID.</li></ul></div><div class="hsub" id="h-play-nav"><h3>Previous, next, swipe</h3><ul><li><b>‹ ›</b> at the top step through the plays in catalog order with the current filters, e.g. “3 / 41”.</li><li>On a computer use the arrow keys ← →, on a phone swipe sideways. <b>×</b> or Esc closes the play.</li></ul></div><div class="hsub" id="h-play-draw"><h3>Edit in Draw</h3><ul><li><b>Edit in Draw</b> opens the play in the <a href="#h-draw" data-hlink="draw">Draw</a> tab to change routes and line-up. “Save changes” saves it right back into the catalog with the same ID.</li><li><b>Undo last edit</b> (tap twice) brings back the version before the last edit in Draw – one step.</li></ul></div></section><section class="hsec" id="h-game-log"><h2>Game log</h2><div class="hsub" id="h-uses"><h3>Uses and opponents</h3><ul><li>The <b>Game log</b> area in the play details records each time a play was used: against whom, who was targeted and on which down. There is no result (complete, yards).</li><li>Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).</li><li>Choose the opponent under <b>vs</b> (or “+ new opponent …”), then tap a target button. <b>Undo last entry</b> removes the last one; the list below lets you delete single entries.</li><li>Opponents of a play can also be set in Draw, Drafts and with <a href="#h-bulk-edit" data-hlink="bulk-edit">Edit several plays</a>.</li></ul></div><div class="hsub" id="h-targets"><h3>Targets</h3><ul><li>One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus <b>QB run</b> (QB or 2nd QB run), <b>No target</b> (incomplete without a clear receiver, throwaway or sack) and <b>Played</b> (target not known).</li><li>Faster: <b>double-click</b> (mouse, pen) or <b>long press</b> (finger) on a route or a player in the graphic adds it as target.</li><li>“Show targets on the graphic” puts small numbers at the targeted route ends.</li><li>Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.</li></ul></div><div class="hsub" id="h-downs"><h3>Downs</h3><ul><li>Optional: pick <b>1st–4th</b> above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later.</li><li>The summary shows e.g. “Downs: 1st 2 · 3rd 1”.</li></ul></div><div class="hsub" id="h-game-log-use"><h3>Where the game log counts</h3><ul><li>Filters <b>Opponent</b>, <b>Target</b> and <b>Down</b> (More filters). With an opponent filter only the uses against that opponent count everywhere.</li><li>Heatmap: <a href="#h-count" data-hlink="count">Count</a> “By frequency” and “Targets only”, the Target bars and “Group by Opponent”.</li></ul></div></section><section class="hsec" id="h-draw"><h2>Draw</h2><div class="hsub" id="h-draw-about"><h3>What Draw is for</h3><ul><li>Draw a play directly – with a pen on a tablet, a mouse or your finger – instead of drawing on paper. The play is exact right away, nothing has to be recognized.</li><li>Every play is saved as a <b>draft</b> first and goes into the catalog when you approve it in <a href="#h-drafts" data-hlink="drafts">Drafts</a>.</li><li>Good for video analysis: draw many plays in a row, check them later.</li></ul></div><div class="hsub" id="h-draw-setup"><h3>Line-up</h3><ul><li>Top: <b>Team</b> (or “+ New team …”), <b>Season</b>, <b>Opponent</b> (optional), <b>Field</b>; for Endzone the <b>distance</b> (5, 7, 10 yd or other) and <b>PAT</b> (1PAT = 5 yd, 2PAT = 10 yd).</li><li><b>Direction</b> (strong side left or right), <b>QB</b> (Gun 7 yd or Under Center) and <b>Formation</b> – each tile shows the standard line-up.</li><li>The setup stays for the next play and is remembered in this browser.</li><li><b>Formation from the line-up:</b> if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).</li><li>Changing the formation after drawing asks: <b>Replace line-up</b> (players move to the new standard positions, routes move along) or <b>Keep line-up</b> (only the formation entry changes). Changing the direction mirrors the whole play.</li></ul></div><div class="hsub" id="h-draw-tools"><h3>Tools</h3><ul><li><b>Route:</b> draw from a player; draw from the end of a route to make it longer. Tap a player to select it.</li><li><b>Option:</b> draw from the point where a route branches off – the new line becomes a dashed option ending with its own arrow.</li><li><b>Delay:</b> see <a href="#h-delay" data-hlink="delay">Delay</a>.</li><li><b>Motion:</b> pre-snap motion from a player; the route then starts where the motion ends.</li><li><b>Ball:</b> from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch).</li><li><b>Move:</b> drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.</li><li><b>Line style</b> for the next lines: <b>Auto</b> (sharp bends become cuts), <b>Curve</b> (smooth, follows your stroke), <b>Straight</b> (straight pieces with clear cuts).</li><li><b>Undo</b> / <b>Redo</b> (Ctrl+Z / Ctrl+Y) and <b>Clear</b> (start this play again).</li><li>A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, <b>Comeback ^</b> is set for you.</li></ul></div><div class="hsub" id="h-draw-player"><h3>Selected player</h3><ul><li>Tap a player: change the <b>label</b> (X, Y, Z or initials) and the <b>colour</b>, set <b>Comeback ^</b> (arrow back toward the line), switch the route between <b>Curve</b> and <b>Straight</b>, remove delays, or delete the route, the last option, the motion or the ball path.</li></ul></div><div class="hsub" id="h-delay"><h3>Delay</h3><ul><li>Choose the tool <b>Delay</b> and tap a route where the receiver delays (stutter at the start, hook &amp; go after 5 yd …) – a short zigzag appears there. Tap it again to remove it, or select the player and use <b>Remove delay</b>.</li><li>A clear zigzag you draw yourself (at least three sharp turns) also becomes a delay. Small wobbles of your finger do not.</li></ul></div><div class="hsub" id="h-draw-save"><h3>Save as draft</h3><ul><li>Pick the <b>Concept</b> (a suggestion from the routes is preselected); <b>Depth S-I-D</b> is counted for you. Add a situation (e.g. “3rd &amp; 5”), a comment and targets if you like.</li><li><b>Save &amp; next</b> saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup.</li><li>Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.</li><li>The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see <a href="#h-duplicates" data-hlink="duplicates">Duplicates and variants</a>.</li></ul></div><div class="hsub" id="h-draw-edit"><h3>Change a saved play</h3><ul><li><b>Edit in Draw</b> (play details or a draft) loads the play with line-up and routes. A bar shows what you are editing; <b>Cancel editing</b> leaves without saving.</li><li><b>Save changes</b> saves a catalog play right away (same ID; “Undo last edit” in the play details brings the old version back) or a draft back to Drafts. Your setup and a play you had started stay untouched.</li></ul></div></section><section class="hsec" id="h-drafts"><h2>Drafts</h2><div class="hsub" id="h-drafts-source"><h3>Where drafts come from</h3><ul><li>New plays never go straight into the catalog. They wait here as drafts:<ul><li>plays from <a href="#h-draw" data-hlink="draw">Draw</a>,</li><li>plays from <a href="#h-import" data-hlink="import">Import</a> with target “Drafts”.</li></ul></li><li>Drafts are grouped by sheet or drawing session, in their original order. After 14 days the tab reminds you of old drafts.</li></ul></div><div class="hsub" id="h-drafts-check"><h3>Check and approve</h3><ul><li>Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent and comment can be changed; every change is saved at once.</li><li><b>Unsure</b> values are marked. Tap <b>OK</b> next to a value, or <b>All OK</b> for the whole play, once it is right.</li><li>Endzone plays with an <b>unclear distance</b> cannot be approved until you set it (“Set 7 yd”, the situation) or choose <b>Distance unknown</b>.</li><li>“Will be saved as …” shows the final play ID.</li><li><b>Approve</b> moves the play into the catalog. <b>Approve all</b> approves every draft that has no open points and tells you what is left.</li><li><b>Edit in Draw</b> changes routes and line-up. <b>Discard</b> (tap twice) deletes the draft.</li></ul></div><div class="hsub" id="h-duplicates"><h3>Duplicates and variants</h3><ul><li><b>Same as …:</b> the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents or targets are added to the existing play.</li><li><b>Variant of …:</b> same line-up, exactly one route different. “Approve merge” adds the different route as a dashed <b>option</b> to the existing play (a preview shows the result).</li><li><b>Keep separate</b> turns it into a normal draft that is saved as its own play.</li><li>Plays from different seasons are never merged – you only get a note. In the Endzone mirrored plays are kept separate, too.</li></ul></div></section><section class="hsec" id="h-heatmap"><h2>Analysis: heatmap</h2><div class="hsub" id="h-zones"><h3>Zones and depth</h3><ul><li>Shows the <b>share of route ends per zone</b> for the filtered plays. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep &gt; 12 yd), Endzone depth from the goal line.</li><li><b>Field:</b> Open Field or Endzone – the plays of the other field are not counted.</li><li>Players <b>without a route</b> are not shown in the heatmap (in Depth S-I-D they count as short).</li><li>A <b>route end is not the pass target</b> – for targets use <a href="#h-count" data-hlink="count">Count</a> → “Targets only”.</li><li>Few plays give a “small sample” note: read the numbers with care.</li></ul></div><div class="hsub" id="h-side"><h3>Side</h3><p>“Real side” shows plays as drawn (not mirrored). “Strong side right” mirrors plays with direction Left, so the strong side is always right.</p></div><div class="hsub" id="h-group-by"><h3>Group by</h3><p>Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.</p></div><div class="hsub" id="h-heatmap-options"><h3>Options</h3><ul><li><b>Options ▸</b> folds out three settings: <b>Split option endings</b> (each ending of an option route counts on its own), <b>Show routes</b> (the routes next to the heatmap) and <b>Count</b>.</li><li>Folded, settings that differ from the default stay visible as chips; × sets one back.</li></ul></div><div class="hsub" id="h-count"><h3>Count</h3><p>“Every play once” – each play counts once. “By frequency” – plays count as often as they were used (<a href="#h-game-log" data-hlink="game-log">game log</a>); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.</p></div><div class="hsub" id="h-concepts"><h3>Concepts &amp; depth</h3><ul><li>Share of plays (or uses / targeted routes, depending on Count) per concept, per depth combination S-I-D and per target.</li><li>Click a bar to filter heatmap and catalog by it, click again to clear. Active filters also show as chips above the heatmap.</li><li>Collapsed by default; click the heading to open it. <b>Show example plays</b> lists the plays behind the heatmap.</li></ul></div></section><section class="hsec" id="h-export"><h2>Export and import</h2><div class="hsub" id="h-pdf"><h3>PDF</h3><ul><li><b>Export as PDF</b> prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation.</li><li>First you get a <b>PDF title</b> with a suggestion from teams, field and formation; Enter or “Create PDF” makes the file.</li><li>Under the title a grey line lists field, formations, active filters, number of plays and date. Endzone plays start on a new page, grouped by distance.</li><li>To print your own choice in your own order use <a href="#h-select" data-hlink="select">Select</a> → PDF.</li></ul></div><div class="hsub" id="h-json"><h3>JSON</h3><ul><li><b>Export ▾ → Export all plays as JSON</b>: all plays as one file – your <b>backup</b> and the way to share plays or move them to another device.</li><li><b>Include game log</b> (ticked by default): uses, targets and downs of each play go into the file; Import and Restore bring them back. Untick it when you share plays with others.</li><li>The play details have the same data under <b>JSON</b>.</li></ul></div><div class="hsub" id="h-offline-html"><h3>Offline version (HTML)</h3><ul><li><b>Save offline version (HTML)</b>: one file with the current plays that opens in any browser without internet – e.g. for the sideline. It is a snapshot: new plays only appear with a new export.</li><li>It keeps filters, heatmap, PDF and this help, but nothing can be changed.</li></ul></div><div class="hsub" id="h-import"><h3>Import</h3><ul><li><b>Import</b>: choose a JSON file with plays (from “Export all plays as JSON”, from Draw or from someone else) and where they go: <b>Drafts</b> (to check first) or <b>Catalog</b>.</li><li>Before importing, the dialog shows each play, where it goes and its new ID. Every play gets a <b>new ID</b>; plays that are already in the catalog or in Drafts are skipped.</li><li>Variants of catalog plays always go to Drafts, to merge them there.</li></ul></div><div class="hsub" id="h-backup"><h3>Backup and restore</h3><ul><li>A bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. <b>Export now</b> saves all plays with their game log.</li><li><b>Manage teams → Restore from backup</b>: choose a backup file (“Export all plays as JSON”). Only what is missing is restored, with the old IDs – existing plays and game log entries are never overwritten.</li><li>Restore is for your own backups; plays from others come in with <a href="#h-import" data-hlink="import">Import</a>.</li></ul></div><div class="hsub" id="h-move"><h3>Move to another device</h3><ol><li>On the old device: Export ▾ → <b>Export all plays as JSON</b> (keep “Include game log” ticked).</li><li>Send the file to the new device (mail, cloud, messenger).</li><li>On the new device: open the tool, <b>Import</b> → choose the file → <b>Catalog</b>.</li><li>The two devices do not stay in sync – keep working on one of them.</li></ol></div></section><section class="hsec" id="h-terms"><h2>Terms</h2><div class="hsub" id="h-glossary"><h3>Words used on the page</h3><ul><li><b>LOS</b> – line of scrimmage, where the play starts.</li><li><b>Open Field / Endzone</b> – a play in the open field, or near the goal line (Endzone 10 yd deep; distance 5, 7 or 10 yd, 1PAT = 5 yd, 2PAT = 10 yd).</li><li><b>Direction</b> – the side of the strong side (more receivers), Left or Right.</li><li><b>Strong side / weak side</b> – the side with more / fewer receivers next to the center.</li><li><b>Formation</b> – Spread, Wing, Wing-Pro, Pro, 3-Bunch, Trips, 4-Bunch, Offset Back, Eagle.</li><li><b>Concept</b> – Hitches, Hitches + Shot, Mesh/Crosses, Flood, Follow, Run/2nd QB, Basic (no special concept), Special.</li><li><b>S-I-D</b> – how many routes (center and three receivers) end short, intermediate and deep, e.g. 2-1-1.</li><li><b>Option ending</b> – a dashed second ending of a route: the receiver reads and picks one.</li><li><b>Comeback ^</b> – a route whose end points back toward the line (hitch, comeback).</li><li><b>Delay</b> – a short zigzag on a route: stutter, hook &amp; go.</li><li><b>Motion</b> – pre-snap movement of a player (grey dashed line).</li><li><b>Side snap / pitch / handoff</b> – ball paths other than the direct snap to the QB.</li><li><b>Must-know</b> – a play every player has to know (★).</li><li><b>Draft</b> – a new play that waits for approval.</li><li><b>Game log</b> – uses of a play: opponent, target, down.</li><li><b>Target</b> – the player the ball was thrown to.</li></ul></div></section></div>
+    <div class="hbody" id="hBody"><nav class="htoc" aria-label="Contents"><a href="#h-quick-start" data-hlink="quick-start">Quick start</a><a href="#h-start" data-hlink="start">Getting started</a><a href="#h-catalog" data-hlink="catalog">Plays</a><a href="#h-play" data-hlink="play">Play details</a><a href="#h-game-log" data-hlink="game-log">Game log</a><a href="#h-draw" data-hlink="draw">Draw</a><a href="#h-drafts" data-hlink="drafts">Drafts</a><a href="#h-heatmap" data-hlink="heatmap">Analysis: heatmap</a><a href="#h-export" data-hlink="export">Export and import</a><a href="#h-terms" data-hlink="terms">Terms</a></nav><section class="hsec" id="h-quick-start"><h2>Quick start</h2><div class="hsub" id="h-qs-plays"><h3>Plays</h3><ol><li>Narrow the plays with <b>Team</b>, <b>Field</b> and <b>Formation</b>; <b>More filters ▸</b> has the rest (concept, depth, opponent, target, down, search).</li><li>Tap a card to open the play; <b>‹ ›</b> or a swipe step to the next one.</li><li><b>Export as PDF</b> prints the filtered plays. For your own choice: <b>Select</b>, tap plays, then <b>PDF</b>.</li><li>Tap ☆ to mark a must-know play. Old plays: <b>Archive</b> (play details or selection) – nothing is deleted.</li></ol><p>More: <a href="#h-catalog" data-hlink="catalog">Plays</a> · <a href="#h-play" data-hlink="play">Play details</a> · <a href="#h-select" data-hlink="select">Select</a> · <a href="#h-archive" data-hlink="archive">Archive</a></p></div><div class="hsub" id="h-qs-analysis"><h3>Analysis</h3><ol><li>The heatmap shows <b>where the routes end</b> for the filtered plays – Open Field or Endzone.</li><li><b>Options ▸ → Count:</b> “By frequency” or “Targets only” use the game log.</li><li>Open <b>Concepts &amp; depth</b> and tap a bar to filter by it.</li><li>Only some plays: in the Plays tab <b>Select</b> them, then <b>Analyze</b>.</li></ol><p>More: <a href="#h-heatmap" data-hlink="heatmap">Heatmap</a> · <a href="#h-analysis-scope" data-hlink="analysis-scope">Selection</a></p></div><div class="hsub" id="h-qs-drafts"><h3>Drafts</h3><ol><li>New plays wait here – from Draw or from Import.</li><li>Check the graphic and the fields; tap <b>OK</b> on unsure values.</li><li><b>Approve</b> puts the play into the catalog (<b>Approve all</b> for many). “Same as” and “Variant of” mean the play is already in the catalog.</li></ol><p>More: <a href="#h-drafts" data-hlink="drafts">Drafts</a> · <a href="#h-duplicates" data-hlink="duplicates">Duplicates and variants</a></p></div><div class="hsub" id="h-qs-draw"><h3>Draw</h3><ol><li>Set team, season, field, direction and <b>formation</b> at the top.</li><li>Tool <b>Route</b>: draw from a player. <b>Option</b>, <b>Delay</b>, <b>Motion</b> and <b>Ball</b> for the rest; tap a player to change label or colour.</li><li>Pick the concept, then <b>Save &amp; next</b> – the play goes to Drafts, the field is ready for the next one.</li></ol><p>More: <a href="#h-draw" data-hlink="draw">Draw</a> · <a href="#h-draw-tools" data-hlink="draw-tools">Tools</a></p></div><div class="hsub" id="h-qs-export"><h3>Export, import, backup</h3><ol><li><b>Back up regularly:</b> Export ▾ → <b>Export all plays as JSON</b> (with “Include game log”). Your plays exist only in this browser.</li><li><b>Import</b> brings plays from a JSON file – your own on a new device, or plays someone sent you.</li><li><b>Save offline version (HTML)</b> makes one file to open anywhere without internet.</li><li>Add the tool to your <b>home screen</b> – it works like an app and starts offline. iPhone/iPad: the app has its own storage, so export in Safari and import in the app.</li></ol><p>More: <a href="#h-export" data-hlink="export">Export and import</a> · <a href="#h-storage" data-hlink="storage">Your data</a> · <a href="#h-app" data-hlink="app">Use it as an app</a></p></div></section><section class="hsec" id="h-start"><h2>Getting started</h2><div class="hsub" id="h-tabs"><h3>The page at a glance</h3><ul><li><b>Header:</b> the number of plays and teams, <b>Export as PDF</b>, the menu <b>Export ▾</b>, <b>Import</b> and <b>?</b> (this help).</li><li><b>Plays:</b> all plays as cards, with filters. Tap a card to open the <a href="#h-play" data-hlink="play">play details</a>.</li><li><b>Analysis:</b> the <a href="#h-heatmap" data-hlink="heatmap">heatmap</a> of route ends for the filtered plays.</li><li><b>Drafts:</b> new plays wait here until you approve them – see <a href="#h-drafts" data-hlink="drafts">Drafts</a>.</li><li><b>Draw:</b> draw plays with pen, finger or mouse – see <a href="#h-draw" data-hlink="draw">Draw</a>.</li><li>The filters at the top work for <b>Plays</b> and <b>Analysis</b> together.</li></ul></div><div class="hsub" id="h-storage"><h3>Your data stays in this browser</h3><ul><li>Your plays are saved <b>only in this browser on this device</b>. Nothing is uploaded, there is no account.</li><li>Another browser, another device or a private window does not see them. Clearing the browser data deletes them.</li><li>So <b>back up regularly</b>: Export ▾ → Export all plays as JSON – see <a href="#h-json" data-hlink="json">JSON</a> and <a href="#h-backup" data-hlink="backup">Backup and restore</a>.</li><li>The same file is how you share plays with others or <a href="#h-move" data-hlink="move">move them to another device</a>.</li></ul></div><div class="hsub" id="h-app"><h3>Use it as an app</h3><ul><li><b>iPhone / iPad:</b> open the page in Safari → Share → <b>Add to Home Screen</b>.</li><li><b>Android:</b> open the page in Chrome → menu ⋮ → <b>Add to Home screen</b> / <b>Install app</b>.</li><li><b>Computer:</b> Chrome or Edge show an install icon in the address bar.</li><li>The app starts <b>without internet</b>, too. When you are online it loads the newest version by itself.</li></ul></div><div class="hsub" id="h-iphone"><h3>iPhone and iPad: separate storage</h3><ul><li>On iPhone and iPad the app on the Home Screen has <b>its own storage</b>, separate from Safari – plays you saved in Safari are not in the app.</li><li>Before you switch: in Safari choose Export ▾ → Export all plays as JSON (keep “Include game log” ticked), open the app and <b>Import</b> the file to the catalog. From then on use only the app.</li></ul></div><div class="hsub" id="h-updates"><h3>Updates</h3><ul><li>When a newer version of the page is out, a bar at the top says <b>Update available – tap to reload</b>. Tap it to load the new version, or tap <b>✕</b> to hide it until the next start.</li><li>The page checks when you come back to it (switching apps or tabs). Nothing reloads by itself.</li><li>Unsaved work (a drawing in Draw, an open edit, a draft field you are typing in) is protected: the first tap only warns, tap again to reload anyway.</li><li>Bar still there after reloading? Close the page and open it again.</li></ul></div><div class="hsub" id="h-folding"><h3>Fold-out areas</h3><ul><li>Extra options fold out where you need them: <b>More filters ▸</b> (plays and analysis), <b>Options ▸</b> (heatmap), and in a play <b>Game log</b> and <b>JSON</b>. Each remembers in this browser whether it is open.</li><li>Folded filters and options still work – they are listed as chips (“Also filtered”, “Options”); tap × to remove one.</li><li><b>ⓘ</b> next to a text shows more background; tap it again to hide it.</li></ul></div></section><section class="hsec" id="h-catalog"><h2>Plays</h2><div class="hsub" id="h-cards"><h3>Cards and sorting</h3><ul><li>Each card shows the play's graphic, its ID and the ★ for <a href="#h-must-know" data-hlink="must-know">must-know</a>. Formation, concept, depth and comment are in the <a href="#h-play" data-hlink="play">play details</a>.</li><li>The play ID is built from team, formation, Endzone and a number, e.g. <code>TIGE_Spread_03</code> or <code>TIGE_Pro_EZ_01</code> (team “Tigers”). It changes when the formation or the field changes.</li><li><b>Sort:</b> by name, by formation or by date (newest or oldest saved first). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.</li><li>PDF and ‹ › in the play details follow the same order.</li></ul></div><div class="hsub" id="h-catalog-filters"><h3>Filters</h3><ul><li>Always visible: <b>Team</b>, <b>Field</b> (Open Field / Endzone), <b>Formation</b> and the ☆ for must-know plays only.</li><li><b>More filters ▸</b>: Direction, Concept, Depth S-I-D, Season, Opponent, Target, Down and Search (play ID, comment, concept). Folded, the button shows how many of them are set.</li><li>Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.</li><li><b>Show archived</b> (in More filters) shows <a href="#h-archive" data-hlink="archive">archived plays</a> greyed out with the badge “Archived”.</li><li><b>Clear filters</b> resets all filters, including Show archived. Filters also apply to the <a href="#h-heatmap" data-hlink="heatmap">heatmap</a>, the PDF and the exports.</li><li>Opponent, Target and Down come from the <a href="#h-game-log" data-hlink="game-log">game log</a>.</li></ul></div><div class="hsub" id="h-must-know"><h3>Must-know</h3><ul><li>Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.</li><li>Everyone sees the ★. The ☆ filter next to Formation shows only must-know plays; the PDF notes it in its filter line.</li><li>The mark belongs to the play ID – if the ID changes (new formation), the mark is lost.</li></ul></div><div class="hsub" id="h-teams"><h3>Manage teams</h3><ul><li><b>Manage teams</b> next to the Team filter: <b>Hide</b> / <b>Show</b> a team or <b>Delete</b> all its plays (you confirm by typing the team name).</li><li>Hidden teams are left out of the catalog, the heatmap and the exports. “Show hidden teams” shows them again (marked “hidden”).</li><li>The same dialog has <a href="#h-backup" data-hlink="backup">Restore from backup</a>.</li></ul></div><div class="hsub" id="h-select"><h3>Select plays</h3><ul><li><b>Select</b> turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.</li><li>The bar at the bottom: <b>Select all</b> (all filtered plays, never <a href="#h-archive" data-hlink="archive">archived</a> ones), <b>Deselect filtered</b>, <b>Only selection</b> (only the selected plays, in the order you picked them), <b>Clear</b>, <b>Done</b>.</li><li><b>PDF</b> prints the selection in the order you picked it – handy for a training sheet across teams.</li><li><b>Analyze</b> opens the <a href="#h-analysis-scope" data-hlink="analysis-scope">Analysis</a> with only the selected plays.</li><li><b>JSON</b> exports only the selected plays. <b>★</b>, <b>Edit</b>, <b>Archive</b> and <b>Delete</b> work on all selected plays.</li><li>The selection stays when you change filters or sorting, and is gone after reloading the page.</li></ul></div><div class="hsub" id="h-bulk-edit"><h3>Edit several plays</h3><ul><li><b>Edit</b> in the selection bar: set or clear the <b>season</b>, <b>add</b> or <b>replace opponents</b>, or move the plays to another <b>team</b>. Empty fields change nothing.</li><li>A new team gives the plays new IDs; their game log and must-know marks move along.</li><li><b>Delete</b> asks once with the number of plays. Their game log is deleted too.</li></ul></div><div class="hsub" id="h-archive"><h3>Archive</h3><ul><li><b>Archive</b> takes outdated plays out of the catalog <b>without deleting them</b>: in the play details, or <b>Archive (n)</b> in the selection bar (asks once with the number). Whole season or team: filter, <b>Select all</b>, <b>Archive</b>.</li><li>Archived plays never count in the <a href="#h-heatmap" data-hlink="heatmap">analysis</a>, are not added by Select all and are not printed (PDF, offline version).</li><li><b>More filters → Show archived</b> shows them greyed out with “Archived”. Open one and tap <b>Unarchive</b>, or select them and tap <b>Unarchive (n)</b>. Even when shown they do not count in the analysis.</li><li>Nothing is lost: the game log stay. The JSON export and the backup contain archived plays with their mark, and an import keeps it.</li><li>A play you draw or import again that matches an archived play is reported as “matches archived play … – unarchive?” – see <a href="#h-duplicates" data-hlink="duplicates">duplicates</a>.</li></ul></div></section><section class="hsec" id="h-play"><h2>Play details</h2><div class="hsub" id="h-play-info"><h3>What you see</h3><ul><li>The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, <b>S-I-D</b> (routes short-intermediate-deep), Field and distance, Situation. A highlighted chip means <b>unsure</b> – the value was not clear and is not confirmed yet.</li><li>Below: team, season and opponents, the comment and when the play was saved or edited.</li><li>Fold-out areas: <a href="#h-game-log" data-hlink="game-log">Game log</a> and <b>JSON</b> (the play as data).</li></ul></div><div class="hsub" id="h-play-edit"><h3>Chips and editing</h3><ul><li>Tap a chip (Formation, QB, Direction, Concept, Field) to change that entry. <b>Only the entry changes, never the drawing.</b></li><li><b>Edit</b> changes all entries at once, plus comment and opponents, and confirms unsure values.</li><li>A new formation or field changes the play ID.</li></ul></div><div class="hsub" id="h-play-nav"><h3>Previous, next, swipe</h3><ul><li><b>‹ ›</b> at the top step through the plays in catalog order with the current filters, e.g. “3 / 41”.</li><li>On a computer use the arrow keys ← →, on a phone swipe sideways. <b>×</b> or Esc closes the play.</li></ul></div><div class="hsub" id="h-play-draw"><h3>Edit in Draw</h3><ul><li><b>Edit in Draw</b> opens the play in the <a href="#h-draw" data-hlink="draw">Draw</a> tab to change routes and line-up. “Save changes” saves it right back into the catalog with the same ID.</li><li><b>Undo last edit</b> (tap twice) brings back the version before the last edit in Draw – one step.</li></ul></div></section><section class="hsec" id="h-game-log"><h2>Game log</h2><div class="hsub" id="h-uses"><h3>Uses and opponents</h3><ul><li>The <b>Game log</b> area in the play details records each time a play was used: against whom, who was targeted and on which down. There is no result (complete, yards).</li><li>Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).</li><li>Choose the opponent under <b>vs</b> (or “+ new opponent …”), then tap a target button. <b>Undo last entry</b> removes the last one; the list below lets you delete single entries.</li><li>Opponents of a play can also be set in Draw, Drafts and with <a href="#h-bulk-edit" data-hlink="bulk-edit">Edit several plays</a>.</li></ul></div><div class="hsub" id="h-targets"><h3>Targets</h3><ul><li>One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus <b>QB run</b> (QB or 2nd QB run), <b>No target</b> (incomplete without a clear receiver, throwaway or sack) and <b>Played</b> (target not known).</li><li>Faster: <b>double-click</b> (mouse, pen) or <b>long press</b> (finger) on a route or a player in the graphic adds it as target.</li><li>“Show targets on the graphic” puts small numbers at the targeted route ends.</li><li>Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.</li></ul></div><div class="hsub" id="h-downs"><h3>Downs</h3><ul><li>Optional: pick <b>1st–4th</b> above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later.</li><li>The summary shows e.g. “Downs: 1st 2 · 3rd 1”.</li></ul></div><div class="hsub" id="h-game-log-use"><h3>Where the game log counts</h3><ul><li>Filters <b>Opponent</b>, <b>Target</b> and <b>Down</b> (More filters). With an opponent filter only the uses against that opponent count everywhere.</li><li>Heatmap: <a href="#h-count" data-hlink="count">Count</a> “By frequency” and “Targets only”, the Target bars and “Group by Opponent”.</li></ul></div></section><section class="hsec" id="h-draw"><h2>Draw</h2><div class="hsub" id="h-draw-about"><h3>What Draw is for</h3><ul><li>Draw a play directly – with a pen on a tablet, a mouse or your finger – instead of drawing on paper. The play is exact right away, nothing has to be recognized.</li><li>Every play is saved as a <b>draft</b> first and goes into the catalog when you approve it in <a href="#h-drafts" data-hlink="drafts">Drafts</a>.</li><li>Good for video analysis: draw many plays in a row, check them later.</li></ul></div><div class="hsub" id="h-draw-setup"><h3>Line-up</h3><ul><li>Top: <b>Team</b> (or “+ New team …”), <b>Season</b>, <b>Opponent</b> (optional), <b>Field</b>; for Endzone the <b>distance</b> (5, 7, 10 yd or other) and <b>PAT</b> (1PAT = 5 yd, 2PAT = 10 yd).</li><li><b>Direction</b> (strong side left or right), <b>QB</b> (Gun 7 yd or Under Center) and <b>Formation</b> – each tile shows the standard line-up.</li><li>The setup stays for the next play and is remembered in this browser.</li><li><b>Formation from the line-up:</b> if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).</li><li>Changing the formation after drawing asks: <b>Replace line-up</b> (players move to the new standard positions, routes move along) or <b>Keep line-up</b> (only the formation entry changes). Changing the direction mirrors the whole play.</li></ul></div><div class="hsub" id="h-draw-tools"><h3>Tools</h3><ul><li><b>Route:</b> draw from a player; draw from the end of a route to make it longer. Tap a player to select it.</li><li><b>Option:</b> draw from the point where a route branches off – the new line becomes a dashed option ending with its own arrow.</li><li><b>Delay:</b> see <a href="#h-delay" data-hlink="delay">Delay</a>.</li><li><b>Motion:</b> pre-snap motion from a player; the route then starts where the motion ends.</li><li><b>Ball:</b> from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch).</li><li><b>Move:</b> drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.</li><li><b>Line style</b> for the next lines: <b>Auto</b> (sharp bends become cuts), <b>Curve</b> (smooth, follows your stroke), <b>Straight</b> (straight pieces with clear cuts).</li><li><b>Undo</b> / <b>Redo</b> (Ctrl+Z / Ctrl+Y) and <b>Clear</b> (start this play again).</li><li>A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, <b>Comeback ^</b> is set for you.</li></ul></div><div class="hsub" id="h-draw-player"><h3>Selected player</h3><ul><li>Tap a player: change the <b>label</b> (X, Y, Z or initials) and the <b>colour</b>, set <b>Comeback ^</b> (arrow back toward the line), switch the route between <b>Curve</b> and <b>Straight</b>, remove delays, or delete the route, the last option, the motion or the ball path.</li></ul></div><div class="hsub" id="h-delay"><h3>Delay</h3><ul><li>Choose the tool <b>Delay</b> and tap a route where the receiver delays (stutter at the start, hook &amp; go after 5 yd …) – a short zigzag appears there. Tap it again to remove it, or select the player and use <b>Remove delay</b>.</li><li>A clear zigzag you draw yourself (at least three sharp turns) also becomes a delay. Small wobbles of your finger do not.</li></ul></div><div class="hsub" id="h-draw-save"><h3>Save as draft</h3><ul><li>Pick the <b>Concept</b> (a suggestion from the routes is preselected); <b>Depth S-I-D</b> is counted for you. Add a situation (e.g. “3rd &amp; 5”), a comment and targets if you like.</li><li><b>Save &amp; next</b> saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup.</li><li>Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.</li><li>The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see <a href="#h-duplicates" data-hlink="duplicates">Duplicates and variants</a>.</li></ul></div><div class="hsub" id="h-draw-edit"><h3>Change a saved play</h3><ul><li><b>Edit in Draw</b> (play details or a draft) loads the play with line-up and routes. A bar shows what you are editing; <b>Cancel editing</b> leaves without saving.</li><li><b>Save changes</b> saves a catalog play right away (same ID; “Undo last edit” in the play details brings the old version back) or a draft back to Drafts. Your setup and a play you had started stay untouched.</li></ul></div></section><section class="hsec" id="h-drafts"><h2>Drafts</h2><div class="hsub" id="h-drafts-source"><h3>Where drafts come from</h3><ul><li>New plays never go straight into the catalog. They wait here as drafts:<ul><li>plays from <a href="#h-draw" data-hlink="draw">Draw</a>,</li><li>plays from <a href="#h-import" data-hlink="import">Import</a> with target “Drafts”.</li></ul></li><li>Drafts are grouped by sheet or drawing session, in their original order. After 14 days the tab reminds you of old drafts.</li></ul></div><div class="hsub" id="h-drafts-check"><h3>Check and approve</h3><ul><li>Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent and comment can be changed; every change is saved at once.</li><li><b>Unsure</b> values are marked. Tap <b>OK</b> next to a value, or <b>All OK</b> for the whole play, once it is right.</li><li>Endzone plays with an <b>unclear distance</b> cannot be approved until you set it (“Set 7 yd”, the situation) or choose <b>Distance unknown</b>.</li><li>“Will be saved as …” shows the final play ID.</li><li><b>Approve</b> moves the play into the catalog. <b>Approve all</b> approves every draft that has no open points and tells you what is left.</li><li><b>Edit in Draw</b> changes routes and line-up. <b>Discard</b> (tap twice) deletes the draft.</li></ul></div><div class="hsub" id="h-duplicates"><h3>Duplicates and variants</h3><ul><li><b>Same as …:</b> the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents or targets are added to the existing play.</li><li><b>Variant of …:</b> same line-up, exactly one route different. “Approve merge” adds the different route as a dashed <b>option</b> to the existing play (a preview shows the result).</li><li><b>Keep separate</b> turns it into a normal draft that is saved as its own play.</li><li>If the catalog play is <a href="#h-archive" data-hlink="archive">archived</a>, the draft says “Matches archived play … – unarchive?”; <b>Unarchive</b> brings it back instead of saving the play again.</li><li>Plays from different seasons are never merged – you only get a note. In the Endzone mirrored plays are kept separate, too.</li></ul></div></section><section class="hsec" id="h-heatmap"><h2>Analysis: heatmap</h2><div class="hsub" id="h-zones"><h3>Zones and depth</h3><ul><li>Shows the <b>share of route ends per zone</b> for the filtered plays (or only the <a href="#h-analysis-scope" data-hlink="analysis-scope">selected plays</a>); <a href="#h-archive" data-hlink="archive">archived plays</a> never count. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep &gt; 12 yd), Endzone depth from the goal line.</li><li><b>Field:</b> Open Field or Endzone – the plays of the other field are not counted.</li><li>Players <b>without a route</b> are not shown in the heatmap (in Depth S-I-D they count as short).</li><li>A <b>route end is not the pass target</b> – for targets use <a href="#h-count" data-hlink="count">Count</a> → “Targets only”.</li><li>Few plays give a “small sample” note: read the numbers with care.</li></ul></div><div class="hsub" id="h-analysis-scope"><h3>Filtered or selection</h3><ul><li>With plays selected (<a href="#h-select" data-hlink="select">Select</a> in the Plays tab), the switch <b>Filtered / Selection (n)</b> appears at the top of the Analysis tab. <b>Filtered</b> (default) uses the plays that match the filters. <b>Selection</b> uses only the selected plays – across teams, the filters are ignored and hidden.</li><li><b>Analyze</b> in the selection bar jumps here with Selection.</li><li>The banner “Analyzing 8 selected plays” shows it; with a bar filter it reads “8 selected · 3 shown”. <b>Back to Filtered</b> returns to the normal view.</li><li>Bar clicks in Concepts &amp; depth narrow the selection further; the filters of the Plays tab stay as they are.</li><li>Count, Side and Options work as usual. Archived plays do not count here either.</li><li>Clearing the selection or reloading the page goes back to Filtered.</li></ul></div><div class="hsub" id="h-side"><h3>Side</h3><p>“Real side” shows plays as drawn (not mirrored). “Strong side right” mirrors plays with direction Left, so the strong side is always right.</p></div><div class="hsub" id="h-group-by"><h3>Group by</h3><p>Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.</p></div><div class="hsub" id="h-heatmap-options"><h3>Options</h3><ul><li><b>Options ▸</b> folds out three settings: <b>Split option endings</b> (each ending of an option route counts on its own), <b>Show routes</b> (the routes next to the heatmap) and <b>Count</b>.</li><li>Folded, settings that differ from the default stay visible as chips; × sets one back.</li></ul></div><div class="hsub" id="h-count"><h3>Count</h3><p>“Every play once” – each play counts once. “By frequency” – plays count as often as they were used (<a href="#h-game-log" data-hlink="game-log">game log</a>); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.</p></div><div class="hsub" id="h-concepts"><h3>Concepts &amp; depth</h3><ul><li>Share of plays (or uses / targeted routes, depending on Count) per concept, per depth combination S-I-D and per target.</li><li>Click a bar to filter heatmap and catalog by it, click again to clear. Active filters also show as chips above the heatmap.</li><li>Collapsed by default; click the heading to open it. <b>Show example plays</b> lists the plays behind the heatmap.</li></ul></div></section><section class="hsec" id="h-export"><h2>Export and import</h2><div class="hsub" id="h-pdf"><h3>PDF</h3><ul><li><b>Export as PDF</b> prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation. <a href="#h-archive" data-hlink="archive">Archived plays</a> are never printed.</li><li>First you get a <b>PDF title</b> with a suggestion from teams, field and formation; Enter or “Create PDF” makes the file.</li><li>Under the title a grey line lists field, formations, active filters, number of plays and date. Endzone plays start on a new page, grouped by distance.</li><li>To print your own choice in your own order use <a href="#h-select" data-hlink="select">Select</a> → PDF.</li></ul></div><div class="hsub" id="h-json"><h3>JSON</h3><ul><li><b>Export ▾ → Export all plays as JSON</b>: all plays as one file – your <b>backup</b> and the way to share plays or move them to another device. Archived plays are included with their mark.</li><li><b>Include game log</b> (ticked by default): uses, targets and downs of each play go into the file; Import and Restore bring them back. Untick it when you share plays with others.</li><li>The play details have the same data under <b>JSON</b>.</li></ul></div><div class="hsub" id="h-offline-html"><h3>Offline version (HTML)</h3><ul><li><b>Save offline version (HTML)</b>: one file with the current plays (without archived ones) that opens in any browser without internet – e.g. for the sideline. It is a snapshot: new plays only appear with a new export.</li><li>It keeps filters, heatmap, PDF and this help, but nothing can be changed.</li></ul></div><div class="hsub" id="h-import"><h3>Import</h3><ul><li><b>Import</b>: choose a JSON file with plays (from “Export all plays as JSON”, from Draw or from someone else) and where they go: <b>Drafts</b> (to check first) or <b>Catalog</b>.</li><li>Before importing, the dialog shows each play, where it goes and its new ID. Every play gets a <b>new ID</b>; plays that are already in the catalog or in Drafts are skipped.</li><li>Variants of catalog plays always go to Drafts, to merge them there.</li></ul></div><div class="hsub" id="h-backup"><h3>Backup and restore</h3><ul><li>A bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. <b>Export now</b> saves all plays with their game log.</li><li><b>Manage teams → Restore from backup</b>: choose a backup file (“Export all plays as JSON”). Only what is missing is restored, with the old IDs – existing plays and game log entries are never overwritten.</li><li>Restore is for your own backups; plays from others come in with <a href="#h-import" data-hlink="import">Import</a>.</li></ul></div><div class="hsub" id="h-move"><h3>Move to another device</h3><ol><li>On the old device: Export ▾ → <b>Export all plays as JSON</b> (keep “Include game log” ticked).</li><li>Send the file to the new device (mail, cloud, messenger).</li><li>On the new device: open the tool, <b>Import</b> → choose the file → <b>Catalog</b>.</li><li>The two devices do not stay in sync – keep working on one of them.</li></ol></div></section><section class="hsec" id="h-terms"><h2>Terms</h2><div class="hsub" id="h-glossary"><h3>Words used on the page</h3><ul><li><b>LOS</b> – line of scrimmage, where the play starts.</li><li><b>Open Field / Endzone</b> – a play in the open field, or near the goal line (Endzone 10 yd deep; distance 5, 7 or 10 yd, 1PAT = 5 yd, 2PAT = 10 yd).</li><li><b>Direction</b> – the side of the strong side (more receivers), Left or Right.</li><li><b>Strong side / weak side</b> – the side with more / fewer receivers next to the center.</li><li><b>Formation</b> – Spread, Wing, Wing-Pro, Pro, 3-Bunch, Trips, 4-Bunch, Offset Back, Eagle.</li><li><b>Concept</b> – Hitches, Hitches + Shot, Mesh/Crosses, Flood, Follow, Run/2nd QB, Basic (no special concept), Special.</li><li><b>S-I-D</b> – how many routes (center and three receivers) end short, intermediate and deep, e.g. 2-1-1.</li><li><b>Option ending</b> – a dashed second ending of a route: the receiver reads and picks one.</li><li><b>Comeback ^</b> – a route whose end points back toward the line (hitch, comeback).</li><li><b>Delay</b> – a short zigzag on a route: stutter, hook &amp; go.</li><li><b>Motion</b> – pre-snap movement of a player (grey dashed line).</li><li><b>Side snap / pitch / handoff</b> – ball paths other than the direct snap to the QB.</li><li><b>Must-know</b> – a play every player has to know (★).</li><li><b>Draft</b> – a new play that waits for approval.</li><li><b>Game log</b> – uses of a play: opponent, target, down.</li><li><b>Target</b> – the player the ball was thrown to.</li></ul></div></section></div>
     <p class="note hfiles" id="hFiles">This help as <a href="help.html" target="_blank" rel="noopener">a page</a> or as <a href="help.md" download>Markdown</a> – e.g. for your own AI.</p>
   </div>
 </div>
@@ -2762,6 +2780,9 @@ function entwurfAlterTage(draft, nowMs) {
 //     settings/play-log-<neue ID>), Entwurf → _entwurf.einsaetze (kommen bei der Freigabe ins Game log, wie bei Draw).
 //     Varianten eines Katalog-Plays nehmen sie mit (die Freigabe schreibt sie um); übersprungene, identische und in
 //     derselben Datei eingearbeitete Plays nicht (sonst doppelte Einträge bzw. Einträge auf fremden Routen).
+//   - Archiv (P38): der Vergleich läuft auch gegen archivierte Katalog-Plays (archived: true); identisch mit einem
+//     archivierten Play → übersprungen mit „matches archived play X – unarchive?“ und uebersprungen[].archiviert = X.
+//     archived/archived_at eines Plays aus der Datei bleiben erhalten (Rundlauf JSON-Export → Import).
 // Texte für die Seite auf Englisch.
 
 // Datei-Inhalt → Liste der Kandidaten: Liste von Plays, { plays: [...] } oder ein einzelnes Play
@@ -2807,7 +2828,7 @@ function importPlanen(raw, stock = [], { teams = {}, ziel = "entwuerfe", now, qu
   });
   const byKey = new Map(stock.map((s) => [s.key, s])), byItem = new Map(items.map((it) => [it.key, it]));
   const plan = planDuplicates(items.map((it) => ({ key: it.key, play: it.play })), stock.map((s) => ({ key: s.key, play: s.play })));
-  const skip = new Map(), planned = new Map(), hints = new Map(), absorbed = new Map();
+  const skip = new Map(), planned = new Map(), hints = new Map(), absorbed = new Map(), archSkip = new Map();
   const addHint = (k, t) => hints.set(k, [...(hints.get(k) || []), t]);
   const who = (it) => it.play.source_label || it.orig || `#${it.nr}`;
   for (const a of plan.actions) {
@@ -2823,6 +2844,7 @@ function importPlanen(raw, stock = [], { teams = {}, ziel = "entwuerfe", now, qu
       // P16a: identisch, aber mit neuen Gegnern → Entwurf „identisch“, die Freigabe ergänzt nur die Gegner
       const neu = newOpponents(st.play, it.play);
       if (neu.length) planned.set(a.key, { aktion: "identisch", ziel: st.id, zielHash: entwurfHash(st.play), hinweis: `${a.text.replace(/ → .*$/, "")} – adds opponent(s) ${neu.join(", ")}` });
+      else if (st.play?.archived === true) { skip.set(a.key, `matches archived play ${st.id} – unarchive?`); archSkip.set(a.key, st.id); }
       else skip.set(a.key, `already in the catalog as ${st.id}`);
     }
     else planned.set(a.key, { aktion: "zusammenlegen", ziel: st.id, zielHash: entwurfHash(st.play), hinweis: a.text });
@@ -2833,7 +2855,7 @@ function importPlanen(raw, stock = [], { teams = {}, ziel = "entwuerfe", now, qu
   for (const s of stock) { const q = parsePlayId(s.id); if (q) maxNr[q.team] = Math.max(maxNr[q.team] || 0, q.number); }
   let nr = 0;
   for (const it of items) {
-    if (skip.has(it.key)) { uebersprungen.push({ nr: it.nr, orig: it.orig, text: skip.get(it.key) }); continue; }
+    if (skip.has(it.key)) { uebersprungen.push({ nr: it.nr, orig: it.orig, text: skip.get(it.key), ...(archSkip.has(it.key) ? { archiviert: archSkip.get(it.key) } : {}) }); continue; }
     let play = it.play;
     const m = plan.merged.get(it.key);
     if (m) { play = eClone(m); entwurfRegeln(play); play.play_id = null; }
@@ -3955,6 +3977,60 @@ function settingMoves(plan, docIdFns) {
 return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMarks, bulkPlan, settingMoves };
 })();
 
+// Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
+// npm run tool-test sie prüfen kann. Die Seite (modules/catalog/index.js) setzt sie mit ihrem Zustand ein.
+//
+// Archiv: pro Play archived: true + archived_at (ISO-Datum); fehlt das Feld, ist das Play nicht archiviert. Archivierte
+// Plays stehen nur in der Liste der sichtbaren Plays, wenn der Besitzer „Show archived“ eingeschaltet hat (Betrachter nie),
+// und zählen nirgends in der Analyse, nicht in „Select all“ und nicht im PDF. JSON-Export/Backup und Import behalten sie.
+//
+// Analyse: eine Funktion bündelt Archiv-Ausschluss, Scope und Cross-Filter. Scope „filtered“ = Katalogfilter wie bisher
+// (filtered(skip) der Seite); Scope „selection“ = die Play-Auswahl (P27) in Klickreihenfolge, Katalogfilter ignoriert,
+// nur die Cross-Filter-Klicks der Analysis (Concept, Depth S-I-D, Target, Formation in der Matrix) grenzen weiter ein.
+// Ohne Auswahl gilt immer „filtered“ (Rückfall beim Leeren der Auswahl).
+
+const isArchived = (p) => p?.archived === true;
+
+// Archivieren / reaktivieren: neues Objekt; „Unarchive“ entfernt beide Felder (ältere Plays ohne Feld = nicht archiviert)
+function archivedPlay(p, now){ return { ...p, archived: true, archived_at: now }; }
+function unarchivedPlay(p){ const q = { ...p }; delete q.archived; delete q.archived_at; return q; }
+
+// Sichtbare Plays: ohne versteckte Teams (außer der Besitzer blendet sie ein) und ohne archivierte (außer der Besitzer
+// hat „Show archived“ an). Betrachter sehen beides nie.
+function visiblePlays(all, { hidden = [], owner = false, showHidden = false, showArchived = false } = {}){
+  return (all || []).filter(p => (!hidden.includes(p.team) || (owner && showHidden)) && (!isArchived(p) || (owner && showArchived)));
+}
+const withoutArchived = (list) => (list || []).filter(p => !isArchived(p));
+
+// Sammelaktion der Auswahl-Leiste: sind alle gewählten Plays archiviert → „Unarchive“, sonst „Archive“ (nur die noch nicht
+// archivierten ändern sich)
+function archiveAction(list){
+  const on = (list || []).filter(p => !isArchived(p));
+  return on.length || !(list || []).length ? { mode: "archive", plays: on } : { mode: "unarchive", plays: list.filter(isArchived) };
+}
+
+const SCOPES = ["filtered", "selection"];
+const CROSS = ["concept", "depth", "target", "formation"];
+const emptyCross = () => ({ concept: "", depth: "", target: "", formation: "" });
+const analysisScope = (scope, sel) => (scope === "selection" && (sel || []).length ? "selection" : "filtered");
+
+// Plays für die Analyse. skip = ein Cross-Filter, der für diese Liste nicht gilt (die angeklickte Balken-Liste bleibt
+// vollständig). filtered(skip) = Katalogfilter der Seite; match(kind, play, value) prüft einen Cross-Filter.
+function analysisList({ scope, sel = [], plays = [], filtered, cross = {}, skip, match }){
+  if (analysisScope(scope, sel) === "filtered") return withoutArchived(filtered(skip));
+  const byId = new Map(plays.map(p => [p.play_id, p]));
+  return sel.map(id => byId.get(id)).filter(p => p && !isArchived(p))
+    .filter(p => CROSS.every(k => k === skip || !cross[k] || match(k, p, cross[k])));
+}
+
+// Banner im Scope „selection“: „Analyzing 8 selected plays“ bzw. mit aktivem Cross-Filter „8 selected · 3 shown“
+function scopeBanner(nSel, nShown, crossOn){
+  return crossOn ? `${nSel} selected · ${nShown} shown` : `Analyzing ${nSel} selected ${nSel === 1 ? "play" : "plays"}`;
+}
+
+// Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
+const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
+
 // Grundgerüst der Seite (Modul core, P25c Schritt 2): gemeinsamer Zustand S, Hilfen ($, esc, val), Play-Hilfen (Saison,
 // Tiefe S-I-D, Namensvergleich, Chip, Grafik), Klappbereiche der Detailansicht (P32), Reiter mit render() und setTab(). Alle anderen Teile
 // importieren das hier.
@@ -3968,7 +4044,8 @@ return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMar
 
 
 // ---------- Zustand ----------
-const S = { plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", logs: new Map() };
+const S = { plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", logs: new Map(),
+  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 }; // P37 Analysis-Scope, P38 Archiv
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const val = (p, k) => (p[k] && typeof p[k] === "object") ? p[k].value : p[k];
@@ -4143,9 +4220,10 @@ function setTab(t){
   S.tab = t;
   ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", t === x); });
   if ($("view-mu")) $("view-mu").hidden = t !== "zonen";
-  $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || S.plays.length === 0; // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
+  $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || (S.plays.length === 0 && !S.nArch); // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
   $("fFieldCtl").hidden = t === "zonen"; // in Analysis steuert der Feldtyp-Schalter der Heatmap (gilt auch für Matchups)
-  if (t === "zonen" && ["Endzone", "Open Field"].includes($("fField").value)) ui.setZField($("fField").value);
+  // Scope „Selection“ (P37): Katalogfilter gelten nicht – auch nicht der Feldtyp
+  if (t === "zonen" && analysisScope(S.aScope, S.sel) === "filtered" && ["Endzone", "Open Field"].includes($("fField").value)) ui.setZField($("fField").value);
   render();
 }
 function initReiter(){
@@ -4291,7 +4369,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "ec0b384600ef";
+const SEITEN_VERSION = "ed0c9b0508ac";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -4796,6 +4874,8 @@ function draftCardHTML(d){
     if (aktion === "zusammenlegen" && t){ const m = ENTW.entwurfVorschau(d, t, new Date().toISOString()); prev = m ? `<div class="dprev"><span class="tiny">${esc(e.ziel)} after merging:</span><div class="field">${svgFor(m)}</div></div>` : `<span>Cannot be merged any more – keep it separate or discard.</span>`; }
     h += `<div class="dbox dup"><b>${aktion === "zusammenlegen" ? `Variant of ${esc(e.ziel)}` : `Same as ${esc(e.ziel)}`}</b>` +
       `<span>${aktion === "zusammenlegen" ? "Approving adds the different route to it as an option." : t && ENTW.newOpponents(t, d).length ? `Approving only adds the opponent ${esc(ENTW.newOpponents(t, d).join(", "))} to it.` : "Approving does not save it again."}${t ? "" : " The play is no longer in the catalog."}${changed ? ` <b>${esc(e.ziel)} changed since this draft was filed.</b>` : ""}</span>` +
+      // P38: Dublette eines archivierten Plays – reaktivieren statt neu anlegen
+      (t && isArchived(t) ? `<div class="row darch"><span>${esc(archivedMatchText(e.ziel).replace(/^m/, "M"))}</span><button class="btn" type="button" data-dact="unarchive" title="Bring the archived play back into the catalog and the analysis">Unarchive ${esc(e.ziel)}</button></div>` : "") +
       prev + `</div>`;
   } else if (e.hinweis) h += `<div class="dbox dup"><span class="tiny">Note: ${esc(e.hinweis)}</span></div>`;
   // Distanz unsicher → Freigabe erst nach Angabe
@@ -4954,6 +5034,11 @@ function initDrafts(){
     else if (act === "dist") draftSave(id, d => ENTW.entwurfFeld(d, "situation", `${b.dataset.v}y`));
     else if (act === "unknown") draftSave(id, d => { const n = JSON.parse(JSON.stringify(d)); n._entwurf = { ...(n._entwurf || {}), distanz_unbekannt: true }; return n; });
     else if (act === "approve") draftApprove(id);
+    else if (act === "unarchive"){ // P38: Ziel-Play wieder aktivieren, der Entwurf bleibt zur Entscheidung stehen
+      const t = dTarget(dFind(id)), st = dState(id); if (!t) return;
+      st.err = ""; st.msg = "Unarchiving …"; renderDrafts();
+      archivePlays([t.play_id], false).then(() => { st.msg = `${t.play_id} unarchived.`; renderDrafts(); }, (err) => { st.msg = ""; st.err = "Not saved: " + (err && err.message || err); renderDrafts(); });
+    }
     else if (act === "draw") wEditStart("draft", id);
     else if (act === "discard"){
       if (!st.confirmDiscard){ st.confirmDiscard = true; renderDrafts(); setTimeout(() => { if (st.confirmDiscard){ st.confirmDiscard = false; renderDrafts(); } }, 4000); return; }
@@ -5369,7 +5454,9 @@ async function wSave(){
     // nächstes Play: gleiches Setup, leeres Feld
     S.w.play = Z.newDrawPlay(S.w.setup); S.w.undo = []; S.w.redo = []; S.w.sel = null; S.w.raw = {}; S.w.formNote = null; S.w.log = [];
     S.w.conceptTouched = false; S.w.sitTouched = false; $("wCom").value = ""; $("wSit").value = S.w.play.situation || "";
-    wMsg(`Saved as draft ${id}${aktion === "zusammenlegen" ? ` (variant of ${ziel})` : aktion === "identisch" ? ` (same as ${ziel})` : ""}. Draw the next play.`);
+    // P38: Dublette eines archivierten Plays – Hinweis zum Reaktivieren (Knopf „Unarchive“ in Drafts)
+    const arch = ziel && into?.play?.archived === true ? ` – ${ziel} is archived, unarchive it in Drafts` : "";
+    wMsg(`Saved as draft ${id}${aktion === "zusammenlegen" ? ` (variant of ${ziel}${arch})` : aktion === "identisch" ? ` (same as ${ziel}${arch})` : ""}. Draw the next play.`);
   } catch (err) {
     wMsg("Not saved: " + (err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can save drafts." : (err && err.message || err)), true);
   } finally { S.w.saving = false; wRender(); }
@@ -5646,12 +5733,13 @@ function askPdfTitle(list){
     dlg.hidden = false; inp.focus(); inp.select();
   });
 }
+// P38: archivierte Plays (sichtbar mit „Show archived“) kommen nie ins PDF
 function updatePdfBtn(){
-  const list = filtered();
-  const show = S.plays.length > 0 && !!S.dlReady;
+  const list = withoutArchived(filtered()), all = withoutArchived(S.plays);
+  const show = all.length > 0 && !!S.dlReady;
   $("pdfBtn").hidden = !show;
   $("pdfBtn").disabled = !list.length || S.pdfBusy === true;
-  if (!S.pdfBusy) $("pdfBtn").textContent = list.length === S.plays.length ? `All ${list.length} as PDF` : `${list.length} filtered as PDF`;
+  if (!S.pdfBusy) $("pdfBtn").textContent = list.length === all.length ? `All ${list.length} as PDF` : `${list.length} filtered as PDF`;
   ui.covPdfAllSync(show, list); // Häkchen „All coverages per play“ (Modul coverages)
 }
 
@@ -5811,11 +5899,12 @@ function buildOfflineHtml(){
   if (cut < 0 || !PAGE_SRC.css) throw new Error("Page source not readable");
   const now = new Date(), stand = localDay(now);
   const safe = (v) => JSON.stringify(v).replace(/</g, "\\u003c").split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
-  const plays = safe(S.plays);
+  const list = withoutArchived(S.plays); // P38: die Offline-Datei ist zum Teilen gedacht – ohne archivierte Plays
+  const plays = safe(list);
   // Defense-Coverages (P22) nur, wenn sie beim Speichern angezeigt werden – sonst gehen keine Coverage-Daten mit
-  const cov = safe(ui.covActive() ? ui.covExportEntry(S.plays.map(p => p.play_id))?._playbook_settings || null : null);
+  const cov = safe(ui.covActive() ? ui.covExportEntry(list.map(p => p.play_id))?._playbook_settings || null : null);
   // Einsätze/Targets (P16b) der sichtbaren Plays immer mit (die Datei zeigt sie wie hier)
-  const logs = safe(Object.fromEntries(S.plays.map(p => [p.play_id, logOf(p)?.entries]).filter(([, e]) => e && e.length)));
+  const logs = safe(Object.fromEntries(list.map(p => [p.play_id, logOf(p)?.entries]).filter(([, e]) => e && e.length)));
   const js = (PAGE_SRC.script.slice(0, cut) + `\nconst OFFLINE_STAND = ${JSON.stringify(stand)};\nconst OFFLINE_STAMP = ${JSON.stringify(localStamp(now))};\nconst OFFLINE_PLAYS = ${plays};\nconst OFFLINE_MARKS = ${JSON.stringify(S.marks || [])};\nconst OFFLINE_COV = ${cov};\nconst OFFLINE_LOGS = ${logs};\nofflineBoot();\n`).replace(/<\/script/gi, "<\\/script");
   return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">` +
     `<title>Flag Scout Tool – HTML export ${stand}</title><style>body{margin:0;padding:0}img{max-width:100%}</style><style>${PAGE_SRC.css}</style></head><body>\n` +
@@ -5823,7 +5912,7 @@ function buildOfflineHtml(){
 }
 // Start in der Offline-Datei (wird nur dort aufgerufen)
 function offlineBoot(){
-  S.plays = OFFLINE_PLAYS.map(withDepth);
+  S.plays = withoutArchived(OFFLINE_PLAYS).map(withDepth);
   S.marks = typeof OFFLINE_MARKS !== "undefined" ? OFFLINE_MARKS : [];
   S.offline = true;
   const oc = typeof OFFLINE_COV !== "undefined" ? OFFLINE_COV : null;
@@ -5848,7 +5937,7 @@ function offlineBoot(){
   render();
   // opt (P27): { list, ordered, name } – PDF der Auswahl in Klickreihenfolge
   $("pdfBtn").onclick = async (ev, opt = {}) => {
-    const list = opt.list || catalogList(); if (!list.length) return;
+    const list = withoutArchived(opt.list || catalogList()); if (!list.length) return;
     const title = await askPdfTitle(list); if (title === null) return;
     S.pdfBusy = true; $("pdfBtn").disabled = true; $("pdfBtn").textContent = "Creating PDF …"; $("toast").textContent = "";
     try {
@@ -5873,7 +5962,7 @@ function offlineBoot(){
 // Plays neu gespeichert/geändert wurden UND das Backup älter als 7 Tage ist. „Neu/geändert“ = jüngster der
 // Zeitstempel created_at/saved_at/edited_at im _meta liegt nach dem Backup.
 const BACKUP_DAYS = 7;
-const playStamp = (p) => Math.max(...["created_at", "saved_at", "edited_at"].map(k => Date.parse(p._meta?.[k] || "") || 0));
+const playStamp = (p) => Math.max(Date.parse(p.archived_at || "") || 0, ...["created_at", "saved_at", "edited_at"].map(k => Date.parse(p._meta?.[k] || "") || 0)); // P38: Archivieren zählt mit
 // Mit Game log im Play-Export (P25d) zählt ein Play auch als geändert, wenn es seit dem Backup neue Einsätze hat
 const logStamp = (p) => GL_EXPORT ? Math.max(0, ...(logOf(p)?.entries || []).map(e => Date.parse(e.at || "") || 0)) : 0;
 function backupState(now = Date.now()){
@@ -5991,8 +6080,9 @@ function iRender(){
   $("iInfo").innerHTML = parts.join(" · ");
   const name = (o) => o ? esc(o) : "–";
   $("iList").innerHTML = [
-    ...pl.eintraege.map(e => `<li><span class="k">#${e.nr}</span><span>${name(e.orig)} → <b>${esc(e.id)}</b></span><span class="to">${e.wohin === "katalog" ? "Catalog" : "Drafts"}</span>${e.grund ? `<span class="why">${esc(e.grund)}</span>` : ""}</li>`),
-    ...pl.uebersprungen.map(u => `<li><span class="k">#${u.nr}</span><span>${name(u.orig)}</span><span class="why">skipped – ${esc(u.text)}</span></li>`),
+    ...pl.eintraege.map(e => `<li><span class="k">#${e.nr}</span><span>${name(e.orig)} → <b>${esc(e.id)}</b></span><span class="to">${e.wohin === "katalog" ? "Catalog" : "Drafts"}${e.play?.archived === true ? " · archived" : ""}</span>${e.grund ? `<span class="why">${esc(e.grund)}</span>` : ""}</li>`),
+    // P38: identisch mit einem archivierten Play → Knopf „Unarchive“
+    ...pl.uebersprungen.map(u => `<li><span class="k">#${u.nr}</span><span>${name(u.orig)}</span><span class="why">skipped – ${esc(u.text)}${u.archiviert ? ` <button class="btn" type="button" data-iunarch="${esc(u.archiviert)}"${(S.allPlays || []).some(p => p.play_id === u.archiviert && p.archived === true) ? "" : " disabled"}>Unarchive</button>` : ""}</span></li>`),
     ...pl.fehler.map(f => `<li><span class="k">#${f.nr}</span><span>${name(f.orig)}</span><span class="err">${esc(f.text)}</span></li>`),
   ].join("");
   const n = pl.eintraege.length;
@@ -6062,7 +6152,7 @@ function initExport(){
       try {
         const html = buildOfflineHtml();
         await dl.save({ filename: `playbook-offline-${day}.html`, data: new Blob([html], { type: "text/html" }) });
-        $("toast").textContent = `Offline version with ${S.plays.length} plays saved.`;
+        $("toast").textContent = `Offline version with ${withoutArchived(S.plays).length} plays saved.`;
       } catch (e) {
         const c = e && e.code;
         $("toast").textContent = c === "declined" ? "Save cancelled."
@@ -6072,7 +6162,7 @@ function initExport(){
     };
     // opt (P27): { list, ordered, name } – PDF der Auswahl in Klickreihenfolge
     $("pdfBtn").onclick = async (ev, opt = {}) => {
-      const list = opt.list || catalogList(); if (!list.length) return;
+      const list = withoutArchived(opt.list || catalogList()); if (!list.length) return;
       const title = await askPdfTitle(list); if (title === null) return;
       S.pdfBusy = true; $("pdfBtn").disabled = true; $("pdfBtn").textContent = "Creating PDF …"; $("toast").textContent = "";
       try {
@@ -6121,6 +6211,12 @@ function initImport(){
     iRenderTarget(); if (S.imp.raw){ iPlan(); iRender(); }
   };
   $("iToDrafts").onclick = () => { $("importDlg").hidden = true; setTab("drafts"); };
+  $("iList").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-iunarch]"); if (!b || S.imp.busy) return;
+    b.disabled = true;
+    try { await archivePlays([b.dataset.iunarch], false); b.textContent = "Unarchived"; }
+    catch (err) { b.disabled = false; $("iInfo").innerHTML = `<span class="err">Not saved: ${esc(err && err.message || err)}</span>`; }
+  });
   $("iClose").onclick = () => { if (!S.imp.busy) $("importDlg").hidden = true; };
   $("importDlg").addEventListener("click", (e) => { if (e.target === $("importDlg") && !S.imp.busy) $("importDlg").hidden = true; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("importDlg").hidden && !S.imp.busy) $("importDlg").hidden = true; });
@@ -6206,6 +6302,56 @@ function sortPlays(list){
 const selOnlyOn = () => S.selMode && S.selOnly;
 const catalogList = () => selOnlyOn() ? SEL.ordered(S.sel, S.plays) : sortPlays(filtered());
 
+// ---------- Plays für die Analyse (P37, spec §7k) ----------
+// Eine Stelle für Heatmap, Concepts & depth, Matrix und Review: Archiv-Ausschluss (P38), Scope „Filtered“ (Katalogfilter)
+// oder „Selection“ (die Auswahl, Katalogfilter ignoriert) und Cross-Filter. Im Scope „Selection“ liegen die Cross-Filter in
+// S.aCross, damit die Katalogfilter unberührt bleiben und „Filtered“ wieder die normale Ansicht liefert. Regeln: analyse.js.
+const CROSS_IDS = { concept: "fConc", depth: "fDepth", target: "fTarget", formation: "fForm" };
+const selScopeOn = () => analysisScope(S.aScope, S.sel) === "selection";
+const crossMatch = (k, p, v) => k === "concept" ? val(p, "play_concept") === v : k === "depth" ? depthOf(p) === v : k === "formation" ? val(p, "formation") === v
+  : LOG.entriesFor(logOf(p), "", "").some(e => LOG.targetKey(e) === v);
+function analysisPlays(skip){
+  return analysisList({ scope: S.aScope, sel: S.sel, plays: S.plays, filtered: (k) => filtered(true, k), cross: S.aCross, skip, match: crossMatch });
+}
+// Reihenfolge für „Review matchups“: Auswahl in Klickreihenfolge, sonst Katalog-Sortierung
+const analysisOrdered = () => selScopeOn() ? analysisPlays() : sortPlays(analysisPlays());
+const crossValue = (k) => selScopeOn() ? S.aCross[k] || "" : $(CROSS_IDS[k]).value;
+// Klick auf einen Balken/eine Formation: setzen, zweiter Klick hebt auf
+function setCross(k, v){
+  if (selScopeOn()){ S.aCross[k] = S.aCross[k] === v ? "" : v; render(); return; }
+  const sel = $(CROSS_IDS[k]), next = sel.value === v ? "" : v;
+  sel.value = next;
+  if (sel.value !== next) sel.value = ""; // Wert nicht im Filter-Dropdown → aufheben statt falsch filtern
+  render();
+}
+function clearCross(k){ if (selScopeOn()) S.aCross[k] = ""; else $(CROSS_IDS[k]).value = ""; }
+// Gegner und Down der Gewichtung: im Scope „Selection“ alle Einsätze (Katalogfilter gelten dort nicht)
+const analysisOpp = () => selScopeOn() ? "" : $("fOpp").value;
+const analysisDown = () => selScopeOn() ? "" : $("fDown").value;
+function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.depthMore = false; S.mSel = null; render(); }
+// Rückfall auf „Filtered“, sobald die Auswahl leer ist
+function scopeSync(){ if (S.aScope !== "filtered" && !S.sel.length){ S.aScope = "filtered"; S.aCross = emptyCross(); } }
+// Schalter „Filtered / Selection (n)“ und Banner oben im Reiter Analysis (nur mit Auswahl); im Scope „Selection“ ist die
+// Filterzeile ausgeblendet – sie gilt dort nicht
+function scopeUpdate(){
+  scopeSync();
+  const bar = $("aScopeBar"); if (!bar) return;
+  const has = S.sel.length > 0, on = selScopeOn();
+  bar.hidden = !has;
+  const nSel = withoutArchived(SEL.ordered(S.sel, S.plays)).length;
+  $("aScope").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === (on ? "selection" : "filtered"))));
+  $("aScopeSel").textContent = `Selection (${nSel})`;
+  $("aBanner").hidden = !on;
+  if (on){
+    const crossOn = Object.values(S.aCross).some(Boolean);
+    $("aBannerText").textContent = scopeBanner(nSel, analysisPlays().length, crossOn);
+  }
+  if (S.tab === "zonen"){
+    $("filters").hidden = on || S.plays.length === 0;
+    if (on) $("hiddenF").hidden = true;
+  }
+}
+
 // P6: Markierung „Must-know“ – Liste von Play-IDs in settings/marks (nur der Besitzer ändert sie)
 const isMarked = (p) => (S.marks || []).includes(p.play_id);
 function starHTML(p){
@@ -6233,10 +6379,10 @@ function cardSVG(p, used){
 }
 function renderGrid(){
   const list = catalogList();
-  $("empty").hidden = S.plays.length > 0;
-  $("filters").hidden = S.plays.length === 0;
+  $("empty").hidden = S.plays.length > 0 || S.nArch > 0;
+  $("filters").hidden = S.plays.length === 0 && !S.nArch; // nur archivierte Plays: „Show archived“ bleibt erreichbar
   selPrune();
-  $("countLine").textContent = !S.plays.length ? "" : selOnlyOn() ? `${list.length} selected ${list.length === 1 ? "play" : "plays"} (in the order you picked them)` : `${list.length} of ${S.plays.length} plays`;
+  $("countLine").textContent = !S.plays.length ? (S.nArch ? `All ${S.nArch} plays are archived – More filters → Show archived.` : "") : selOnlyOn() ? `${list.length} selected ${list.length === 1 ? "play" : "plays"} (in the order you picked them)` : `${list.length} of ${S.plays.length} plays`;
   updatePdfBtn();
   ui.revBtnUpdate();
   // P17: Trennlinie vor dem ersten Endzone-Play, wenn auch Open-Field-Plays in der Liste sind (nicht bei „Only selection“: Klickreihenfolge)
@@ -6245,10 +6391,10 @@ function renderGrid(){
   $("grid").classList.toggle("selmode", sm);
   const used = new Map();
   const html = list.map((p, i) => (i === sepAt ? `<div class="ezsep" role="separator" aria-label="Endzone plays"></div>` : "") + `
-    <button class="card${sm && selPos.has(p.play_id) ? " sel" : ""}" type="button" data-id="${esc(p.play_id)}"${sm ? ` aria-pressed="${selPos.has(p.play_id)}"` : ""}>
+    <button class="card${sm && selPos.has(p.play_id) ? " sel" : ""}${isArchived(p) ? " archived" : ""}" type="button" data-id="${esc(p.play_id)}"${sm ? ` aria-pressed="${selPos.has(p.play_id)}"` : ""}>
       ${sm ? `<span class="selbox" aria-hidden="true">${selPos.has(p.play_id) ? "✓" : ""}</span>${selPos.has(p.play_id) ? `<span class="selord" title="Position in the PDF">${selPos.get(p.play_id)}</span>` : ""}` : ""}
       <div class="field">${cardSVG(p, used)}</div>
-      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${starHTML(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
+      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${isArchived(p) ? `<span class="hidtag archtag" title="Not in the analysis, Select all and PDF">Archived</span>` : ""}${starHTML(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
     </button>`).join("");
   svgMemo = used; // nur die Grafiken des aktuellen Rasters behalten
   if (html !== gridHTML){ $("grid").innerHTML = html; gridHTML = html; }
@@ -6268,6 +6414,7 @@ function openDetail(id){
   $("dStar").hidden = !(S.owner && S.db); $("dStar").textContent = isMarked(p) ? "★ Must-know" : "☆ Must-know"; $("dStar").setAttribute("aria-pressed", isMarked(p));
   $("dEdit").hidden = !S.db; $("dSave").hidden = true; $("dCancel").hidden = true; $("dJsonSec").hidden = false;
   $("dDraw").hidden = !(S.owner && S.db); $("dUndo").hidden = true;
+  $("dArch").hidden = !archCanOwn(); $("dArch").textContent = isArchived(p) ? "Unarchive" : "Archive"; $("dArch").disabled = !!S.archBusy;
   if (S.owner && S.db) wUndoInfo(p).then(u => { if (S.detailId === id && !S.editing && u) { $("dUndo").hidden = false; $("dUndo").title = `Restore the version from ${new Date(u.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`; } }).catch(() => {});
   S.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, Bereich „Game log“)
   ui.covDetailOpen(p); // Defense-Ebene (P22): Grafik mit Defense + Bereich „Defense“
@@ -6316,7 +6463,8 @@ function renderInfo(p){
   if (!p || !$("dMeta").classList.contains("dinfo")) return;
   const NAMES = { formation: "Formation", qb_alignment: "QB", direction: "Direction", play_concept: "Concept" };
   const unsure = (k) => p[k]?.confidence && p[k].confidence !== "high" ? "unsure" : "";
-  let c = isMarked(p) ? `<span class="chip mark">★ Must-know</span>` : "";
+  let c = isArchived(p) ? `<span class="chip archchip" title="Not in the analysis, Select all and PDF">Archived${p.archived_at ? " " + esc(new Date(p.archived_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })) : ""}</span>` : "";
+  c += isMarked(p) ? `<span class="chip mark">★ Must-know</span>` : "";
   for (const k of CHIP_KEYS){ const v = val(p, k); c += infoChip(p, k, v == null || v === "Unknown" ? NAMES[k] + " ?" : v, `${NAMES[k]}: ${v ?? "–"}`, unsure(k)); }
   if (depthOf(p)) c += `<span class="chip" title="Depth short-intermediate-deep: ${esc(depthText(p))}">${esc(depthOf(p))}</span>`;
   const ez = val(p, "field_type") === "Endzone", los = p.los_yard_line != null ? `${p.los_yard_line} yd` : ez ? "5 yd" : "";
@@ -6366,7 +6514,7 @@ function startEdit(){
   teamListFill();
   $("dMeta").outerHTML = `<div class="edit" id="dMeta">${h}</div>`;
   EDIT_FIELDS.forEach(([k]) => { const sel = $("e_" + k), c = $("c_" + k); if (c) sel.onchange = () => { if (sel.value !== sel.dataset.orig) c.checked = true; }; });
-  $("dEdit").hidden = true; $("dJsonSec").hidden = true; $("dStar").hidden = true; $("dDraw").hidden = true; $("dUndo").hidden = true; logDetailRender(); ui.covDetailRender();
+  $("dEdit").hidden = true; $("dJsonSec").hidden = true; $("dStar").hidden = true; $("dDraw").hidden = true; $("dUndo").hidden = true; $("dArch").hidden = true; logDetailRender(); ui.covDetailRender();
   $("dSave").hidden = false; $("dCancel").hidden = false; $("dToast").textContent = ""; detailNavUpdate();
   $("e_" + EDIT_FIELDS[0][0]).focus();
 }
@@ -6410,11 +6558,13 @@ function closeDetail(){ $("overlay").hidden = true; S.editing = false; S.cd = nu
 const HIDDEN_FILTERS = [["fDir", "Direction"], ["fConc", "Concept"], ["fDepth", "Depth"], ["fSeason", "Season"], ["fOpp", "Opponent"], ["fTarget", "Target"], ["fDown", "Down"], ["fSearch", "Search"]];
 // P28.1: Zusatzfilter einklappbar, Standard eingeklappt; der Zustand gilt für Plays und Analysis
 // (gemeinsame Filterzeile) und bleibt bis zum Neuladen erhalten
+// P38: „Show archived“ (nur Besitzer) steht mit in „More filters“ – zugeklappt als Chip „Archived shown“
+const archShown = () => !!(S.owner && S.showArchived);
 function updateFold(){
   $("filters").classList.toggle("fold", !S.filtersOpen);
   $("fMore").setAttribute("aria-expanded", S.filtersOpen);
   $("fMore").lastChild.textContent = S.filtersOpen ? " ▾" : " ▸";
-  const n = HIDDEN_FILTERS.filter(([id]) => $(id).value.trim() !== "").length;
+  const n = HIDDEN_FILTERS.filter(([id]) => $(id).value.trim() !== "").length + (archShown() ? 1 : 0);
   $("fMoreN").textContent = !S.filtersOpen && n ? `(${n})` : "";
 }
 function updateHiddenHint(){
@@ -6424,14 +6574,16 @@ function updateHiddenHint(){
   // In der Heatmap zeigt die Auswertung Concept/Depth schon als Chips an
   const list = HIDDEN_FILTERS.filter(([id]) => !(S.tab === "zonen" && (id === "fConc" || id === "fDepth" || id === "fTarget")) && $(id).value.trim() !== "")
     .map(([id, name]) => [id, name, $(id).value.trim()]);
-  box.hidden = !list.length;
-  box.innerHTML = list.length ? `<span class="lbl">Also filtered</span>` + list.map(([id, name, v]) => `<button type="button" class="xchip" data-hclear="${id}" title="Remove this filter">${name}: ${esc(v)} <span aria-hidden="true">×</span></button>`).join("") : "";
+  const arch = archShown() && S.tab === "katalog";
+  box.hidden = !list.length && !arch;
+  box.innerHTML = box.hidden ? "" : `<span class="lbl">Also filtered</span>` + list.map(([id, name, v]) => `<button type="button" class="xchip" data-hclear="${id}" title="Remove this filter">${name}: ${esc(v)} <span aria-hidden="true">×</span></button>`).join("") +
+    (arch ? `<button type="button" class="xchip" data-hclear="fArch" title="Hide archived plays again">Archived shown <span aria-hidden="true">×</span></button>` : "");
 }
 
 // „Filter löschen“: setzt alle Filter der Filterzeile zurück (gilt für Katalog und Heatmap). Ansichts-Einstellungen
 // der Heatmap (Open Field/Endzone, Side, Group by) bleiben, weil sie keine Plays ausfiltern.
 const FILTER_IDS = ["fTeam", "fField", "fForm", "fDir", "fConc", "fDepth", "fSeason", "fOpp", "fTarget", "fDown", "fSearch"];
-function activeFilters(){ return FILTER_IDS.filter(id => !(id === "fField" && S.tab === "zonen") && $(id).value.trim() !== "").length + ($("fMarked").checked ? 1 : 0); }
+function activeFilters(){ return FILTER_IDS.filter(id => !(id === "fField" && S.tab === "zonen") && $(id).value.trim() !== "").length + ($("fMarked").checked ? 1 : 0) + (archShown() && S.tab === "katalog" ? 1 : 0); }
 function updateReset(){ const n = activeFilters(); $("fReset").hidden = n === 0; $("fResetN").textContent = n > 1 ? `(${n})` : ""; }
 
 // Wird im Datenbank-Teil gesetzt; offline (HTML-Export) nicht verfügbar
@@ -6459,6 +6611,7 @@ function selPrune(){
   if (S.selAnchor && !S.sel.includes(S.selAnchor) && !ids.includes(S.selAnchor)) S.selAnchor = null;
 }
 function selBarUpdate(){
+  scopeSync(); // P37: leere Auswahl → Analysis wieder „Filtered“
   const has = S.plays.length > 0, n = S.sel.length;
   $("selBtn").hidden = !has;
   $("selBtn").setAttribute("aria-pressed", String(S.selMode));
@@ -6467,16 +6620,19 @@ function selBarUpdate(){
   if ($("selBar").hidden) return;
   $("selN").textContent = `${n} selected`;
   $("selOnly").checked = S.selOnly;
-  const vis = selOnlyOn() ? [] : catalogList().map(p => p.play_id);
+  const vis = selOnlyOn() ? [] : withoutArchived(catalogList()).map(p => p.play_id); // P38: archivierte nicht in „Select all“
   $("selAll").disabled = !vis.length || vis.every(id => S.sel.includes(id));
-  $("selNone").disabled = !vis.some(id => S.sel.includes(id));
+  $("selNone").disabled = !(selOnlyOn() ? [] : catalogList()).some(p => S.sel.includes(p.play_id));
   $("selClear").disabled = !n;
-  const dl = !!S.dlReady && !S.noDownloads;
-  $("selPdf").hidden = !dl; $("selPdf").disabled = !n || S.pdfBusy === true;
-  $("selPdf").textContent = n ? `PDF (${n})` : "PDF";
+  const dl = !!S.dlReady && !S.noDownloads, nP = withoutArchived(selPlays()).length; // P38: archivierte nicht im PDF und nicht in der Analyse
+  $("selPdf").hidden = !dl; $("selPdf").disabled = !nP || S.pdfBusy === true;
+  $("selPdf").textContent = nP ? `PDF (${nP})` : "PDF";
+  $("selAna").disabled = !nP; $("selAna").textContent = nP ? `Analyze (${nP})` : "Analyze";
   $("selJson").hidden = !dl; $("selJson").disabled = !n;
   const own = selCanOwn() && !S.offline;
-  ["selMark", "selEdit", "selDel"].forEach(id => { $(id).hidden = !own; $(id).disabled = !n || S.selBusy === true; });
+  ["selMark", "selEdit", "selArch", "selDel"].forEach(id => { $(id).hidden = !own; $(id).disabled = !n || S.selBusy === true; });
+  const aa = archiveAction(selPlays());
+  $("selArch").textContent = aa.mode === "unarchive" ? `Unarchive (${aa.plays.length})` : n ? `Archive (${aa.plays.length})` : "Archive";
   const allMarked = n && S.sel.every(id => (S.marks || []).includes(id));
   $("selMark").textContent = allMarked ? "☆ Remove must-know" : "★ Must-know";
 }
@@ -6485,6 +6641,48 @@ function selSetMode(on){
   if (!on){ S.selOnly = false; $("selToast").textContent = ""; }
   render();
 }
+// ---------- Archivieren (P38, spec §7j) ----------
+// Nur der Besitzer (Flag Scout Tool: immer). Archivieren setzt archived + archived_at, „Unarchive“ entfernt beide Felder
+// (ganzes Dokument neu schreiben, ohne die zwei Felder). Nichts wird gelöscht; Game log, Coverage und Matchups bleiben.
+const archCanOwn = () => !!(S.owner && S.db && !S.offline);
+async function archivePlays(ids, on){
+  if (!archCanOwn() || S.archBusy) return 0;
+  S.archBusy = true;
+  const now = new Date().toISOString();
+  let done = 0;
+  try {
+    for (const id of ids){
+      const ref = S.db.doc("plays/" + (S.docIds.get(id) || id));
+      const snap = await ref.get(); if (!snap.exists) continue;
+      const cur = snap.data();
+      if (on === isArchived(cur)) { done++; continue; }
+      if (on) await ref.update({ archived: true, archived_at: now });
+      else await ref.set(unarchivedPlay(cur));
+      // sofort anzeigen, der Live-Abgleich folgt
+      const i = (S.allPlays || []).findIndex(p => p.play_id === id);
+      if (i >= 0) S.allPlays[i] = on ? archivedPlay(S.allPlays[i], now) : unarchivedPlay(S.allPlays[i]);
+      done++;
+    }
+  } finally {
+    S.archBusy = false;
+    // ausgeblendete archivierte Plays fallen aus der Auswahl (sie zählen dort ohnehin nicht)
+    if (on && !archShown()) S.sel = S.sel.filter(id => !ids.includes(id));
+    applyHidden();
+  }
+  return done;
+}
+const archErr = (err) => err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can archive plays." : (err && err.message || err);
+async function detailArchive(){
+  const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !archCanOwn() || S.archBusy) return;
+  const on = !isArchived(p), id = p.play_id;
+  $("dArch").disabled = true; $("dToast").textContent = on ? "Archiving …" : "Unarchiving …";
+  try {
+    await archivePlays([id], on);
+    if (on && !archShown()){ closeDetail(); $("toast").textContent = `${id} archived – find it again with More filters → Show archived.`; return; }
+    if (!$("overlay").hidden && S.detailId === id) { openDetail(id); $("dToast").textContent = on ? "Archived – no longer counted in the analysis, Select all and PDF." : "Unarchived."; }
+  } catch (err) { $("dToast").innerHTML = `<span class="err">Not saved: ${esc(archErr(err))}</span>`; $("dArch").disabled = false; }
+}
+
 function selClick(id, shift){
   if (!S.selMode){ S.selMode = true; }
   const vis = catalogList().map(p => p.play_id);
@@ -6609,12 +6807,17 @@ function applyHidden(){
   if (!S.playsLoaded) return;
   const hidden = S.hidden || [];
   const showAll = S.owner && S.showHidden;
-  S.plays = (S.allPlays || []).filter(p => showAll || !hidden.includes(p.team));
-  const teams = uniq(S.plays.map(p => p.team));
+  // P38: archivierte Plays nur für den Besitzer mit „Show archived“, Betrachter sehen sie nie
+  S.plays = visiblePlays(S.allPlays, { hidden, owner: !!S.owner, showHidden: !!S.showHidden, showArchived: !!S.showArchived });
+  const active = withoutArchived(S.plays), teams = uniq(active.map(p => p.team));
   const nHidden = S.owner ? uniq((S.allPlays || []).map(p => p.team)).filter(t => hidden.includes(t)).length : 0;
-  $("status").innerHTML = S.plays.length
-    ? `<b>${S.plays.length}</b> plays · ${teams.length} ${teams.length === 1 ? "team" : "teams"} · saved in this browser${nHidden ? ` · ${nHidden} hidden ${nHidden === 1 ? "team" : "teams"}${showAll ? " shown" : ""}` : ""}`
-    : (S.allPlays || []).length ? "All teams are hidden." : "No plays yet – draw one or import a JSON file.";
+  const nArch = S.owner ? (S.allPlays || []).filter(p => isArchived(p) && (showAll || !hidden.includes(p.team))).length : 0;
+  S.nArch = nArch;
+  $("fArchCtl").hidden = !archCanOwn();
+  $("fArch").checked = archShown();
+  $("status").innerHTML = active.length
+    ? `<b>${active.length}</b> plays · ${teams.length} ${teams.length === 1 ? "team" : "teams"} · saved in this browser${nHidden ? ` · ${nHidden} hidden ${nHidden === 1 ? "team" : "teams"}${showAll ? " shown" : ""}` : ""}${nArch ? ` · ${nArch} archived${archShown() ? " shown" : ""}` : ""}`
+    : nArch ? `All plays are archived (${nArch}).` : (S.allPlays || []).length ? "All teams are hidden." : "No plays yet – draw one or import a JSON file.";
   $("exportBtn").hidden = S.plays.length === 0 || S.noDownloads === true;
   $("offlineBtn").hidden = S.plays.length === 0 || !S.dlReady;
   if ($("fTeam").value && !S.plays.some(p => p.team === $("fTeam").value)) $("fTeam").value = "";
@@ -6681,12 +6884,25 @@ function initKatalog(){
   $("hiddenF").addEventListener("click", (e) => {
     const b = e.target.closest("[data-hclear]"); if (!b) return;
     const id = b.dataset.hclear;
-    if (id === "fMarked") $("fMarked").checked = false; else $(id).value = "";
+    if (id === "fMarked") $("fMarked").checked = false;
+    else if (id === "fArch"){ S.showArchived = false; applyHidden(); return; }
+    else $(id).value = "";
     render();
   });
   ["fTeam", "fField", "fForm", "fDir", "fConc", "fDepth", "fSeason", "fOpp", "fTarget", "fDown"].forEach(id => $(id).onchange = render);
   $("fSearch").oninput = render;
-  $("fReset").onclick = () => { FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.depthMore = false; render(); };
+  $("fReset").onclick = () => {
+    FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.depthMore = false;
+    if (S.showArchived && S.tab === "katalog"){ S.showArchived = false; applyHidden(); return; } // P38: Reset blendet das Archiv wieder aus
+    render();
+  };
+  // P38: „Show archived“ (More filters, nur Besitzer) – archivierte Plays ausgegraut im Katalog, zählen nie in der Analyse
+  $("fArch").onchange = () => {
+    S.showArchived = $("fArch").checked && archCanOwn();
+    if (!S.showArchived){ const arch = new Set((S.allPlays || []).filter(isArchived).map(p => p.play_id)); S.sel = S.sel.filter(id => !arch.has(id)); }
+    applyHidden();
+  };
+  $("dArch").onclick = detailArchive;
   $("fSort").onchange = renderGrid;
   $("grid").addEventListener("click", (e) => {
     if (recentMultiTouch()) return;
@@ -6703,12 +6919,12 @@ function initKatalog(){
   $("dStar").onclick = () => { if (S.detailId) toggleMark(S.detailId); };
   $("selBtn").onclick = () => selSetMode(!S.selMode);
   $("selDone").onclick = () => selSetMode(false);
-  $("selAll").onclick = () => { S.sel = SEL.addAll(S.sel, catalogList().map(p => p.play_id)); render(); };
+  $("selAll").onclick = () => { S.sel = SEL.addAll(S.sel, withoutArchived(catalogList()).map(p => p.play_id)); render(); };
   $("selNone").onclick = () => { S.sel = SEL.removeAll(S.sel, catalogList().map(p => p.play_id)); render(); };
   $("selClear").onclick = () => { S.sel = []; S.selAnchor = null; S.selOnly = false; render(); };
   $("selOnly").onchange = () => { S.selOnly = $("selOnly").checked && S.sel.length > 0; render(); };
   $("selPdf").onclick = async () => {
-    const list = selPlays(); if (!list.length || !$("pdfBtn").onclick) return;
+    const list = withoutArchived(selPlays()); if (!list.length || !$("pdfBtn").onclick) return;
     selMsg("");
     await $("pdfBtn").onclick(null, { list, ordered: true, name: "selection" });
     selMsg($("toast").textContent);
@@ -6728,6 +6944,42 @@ function initKatalog(){
       S.marks = r.marks; selMsg(r.on ? `${S.sel.length} marked as must-know.` : `Must-know removed from ${S.sel.length}.`);
     } catch (err) { selMsg("Not saved: " + (err && err.message || err), true); }
     finally { S.selBusy = false; render(); }
+  };
+  // P37: Analyse der Auswahl – Reiter Analysis mit Scope „Selection“; Feldtyp der Heatmap folgt der Auswahl, wenn sie nur
+  // Plays des anderen Feldtyps enthält
+  $("selAna").onclick = () => {
+    setScope("selection");
+    const list = analysisPlays(); if (!list.length) return;
+    if (!list.some(p => val(p, "field_type") === S.zField)) ui.setZField(S.zField === "Endzone" ? "Open Field" : "Endzone");
+    setTab("zonen"); window.scrollTo({ top: 0 });
+  };
+  $("aScope").addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (b) setScope(b.dataset.v); });
+  $("aBack").onclick = () => setScope("filtered");
+  // P38: Archivieren/Reaktivieren der Auswahl – Bestätigung mit Anzahl
+  $("selArch").onclick = () => {
+    if (!archCanOwn() || !S.sel.length) return;
+    const { mode, plays } = archiveAction(selPlays()), n = plays.length, on = mode === "archive";
+    if (!n) return;
+    const what = `${n} ${n === 1 ? "play" : "plays"}`;
+    $("selPanel").innerHTML = `<h2 id="selTitle">${on ? "Archive" : "Unarchive"} ${what}?</h2>
+    <p class="note" style="margin:0">${esc(plays.slice(0, 12).map(p => p.play_id).join(", "))}${n > 12 ? ` and ${n - 12} more` : ""}</p>
+    <p class="note" style="margin:0">${on ? "Archived plays leave the catalog and no longer count in the analysis, Select all and PDF. Nothing is deleted – More filters → Show archived brings them back." : "The plays count again in the catalog, the analysis and the PDF."}</p>
+    <div class="row"><button class="btn primary" id="selArchGo" type="button">${on ? "Archive" : "Unarchive"} ${what}</button><button class="btn" id="selDlgX" type="button">Cancel</button></div>
+    <p class="note" id="selDlgMsg" role="status" style="margin:0"></p>`;
+    $("selDlg").hidden = false;
+    $("selDlgX").onclick = selDlgClose; $("selDlgX").focus();
+    $("selArchGo").onclick = async () => {
+      if (S.selBusy) return;
+      S.selBusy = true; $("selArchGo").disabled = true; $("selDlgX").disabled = true; $("selDlgMsg").textContent = on ? "Archiving …" : "Unarchiving …";
+      try {
+        const done = await archivePlays(plays.map(p => p.play_id), on);
+        S.selBusy = false; selDlgClose(); render();
+        selMsg(`${done} ${done === 1 ? "play" : "plays"} ${on ? "archived" : "unarchived"}.`);
+      } catch (err) {
+        S.selBusy = false; $("selDlgX").disabled = false;
+        $("selDlgMsg").innerHTML = `<span class="err">Stopped: ${esc(archErr(err))}</span>`;
+      }
+    };
   };
   $("selDlg").addEventListener("click", (e) => { if (e.target === $("selDlg")) selDlgClose(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("selDlg").hidden) selDlgClose(); });
@@ -6860,8 +7112,8 @@ registerUi({ renderGrid, refreshFilters, updateReset, updateHiddenHint, detailNa
 
 // Modul heatmap (P25c Teil 2a, docs/p25-plan.md): Reiter „Analysis“ – Heatmap der Routenenden je Zone, Routen-Feld
 // („Show routes“), Beispiel-Plays, Auswertung „Concepts & depth“ mit Cross-Filter, Schalter Open Field/Endzone, Side,
-// Count und Group by. Meldet renderZones und setZField bei core an (render, setTab). Filter kommen aus dem Modul catalog,
-// Einsätze und Gegner aus gamelog.
+// Count und Group by. Meldet renderZones und setZField bei core an (render, setTab). Die Plays kommen aus dem Modul catalog
+// (analysisPlays: ohne Archiv, Scope Filtered/Selection, Cross-Filter – P37/P38), Einsätze und Gegner aus gamelog.
 
 // ---------- Zielzonen (Spec: claude/makroanalyse-zielzonen.md) ----------
 const lastPt = (pts) => pts && pts.length ? pts[pts.length - 1] : null;
@@ -6874,8 +7126,8 @@ const lastPt = (pts) => pts && pts.length ? pts[pts.length - 1] : null;
 function routeEnds(play, opt){
   const mirror = opt.side === "strong" && val(play, "direction") === "Left";
   const out = (l, w) => ({ x: mirror ? 25 - l.end.x : l.end.x, zone: zoneOfEnd(play, l.end, l.prev), w });
-  if (opt.count === "targets") return LOG.targetPicks(play, playEntries(play, opt.opp)).map(t => { const l = routeLegAt(LOG.routeOfTarget(play, t.target), t.ending); return l ? out(l, t.n) : null; }).filter(Boolean);
-  const f = opt.count === "freq" ? LOG.freqWeight(playEntries(play, opt.opp)) : 1;
+  if (opt.count === "targets") return LOG.targetPicks(play, playEntries(play, opt.opp, opt.down)).map(t => { const l = routeLegAt(LOG.routeOfTarget(play, t.target), t.ending); return l ? out(l, t.n) : null; }).filter(Boolean);
+  const f = opt.count === "freq" ? LOG.freqWeight(playEntries(play, opt.opp, opt.down)) : 1;
   const legs = [];
   (play.players?.receivers || []).forEach(r => legs.push(...routeLegs(realRoute(r), opt.weight)));
   if (play.players?.center?.route) legs.push(...routeLegs(play.players.center.route, opt.weight)); // Center-Routen zählen im Flag Football immer
@@ -6884,8 +7136,8 @@ function routeEnds(play, opt){
 // Gewicht eines Plays in der Auswertung (Concept-/S-I-D-Balken): Plays 1, Häufigkeit = Einsätze (mind. 1),
 // Targets = Zahl der angeworfenen Routen
 function playWeight(p, opt){
-  if (opt.count === "freq") return LOG.freqWeight(playEntries(p, opt.opp));
-  if (opt.count === "targets") return LOG.targetPicks(p, playEntries(p, opt.opp)).reduce((a, t) => a + t.n, 0);
+  if (opt.count === "freq") return LOG.freqWeight(playEntries(p, opt.opp, opt.down));
+  if (opt.count === "targets") return LOG.targetPicks(p, playEntries(p, opt.opp, opt.down)).reduce((a, t) => a + t.n, 0);
   return 1;
 }
 
@@ -6998,8 +7250,9 @@ function zOptsSync(){
   box.innerHTML = box.hidden ? "" : `<span class="lbl">Options</span>` + list.map(([k, t]) => `<button type="button" class="xchip" data-zreset="${k}" title="Back to the default">${esc(t)} <span aria-hidden="true">×</span></button>`).join("");
 }
 function renderZones(){
+  scopeUpdate(); // P37: Schalter Filtered/Selection und Banner
   zOptsSync();
-  const opt = { field: S.zField, side: S.zSide, weight: $("zOpt").checked, count: S.zCount, opp: $("fOpp").value };
+  const opt = { field: S.zField, side: S.zSide, weight: $("zOpt").checked, count: S.zCount, opp: analysisOpp(), down: analysisDown() };
   const g = $("zGroup").value;
   // Noch keine Open-Field-Plays in der Datenbank: Beispiel-Plays zeigen, damit man die Ansicht beurteilen kann
   const demo = opt.field === "Open Field" && !S.plays.some(p => val(p, "field_type") === "Open Field");
@@ -7012,13 +7265,13 @@ function renderZones(){
     if (!$("zExGrid").childElementCount) $("zExGrid").innerHTML = EXAMPLES.map(p => `<div class="card"><div class="field">${svgFor(p)}</div><div class="pid">${esc(p.play_id)}</div><div class="chips">${chip(p, "formation")}${chip(p, "direction")}${chip(p, "play_concept")}</div></div>`).join("");
   }
   const inField = (list) => list.filter(p => val(p, "field_type") === opt.field);
-  const plays = inField(demo ? EXAMPLES : filtered(true));
+  const plays = inField(demo ? EXAMPLES : analysisPlays());
   const groups = new Map();
   const gAdd = (k, p) => { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); };
   if (!g) groups.set("All plays", plays);
   else if (g === "opponent") plays.forEach(p => oppKeys(p).filter(k => !opt.opp || k.toLowerCase() === opt.opp.toLowerCase()).forEach(k => gAdd(k, p))); // ein Play kann gegen mehrere Gegner laufen
   else plays.forEach(p => gAdd(g === "season" ? seasonOf(p) : g === "depth" ? (depthOf(p) ?? "not computed") : (val(p, g) ?? "Unknown"), p));
-  const cnt = opt.count, logN = plays.reduce((a, p) => a + playEntries(p, opt.opp).length, 0);
+  const cnt = opt.count, logN = plays.reduce((a, p) => a + playEntries(p, opt.opp, opt.down).length, 0);
   // P28.6: kurz auf der Seite, Hintergrund als Tooltip
   const zShort = [demo ? "Example data" : `${plays.length} ${plays.length === 1 ? "play" : "plays"}`, opt.side === "strong" ? "mirrored (strong side right)" : "not mirrored",
     cnt === "freq" ? `weighted by uses (${logN} game log ${logN === 1 ? "entry" : "entries"})` : cnt === "targets" ? `targets only (${logN} ${logN === 1 ? "entry" : "entries"})` : ""].filter(Boolean).join(" · ");
@@ -7029,11 +7282,11 @@ function renderZones(){
   // Auswertung: Concept-Liste ohne Concept-Filter, Tiefen-Liste ohne Depth-Filter (Cross-Filter)
   renderStats({
     demo, field: opt.field, plays, opt,
-    conceptBase: demo ? plays : inField(filtered(true, "concept")),
-    depthBase: demo ? plays : inField(filtered(true, "depth")),
-    targetBase: demo ? [] : inField(filtered(true, "target"))
+    conceptBase: demo ? plays : inField(analysisPlays("concept")),
+    depthBase: demo ? plays : inField(analysisPlays("depth")),
+    targetBase: demo ? [] : inField(analysisPlays("target"))
   });
-  if (!plays.length){ $("zones").innerHTML = `<div class="empty"><h2>No ${esc(opt.field)} plays</h2><p>${$("fConc").value || $("fDepth").value ? "No plays for this combination. Clear the filters in the analysis below or at the top." : "There are no plays in the database for this selection yet."}</p></div>`; return; }
+  if (!plays.length){ $("zones").innerHTML = `<div class="empty"><h2>No ${esc(opt.field)} plays</h2><p>${crossValue("concept") || crossValue("depth") || crossValue("target") ? `No plays for this combination. Clear the filters in the analysis below${selScopeOn() ? "" : " or at the top"}.` : selScopeOn() ? `The selection has no ${esc(opt.field)} plays – switch the field above.` : "There are no plays in the database for this selection yet."}</p></div>`; return; }
   if (cnt === "targets" && !logN){ $("zones").innerHTML = `<div class="empty"><h2>No targets yet</h2><p>Record who was targeted in the game log of a play (open a play in the catalog, section “Game log”). Until then, switch Count back to “Every play once”.</p></div>`; return; }
   $("zones").innerHTML = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([k, ps]) => {
     const o = g === "opponent" ? { ...opt, opp: k } : opt;
@@ -7090,7 +7343,7 @@ function routesFieldSVG(plays, opt){
     const pt = (q) => [X(mirror ? 25 - q.x : q.x), Y(q.y - off)];
     const poly = (pts, dashed) => `<polyline points="${pts.map(q => pt(q).map(f1).join(",")).join(" ")}"${dashed ? ` stroke-dasharray="4 4"` : ""}/>`;
     if (opt.count === "targets"){ // nur angeworfene Routen (Linie bis zum gewählten Ending) und deren Enden
-      LOG.targetPicks(p, playEntries(p, opt.opp)).forEach(t => {
+      LOG.targetPicks(p, playEntries(p, opt.opp, opt.down)).forEach(t => {
         const r = LOG.routeOfTarget(p, t.target), l = routeLegAt(r, t.ending); if (!l) return;
         const e = t.ending != null && r.endings?.[t.ending]?.points?.length ? r.endings[t.ending] : (r.endings || []).find(x => x?.points?.length && x.style !== "dashed") || (r.endings || []).find(x => x?.points?.length);
         paths += poly([...r.stem.points, ...(e ? e.points : [])], false);
@@ -7130,12 +7383,13 @@ function barsHTML(kind, rows, total, sel, demo){
 }
 function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, opt }){
   const box = $("zStats"), chips = $("zChips");
-  const selC = demo ? "" : $("fConc").value, selD = demo ? "" : $("fDepth").value, selT = demo ? "" : $("fTarget").value;
+  const selC = demo ? "" : crossValue("concept"), selD = demo ? "" : crossValue("depth"), selT = demo ? "" : crossValue("target");
   // Chips für aktive Klick-Filter + Sprung in den Katalog
   const chipList = [["concept", "Concept", selC], ["depth", "Depth", selD], ["target", "Target", selT]].filter(([, , v]) => v)
     .map(([k, name, v]) => `<button type="button" class="xchip" data-clear="${k}" title="Clear filter">${name}: ${esc(v)} <span aria-hidden="true">×</span></button>`).join("");
   chips.hidden = demo || !S.plays.length;
-  chips.innerHTML = chipList + (plays.length ? `<button type="button" class="linkbtn" id="zToCatalog">${plays.length === 1 ? "Show this play" : `Show these ${plays.length} plays`} in the catalog</button>` : "");
+  chips.hidden = chips.hidden || (selScopeOn() && !chipList); // Scope „Selection“: kein Sprung in den Katalog (dort gelten die Filter)
+  chips.innerHTML = chipList + (plays.length && !selScopeOn() ? `<button type="button" class="linkbtn" id="zToCatalog">${plays.length === 1 ? "Show this play" : `Show these ${plays.length} plays`} in the catalog</button>` : "");
   // Balken – P16b: bei „By frequency“/„Targets only“ gewichtet (Einsätze bzw. angeworfene Routen statt Plays)
   const cnt = opt?.count || "plays", wOf = cnt === "plays" ? null : (p) => playWeight(p, opt);
   const wSum = (list) => wOf ? list.reduce((a, p) => a + wOf(p), 0) : list.length;
@@ -7151,7 +7405,7 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   }
   // Targets (P16b): Verteilung der Einsätze nach angeworfener Position (ohne „nur gespielt“), Cross-Filter wie oben
   const tm = new Map();
-  if (!demo) (targetBase || []).forEach(p => playEntries(p, opt?.opp).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
+  if (!demo) (targetBase || []).forEach(p => playEntries(p, opt?.opp, opt?.down).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
   const tRank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
   const tRows = [...tm.entries()].sort((a, b) => tRank(a[0]) - tRank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0])), tTot = tRows.reduce((a, [, n]) => a + n, 0);
   const names = field === "Endzone" ? "before goal line – EZ short – EZ deep" : `short ≤ ${DEPTH_LIMITS.shortMax} – intermediate ≤ ${DEPTH_LIMITS.intermediateMax} – deep`;
@@ -7170,13 +7424,6 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
       ${tTot || selT ? `<div class="${selT ? "sel" : ""}"><span class="lbl" title="Who was targeted (game log); QB = QB run, No target = no receiver">Target · ${tTot} ${tTot === 1 ? "entry" : "entries"}${small(tTot)}</span>${tTot ? barsHTML("target", tRows, tTot, selT, demo) : none}</div>` : ""}
     </div>`;
 }
-function setCrossFilter(kind, v){
-  const sel = $(kind === "concept" ? "fConc" : kind === "target" ? "fTarget" : "fDepth");
-  const next = sel.value === v ? "" : v;
-  sel.value = next;
-  if (sel.value !== next) sel.value = ""; // Wert nicht im Filter-Dropdown → aufheben statt falsch filtern
-  render();
-}
 function setZField(v){
   S.zField = v;
   $("zField").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v));
@@ -7189,8 +7436,8 @@ function seg(id, key){
       setZField(b.dataset.v);
       if ($("fField").value) $("fField").value = b.dataset.v; // Katalog-Filter mitziehen, damit beide Ansichten gleich bleiben
       // S-I-D bedeutet in Open Field und Endzone etwas anderes: gibt es die Kombination dort nicht, Filter lösen
-      const de = $("fDepth").value;
-      if (de && !S.plays.some(p => val(p, "field_type") === b.dataset.v && depthOf(p) === de)) $("fDepth").value = "";
+      const de = crossValue("depth");
+      if (de && !S.plays.some(p => val(p, "field_type") === b.dataset.v && depthOf(p) === de)) clearCross("depth");
       S.depthMore = false;
     } else {
       S[key] = b.dataset.v;
@@ -7206,11 +7453,11 @@ function initHeatmap(){
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.stoggle){ S.statsOpen = !S.statsOpen; renderZones(); return; }
     if (b.dataset.more){ S.depthMore = true; renderZones(); return; }
-    if (b.dataset.k) setCrossFilter(b.dataset.k, b.dataset.v);
+    if (b.dataset.k) setCross(b.dataset.k, b.dataset.v);
   });
   $("zChips").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.clear){ $(b.dataset.clear === "concept" ? "fConc" : b.dataset.clear === "target" ? "fTarget" : "fDepth").value = ""; render(); return; }
+    if (b.dataset.clear){ clearCross(b.dataset.clear); render(); return; }
     if (b.id === "zToCatalog"){
       if ([...$("fField").options].some(o => o.value === S.zField)) $("fField").value = S.zField;
       setTab("katalog"); window.scrollTo({ top: 0 });
