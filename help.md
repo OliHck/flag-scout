@@ -35,17 +35,17 @@ More: [Drafts](#drafts) · [Duplicates and variants](#duplicates)
 More: [Draw](#draw) · [Tools](#draw-tools)
 
 ### Export, import, backup {#qs-export}
-1. **Back up regularly:** Export ▾ → **Export all plays as JSON** (with “Include game log”). Your plays exist only in this browser.
-2. **Import** brings plays from a JSON file – your own on a new device, or plays someone sent you.
+1. **Back up regularly:** Export ▾ → **Backup & restore** → **Back up now** (all plays with game log and must-know marks). Your plays exist only in this browser.
+2. On a new device: **Backup & restore → Restore** brings everything back with the same IDs. **Import** is for plays someone sent you.
 3. **Save offline version (HTML)** makes one file to open anywhere without internet.
-4. Add the tool to your **home screen** – it works like an app and starts offline. iPhone/iPad: the app has its own storage, so export in Safari and import in the app.
+4. Add the tool to your **home screen** – it works like an app and starts offline. iPhone/iPad: the app has its own storage, so back up in Safari and restore in the app.
 
-More: [Export and import](#export) · [Your data](#storage) · [Use it as an app](#app)
+More: [Export and import](#export) · [Backup and restore](#backup) · [Your data](#storage) · [Use it as an app](#app)
 
 ## Getting started {#start}
 
 ### The page at a glance {#tabs}
-- **Header:** the number of plays and teams, **Export as PDF**, the menu **Export ▾**, **Import** and **?** (this help).
+- **Header:** the number of plays and teams, **Export as PDF**, the menu **Export ▾** (with [Backup & restore](#backup)), **Import** and **?** (this help).
 - **Plays:** all plays as cards, with filters. Tap a card to open the [play details](#play).
 - **Analysis:** the [heatmap](#heatmap) of route ends for the filtered plays.
 - **Drafts:** new plays wait here until you approve them – see [Drafts](#drafts).
@@ -55,22 +55,22 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 ### Your data stays in this browser {#storage}
 - Your plays are saved **only in this browser on this device**. Nothing is uploaded, there is no account.
 - Another browser, another device or a private window does not see them. Clearing the browser data deletes them.
-- So **back up regularly**: Export ▾ → Export all plays as JSON – see [JSON](#json) and [Backup and restore](#backup).
-- The same file is how you share plays with others or [move them to another device](#move).
+- So **back up regularly**: Export ▾ → Backup & restore → Back up now – see [Backup and restore](#backup).
+- The backup is how you [move your plays to another device](#move); to share plays with others use [JSON](#json).
 
 ### Use it as an app {#app}
 - **iPhone / iPad:** open the page in Safari → Share → **Add to Home Screen**.
 - **Android:** open the page in Chrome → menu ⋮ → **Add to Home screen** / **Install app**.
 - **Computer:** Chrome or Edge show an install icon in the address bar.
-- The app starts **without internet**, too. When you are online it loads the newest version by itself.
+- The app starts **without internet**, too. Started online, it opens the newest version. Was it still open in the background, the [update bar](#updates) appears instead – tap it.
 
 ### iPhone and iPad: separate storage {#iphone}
 - On iPhone and iPad the app on the Home Screen has **its own storage**, separate from Safari – plays you saved in Safari are not in the app.
-- Before you switch: in Safari choose Export ▾ → Export all plays as JSON (keep “Include game log” ticked), open the app and **Import** the file to the catalog. From then on use only the app.
+- Before you switch: in Safari choose Export ▾ → **Backup & restore → Back up now**, open the app and choose **Backup & restore → Restore from backup** with that file. Plays keep their IDs, game log and must-know marks. From then on use only the app.
 
 ### Updates {#updates}
 - When a newer version of the page is out, a bar at the top says **Update available – tap to reload**. Tap it to load the new version, or tap **✕** to hide it until the next start.
-- The page checks when you come back to it (switching apps or tabs). Nothing reloads by itself.
+- The page checks when you come back to it (switching apps or tabs). An open page never reloads by itself; opened anew, it starts with the newest version.
 - Unsaved work (a drawing in Draw, an open edit, a draft field you are typing in) is protected: the first tap only warns, tap again to reload anyway.
 - Bar still there after reloading? Close the page and open it again.
 
@@ -93,17 +93,19 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
+- **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
 - Opponent, Target and Down come from the [game log](#game-log).
 
 ### Must-know {#must-know}
 - Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.
 - Everyone sees the ★. The ☆ filter next to Formation shows only must-know plays; the PDF notes it in its filter line.
 - The mark belongs to the play ID – if the ID changes (new formation), the mark is lost.
+- The marks are part of the JSON export and the [backup](#backup): Restore brings them back, [Import](#import) puts them on the new IDs.
 
 ### Manage teams {#teams}
 - **Manage teams** next to the Team filter: **Hide** / **Show** a team or **Delete** all its plays (you confirm by typing the team name).
-- Hidden teams are left out of the catalog, the heatmap and the exports. “Show hidden teams” shows them again (marked “hidden”).
-- The same dialog has [Restore from backup](#backup).
+- Hidden teams are left out of the catalog, the heatmap and the PDF. “Show hidden teams” shows them again (marked “hidden”). The JSON export and the backup always contain all teams.
+- Backups: the dialog links to [Backup & restore](#backup).
 
 ### Select plays {#select}
 - **Select** turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.
@@ -236,7 +238,7 @@ More: [Export and import](#export) · [Your data](#storage) · [Use it as an app
 
 ### Zones and depth {#zones}
 - Shows the **share of route ends per zone** for the filtered plays (or only the [selected plays](#analysis-scope)); [archived plays](#archive) never count. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd), Endzone depth from the goal line.
-- **Field:** Open Field or Endzone – the plays of the other field are not counted.
+- **Field:** Open Field or Endzone – the plays of the other field are not counted. It is the same filter as Field in the Plays tab (that one is hidden here): switching sets both, and “all” there becomes the field shown here. With [Selection](#analysis-scope) the switch only changes the analysis.
 - Players **without a route** are not shown in the heatmap (in Depth S-I-D they count as short).
 - A **route end is not the pass target** – for targets use [Count](#count) → “Targets only”.
 - Few plays give a “small sample” note: read the numbers with care.
@@ -276,8 +278,9 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - To print your own choice in your own order use [Select](#select) → PDF.
 
 ### JSON {#json}
-- **Export ▾ → Export all plays as JSON**: all plays as one file – your **backup** and the way to share plays or move them to another device. Archived plays are included with their mark.
+- **Export ▾ → Export all plays as JSON**: all plays as one file – the way to share plays, and the same file as your [backup](#backup). Hidden teams and archived plays are included (archived ones with their mark), and so are the must-know marks.
 - **Include game log** (ticked by default): uses, targets and downs of each play go into the file; Import and Restore bring them back. Untick it when you share plays with others.
+- An export **without** the game log does not count as a backup – the backup bar stays.
 - The play details have the same data under **JSON**.
 
 ### Offline version (HTML) {#offline-html}
@@ -287,17 +290,21 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 ### Import {#import}
 - **Import**: choose a JSON file with plays (from “Export all plays as JSON”, from Draw or from someone else) and where they go: **Drafts** (to check first) or **Catalog**.
 - Before importing, the dialog shows each play, where it goes and its new ID. Every play gets a **new ID**; plays that are already in the catalog or in Drafts are skipped.
+- Must-know marks and the game log in the file go along to the new ID (a draft gets its mark when you approve it).
 - Variants of catalog plays always go to Drafts, to merge them there.
+- To bring back your own backup with the same IDs use [Restore](#backup), not Import.
 
 ### Backup and restore {#backup}
-- A bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. **Export now** saves all plays with their game log.
-- **Manage teams → Restore from backup**: choose a backup file (“Export all plays as JSON”). Only what is missing is restored, with the old IDs – existing plays and game log entries are never overwritten.
+- **Export ▾ → Backup & restore** has everything in one place: when you last backed up, **Back up now** and **Restore from backup**. Manage teams links there, too.
+- **Back up now** (or **Export now** in the backup bar) saves all plays with their game log and must-know marks in one JSON file. Keep it outside this browser, e.g. in your mail or cloud.
+- The bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. “Export all plays as JSON” with “Include game log” counts as a backup, too – without the game log it does not.
+- **Restore from backup**: choose a backup file. Only what is missing is restored, with the old IDs, game log and must-know marks – existing plays, game log entries and marks are never overwritten.
 - Restore is for your own backups; plays from others come in with [Import](#import).
 
 ### Move to another device {#move}
-1. On the old device: Export ▾ → **Export all plays as JSON** (keep “Include game log” ticked).
+1. On the old device: Export ▾ → **Backup & restore** → **Back up now**.
 2. Send the file to the new device (mail, cloud, messenger).
-3. On the new device: open the tool, **Import** → choose the file → **Catalog**.
+3. On the new device: open the tool, Export ▾ → **Backup & restore** → **Restore from backup** → choose the file. Plays keep their IDs, game log and must-know marks.
 - The two devices do not stay in sync – keep working on one of them.
 
 ## Terms {#terms}
