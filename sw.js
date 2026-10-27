@@ -8,7 +8,7 @@
 // ändern sich nie, das Stylesheet wird online im Hintergrund aufgefrischt).
 // Die Plays der Nutzer (Browser-Speicher IndexedDB) fasst er nicht an. Neue Build-Version = neuer Cache-Name: die neue
 // Fassung übernimmt sofort und löscht die alten Caches dieser Seite (außer den Schriften).
-const CACHE = "flag-scout-1f20d10dd81e";
+const CACHE = "flag-scout-7dc6322abfae";
 const DATEIEN = ["index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "help.html", "help.md"];
 const SCHRIFTEN = ["https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"];
 const SCHRIFT_CACHE = "flag-scout-schriften";

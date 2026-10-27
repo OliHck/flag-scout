@@ -2948,6 +2948,21 @@ const DRAW_LIMITS = {
   eagleQb: { x: 8, y: -0.8 }, // Eagle: QB im Slot der Weakside an der Line
 };
 
+// Zitterschutz je Eingabeart (Nutzer 27.10.2026): DRAW_LIMITS ist auf den Finger am Handy ausgelegt und bleibt dafür
+// unverändert. Maus und Stift zittern kaum – dort verschluckten Ansatz (leadIn), Vereinfachung (rdpTol…) und Haken-
+// Schnitt am Ende (tailMax) kurze Stems und Fake Moves. Für sie gelten diese kleineren Schwellen (in Yards, Spieler ≈ 1,5 yd).
+const DRAW_LIMITS_FINE = {
+  ...DRAW_LIMITS,
+  leadIn: 0.2,
+  rdpTol: 0.15,
+  rdpTolRel: 0.02,
+  rdpTolStraight: 0.25,
+  rdpTolStraightRel: 0.03,
+  tailMax: 0.3,       // Endpunkt beim Loslassen bleibt praktisch immer
+};
+// Schwellen für einen Strich: pointerType "touch" (oder unbekannt) → DRAW_LIMITS, "mouse"/"pen" → DRAW_LIMITS_FINE
+const drawLimitsFor = (pointerType) => (pointerType === "mouse" || pointerType === "pen" ? DRAW_LIMITS_FINE : DRAW_LIMITS);
+
 // Standardaufstellung je Formation für Direction „Right“ (Strong Side rechts); „Left“ wird gespiegelt (x → 25 − x).
 // Abgeleitet aus den Open-Field-Plays des Katalogs, vom Nutzer am 19.10.2026 abgenommen (docs/spec.md §9).
 // X = Weakside/einzelner Receiver, Y = Slot, Z = Strong-Side-Wide-Receiver. Center immer x 12,5 auf der LOS.
@@ -3426,10 +3441,10 @@ function toggleDelay(rt, p, { maxD = DRAW_LIMITS.snapEnd } = {}) {
 // Route aus einem Strich, Start = Spieler beim Snap. Letzter Punkt wird das (solide) Ending, der Rest der Stem.
 // P34: gezeichnete Zickzacks werden zu Delays; der Strich wird so geglättet, wie er gezeichnet wurde (ab dem Aufsetzpunkt),
 // und erst danach beginnt die Route am Spieler – der Abstand Finger ↔ Spieler wird nicht mehr zum Knick.
-function routeFromStroke(start, raw, { color = "#000000", mode = "auto" } = {}) {
+function routeFromStroke(start, raw, { color = "#000000", mode = "auto", limits = DRAW_LIMITS } = {}) {
   if (!raw.length) return null;
-  const zz = findZigzags(thinPoints(raw, DRAW_LIMITS.minStep));
-  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points), DRAW_LIMITS, mode);
+  const zz = findZigzags(thinPoints(raw, limits.minStep), limits);
+  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points, limits), limits, mode);
   const pts = s.points; pts[0] = pt(start);
   if (pts.length < 2) return null;
   const stem = pts.slice(0, -1), last = pts.at(-1);
@@ -3451,11 +3466,11 @@ function routeTip(rt) {
 function primaryChain(rt) { const e = (rt.endings || []).find((x) => x.style !== "dashed") || rt.endings[0]; return [...rt.stem.points, ...(e?.points || [])]; }
 
 // Strich am Ende einer Route mit Werkzeug „Route“ → Fortsetzung (Route wird länger, Optionen entfallen)
-function extendRoute(rt, raw, { mode = "auto" } = {}) {
+function extendRoute(rt, raw, { mode = "auto", limits = DRAW_LIMITS } = {}) {
   const chain = primaryChain(rt);
   // wie routeFromStroke: Strich ab dem Aufsetzpunkt glätten, dann an das Routenende hängen (P34)
-  const zz = findZigzags(thinPoints(raw, DRAW_LIMITS.minStep));
-  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points), DRAW_LIMITS, mode);
+  const zz = findZigzags(thinPoints(raw, limits.minStep), limits);
+  const s = simplifyStroke(cleanLeadIn(zz.points[0], zz.points, limits), limits, mode);
   const all = [...chain, ...s.points.slice(1)];
   if (all.length < 2) return rt;
   const shape = mode === "curved" ? "curved" : mode === "straight" ? "straight" : s.shape === "straight" || rt.stem.shape === "straight" ? "straight" : "curved";
@@ -3498,7 +3513,7 @@ function routeAt(play, p, maxD = DRAW_LIMITS.snapEnd) {
 //   danach das solide Ending, der Strich das gestrichelte Ending.
 // - Route mit schon mehreren Endings: der Abzweig ist das Stem-Ende.
 // Gibt { route, error } zurück.
-function addOption(rt, raw, { mode = "auto" } = {}) {
+function addOption(rt, raw, { mode = "auto", limits = DRAW_LIMITS } = {}) {
   const r = dClone(rt), p0 = raw[0];
   let branch;
   if (r.endings.length === 1) {
@@ -3517,7 +3532,7 @@ function addOption(rt, raw, { mode = "auto" } = {}) {
     branch = r.stem.points.at(-1);
     if (Math.hypot(p0.x - branch.x, p0.y - branch.y) > DRAW_LIMITS.snapEnd) return { route: rt, error: "This route already has options – start the next one where they branch off." };
   }
-  const s = simplifyStroke([branch, ...raw.slice(1)], DRAW_LIMITS, mode);
+  const s = simplifyStroke([branch, ...raw.slice(1)], limits, mode);
   if (s.points.length < 2) return { route: rt, error: "Line too short." };
   r.endings.push({ points: s.points.slice(1), style: "dashed", shape: s.shape, ...(suggestsComeback(s.points) ? { is_comeback: true } : {}) });
   return { route: r, error: null };
@@ -3611,7 +3626,7 @@ function finishDrawPlay(play, { concept = null, comment = null, situation, sourc
   return p;
 }
 
-return { DRAW_LIMITS, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
+return { DRAW_LIMITS, DRAW_LIMITS_FINE, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
@@ -4407,7 +4422,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "4efce27fd3ca";
+const SEITEN_VERSION = "a78f37e56c2c";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -5148,7 +5163,7 @@ const W_HELP = {
 // Rohstrich je Spieler (nur auf der Seite, nicht gespeichert): damit „Curve“/„Straight“ eine schon gezeichnete Route
 // aus dem Originalstrich neu berechnen kann. Gilt nur, solange die Route noch genau so aussieht (route = JSON).
 const wRawOk = (who) => { const c = S.w.raw[who], rt = Z.getRoute(S.w.play, who); return c && rt && c.route === JSON.stringify(rt) ? c : null; };
-const wRawSet = (who, start, raw) => { const rt = Z.getRoute(S.w.play, who); if (rt) S.w.raw[who] = { start, raw, route: JSON.stringify(rt) }; else delete S.w.raw[who]; };
+const wRawSet = (who, start, raw, limits = Z.DRAW_LIMITS) => { const rt = Z.getRoute(S.w.play, who); if (rt) S.w.raw[who] = { start, raw, limits, route: JSON.stringify(rt) }; else delete S.w.raw[who]; };
 function wLoadSetup(){
   let st = {};
   try { st = JSON.parse(localStorage.getItem(W_STORE) || "{}") || {}; } catch (e) { st = {}; }
@@ -5278,7 +5293,7 @@ function wOnDown(e){
   const mode = fingerMoves ? "move" : S.w.tool, p = wToYd(e);
   e.preventDefault();
   $("wOver").setPointerCapture?.(e.pointerId);
-  const st = { id: e.pointerId, mode, pts: [p], start: p };
+  const st = { id: e.pointerId, mode, pts: [p], start: p, limits: Z.drawLimitsFor(e.pointerType) }; // Zitterschutz je Eingabeart
   if (mode === "move"){ st.who = wHit(p, 1.6, ["C"]); if (st.who){ wPush(); st.pushed = true; } }
   S.w.stroke = st; wStrokeSvg();
 }
@@ -5311,32 +5326,32 @@ function wOnUp(e){
     if (r.error){ wMsg(r.error, true); wRender(); return; }
     const prev = wRawOk(k);
     wChange(pl => Z.setRoute(pl, k, r.route));
-    if (prev) wRawSet(k, prev.start, prev.raw);
+    if (prev) wRawSet(k, prev.start, prev.raw, prev.limits);
     S.w.sel = k; wMsg(r.removed ? "Delay removed." : "Delay added – tap it again to remove it."); wRender(); return;
   }
   if (len < Z.DRAW_LIMITS.minLen){ // Antippen: Spieler (oder seine Route) auswählen
     S.w.sel = wHit(p0, 1.6) || Z.routeAt(play, p0, 1)?.who || null; wRender(); return;
   }
-  const raw = st.pts;
+  const raw = st.pts, limits = st.limits;
   if (st.mode === "route"){
     const onRoute = Z.routeAt(play, p0);
     const who = wHit(p0, Z.DRAW_LIMITS.snapPlayer);
     if (onRoute?.atTip && (!who || onRoute.d < 0.8)){
       const k = onRoute.who, prev = wRawOk(k);
-      wChange(pl => Z.setRoute(pl, k, Z.extendRoute(Z.getRoute(pl, k), raw, { mode: S.w.line })));
-      if (prev) wRawSet(k, prev.start, [...prev.raw, ...raw.slice(1)]); else delete S.w.raw[k];
+      wChange(pl => Z.setRoute(pl, k, Z.extendRoute(Z.getRoute(pl, k), raw, { mode: S.w.line, limits })));
+      if (prev) wRawSet(k, prev.start, [...prev.raw, ...raw.slice(1)], prev.limits); else delete S.w.raw[k];
       S.w.sel = k; wRender(); return;
     }
     if (!who){ wMsg("Start the route at a player (or at the end of a route).", true); wRender(); return; }
     const start = Z.playerPos(play, who, { atSnap: true }), old = Z.getRoute(play, who);
-    wChange(pl => Z.setRoute(pl, who, Z.routeFromStroke(start, raw, { mode: S.w.line, color: old?.color || (who !== "C" && who !== "QB" ? Z.playerRef(pl, who).color : null) || "#000000" })));
-    wRawSet(who, start, raw);
+    wChange(pl => Z.setRoute(pl, who, Z.routeFromStroke(start, raw, { mode: S.w.line, limits, color: old?.color || (who !== "C" && who !== "QB" ? Z.playerRef(pl, who).color : null) || "#000000" })));
+    wRawSet(who, start, raw, limits);
     S.w.sel = who; wRender(); return;
   }
   if (st.mode === "option"){
     const onRoute = Z.routeAt(play, p0);
     if (!onRoute){ wMsg("Start the option on a route, where it branches off.", true); wRender(); return; }
-    const r = Z.addOption(Z.getRoute(play, onRoute.who), raw, { mode: S.w.line });
+    const r = Z.addOption(Z.getRoute(play, onRoute.who), raw, { mode: S.w.line, limits });
     if (r.error){ wMsg(r.error, true); wRender(); return; }
     wChange(pl => Z.setRoute(pl, onRoute.who, r.route)); S.w.sel = onRoute.who; wRender(); return;
   }
@@ -5698,16 +5713,16 @@ function initDraw(){
       // Curve/Straight: Route aus dem Originalstrich neu berechnen (wenn vorhanden und ohne Optionen), sonst nur die Linienart
       const shape = t.dataset.wshape, c = wRawOk(who), old = Z.getRoute(S.w.play, who);
       if (c && shape !== "zigzag" && old.endings.length === 1){
-        const nr = Z.routeFromStroke(c.start, c.raw, { mode: shape, color: old.color });
+        const nr = Z.routeFromStroke(c.start, c.raw, { mode: shape, color: old.color, limits: c.limits });
         if (nr){ const ce = !!(old.endings[0].is_comeback); if (ce) nr.endings[0].is_comeback = true; else delete nr.endings[0].is_comeback; Z.setDelays(nr, (old.delays || []).map(d => d.at)); }
-        if (nr && wChange(pl => Z.setRoute(pl, who, nr))) wRawSet(who, c.start, c.raw);
+        if (nr && wChange(pl => Z.setRoute(pl, who, nr))) wRawSet(who, c.start, c.raw, c.limits);
       } else wChange(pl => Z.setStemShape(Z.getRoute(pl, who), shape));
     }
     else if (t.dataset.wsnap) { S.w.snapType = t.dataset.wsnap; wChange(pl => { pl.snap.type = t.dataset.wsnap; }); }
     else if (t.dataset.whand) { S.w.handoffType = t.dataset.whand; wChange(pl => { pl.qb_handoff.type = t.dataset.whand; }); }
     else if (t.dataset.wact === "comeback" && who) wChange(pl => Z.toggleComeback(Z.getRoute(pl, who)));
     else if (t.dataset.wact === "delroute" && who) wChange(pl => Z.setRoute(pl, who, null));
-    else if (t.dataset.wact === "deldelays" && who){ const prev = wRawOk(who); wChange(pl => { Z.setDelays(Z.getRoute(pl, who), []); }); if (prev) wRawSet(who, prev.start, prev.raw); }
+    else if (t.dataset.wact === "deldelays" && who){ const prev = wRawOk(who); wChange(pl => { Z.setDelays(Z.getRoute(pl, who), []); }); if (prev) wRawSet(who, prev.start, prev.raw, prev.limits); }
     else if (t.dataset.wact === "delopt" && who) wChange(pl => { Z.getRoute(pl, who).endings.pop(); });
     else if (t.dataset.wact === "delmotion" && who) wChange(pl => { const p = Z.playerRef(pl, who); delete p.motion; if (who !== "QB") p.is_motion = false; });
     else if (t.dataset.wact === "delball") wChange(pl => Z.clearBallPath(pl));
