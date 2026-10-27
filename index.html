@@ -2516,7 +2516,7 @@ function teamCodes(teams, plays, overrides) {
   return { ...(teams || {}), ...learnTeamCodes(plays), ...(overrides || {}) };
 }
 
-// "Lichtenberg=LL;Mainz 2=MZ2" → { Lichtenberg: "LL", "Mainz 2": "MZ2" }
+// "Tigers=TI;Eagles 2=EA2" → { Tigers: "TI", "Eagles 2": "EA2" }
 function parseTeamOverrides(s) {
   const m = {};
   for (const part of String(s || "").split(/[;,]/)) {
@@ -2624,7 +2624,7 @@ function entwurfFeld(draft, field, value) {
     if (d._entwurf && los.length) delete d._entwurf.distanz_unbekannt;
     return d;
   }
-  if (field === "opponents") { // P16a: Liste oder Text „Walldorf, Spatzen“; leer → Feld entfällt
+  if (field === "opponents") { // P16a: Liste oder Text „Tigers, Eagles“; leer → Feld entfällt
     const list = normOpponents(value, d.team), old = (d.opponents || []).join(", "), neu = (list || []).join(", ");
     if (old === neu) return d;
     korr(`Opponents: ${SHOW(old)} → ${SHOW(neu)}`);
@@ -5504,7 +5504,7 @@ const glExportList = (list) => list.map(p => LOG.withGameLog(p, logOf(p)));
 const glNote = (data) => { const n = data.filter(p => p.game_log).length; return n ? ` – with the game log of ${n} ${n === 1 ? "play" : "plays"}` : ""; };
 
 // PDF-Titelvorschlag (P28.4): Team(s) + Field und Formation, wenn in der Auswahl genau eines vorkommt, + „plays“,
-// z. B. „Mainz openfield spread plays“; mehrere Fields/Formations → der Teil entfällt („Mainz plays“)
+// z. B. „Tigers openfield spread plays“; mehrere Fields/Formations → der Teil entfällt („Tigers plays“)
 function pdfTitleFor(list){
   const teams = uniq(list.map(p => p.team));
   const fields = uniq(list.map(p => val(p, "field_type"))), forms = uniq(list.map(p => val(p, "formation")).filter(v => v !== "Unknown"));
@@ -6033,7 +6033,7 @@ function fillSelect(sel, values, allLabel, counts){
 }
 
 // Facetten: Jedes Dropdown zeigt nur Werte, zu denen es mit den ÜBRIGEN gesetzten Filtern Plays gibt
-// (z. B. Team Walldorf → nur Concepts/Formationen/S-I-D, die Walldorf wirklich hat). Der eigene Filter
+// (z. B. Team Tigers → nur Concepts/Formationen/S-I-D, die Tigers wirklich hat). Der eigene Filter
 // wird dabei ignoriert, damit man innerhalb eines Dropdowns umschalten kann. In der Heatmap zählt
 // der Feldtyp-Schalter (Open Field/Endzone) als Filter.
 const FACETS = [
