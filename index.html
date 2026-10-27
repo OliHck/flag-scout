@@ -2959,6 +2959,8 @@ const DRAW_LIMITS_FINE = {
   rdpTolStraight: 0.25,
   rdpTolStraightRel: 0.03,
   tailMax: 0.3,       // Endpunkt beim Loslassen bleibt praktisch immer
+  cornerDeg: 30,      // Knick > 30° (über je 0,5 yd gemessen), an dem die vereinfachte Linie mind. cornerDist vorbeigeht,
+  cornerDist: 0.2,    //   wird wieder eingesetzt – kurze Fake Steps (Post-Corner, Oli 27.10.2026)
 };
 // Schwellen für einen Strich: pointerType "touch" (oder unbekannt) → DRAW_LIMITS, "mouse"/"pen" → DRAW_LIMITS_FINE
 const drawLimitsFor = (pointerType) => (pointerType === "mouse" || pointerType === "pen" ? DRAW_LIMITS_FINE : DRAW_LIMITS);
@@ -3300,6 +3302,36 @@ function reversals(pts, L = DRAW_LIMITS) {
     return g.items.reduce((b, i) => ((pts[i].x - a.x) * dir.x + (pts[i].y - a.y) * dir.y > (pts[b].x - a.x) * dir.x + (pts[b].y - a.y) * dir.y ? i : b), i0);
   });
 }
+// Deutliche Knicke (Maus/Stift, nur mit L.cornerDeg): Ein kurzer Fake Step (Post-Corner: 1 yd im 45°-Winkel) wird beim
+// Zeichnen leicht gerundet – Ramer-Douglas-Peucker setzt den Punkt dann an den Beginn der Rundung, der Winkel dort wirkt
+// flach und mergeDeg/die gröbere „straight“-Vereinfachung entfernen ihn. Gesucht werden Knicke > cornerDeg, gemessen wie
+// die Richtungsumkehr über je revWin vor und nach dem Punkt (je Knick der schärfste Punkt).
+function corners(pts, L = DRAW_LIMITS) {
+  if (!L.cornerDeg) return [];
+  const n = pts.length, cum = [0];
+  for (let i = 1; i < n; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const at = (d) => { let j = 0; while (j < n - 1 && cum[j + 1] < d) j++; const t = cum[j + 1] > cum[j] ? (d - cum[j]) / (cum[j + 1] - cum[j]) : 0; const a = pts[j], b = pts[Math.min(n - 1, j + 1)]; return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; };
+  const out = [];
+  let best = null;
+  for (let i = 1; i < n - 1; i++) {
+    const deg = cum[i] < L.revMin || cum[n - 1] - cum[i] < L.revMin ? 0
+      : turnDeg(at(Math.max(0, cum[i] - L.revWin)), pts[i], at(Math.min(cum[n - 1], cum[i] + L.revWin)));
+    if (deg > L.cornerDeg) { if (!best || deg > best.deg) best = { i, deg }; }
+    else if (best) { out.push(best.i); best = null; }
+  }
+  if (best) out.push(best.i);
+  return out;
+}
+// Solche Knicke wieder einsetzen, wenn die vereinfachte Linie mindestens cornerDist an ihnen vorbeigeht – Zittern
+// knickt zwar auch, weicht aber kaum ab und bleibt deshalb geglättet.
+function keepCorners(simple, thin, L) {
+  let out = simple.slice();
+  for (const i of corners(thin, L)) {
+    const pr = projectOnChain(out, thin[i]);
+    if (pr.d >= L.cornerDist) out = [...out.slice(0, pr.i + 1), { x: thin[i].x, y: thin[i].y }, ...out.slice(pr.i + 1)];
+  }
+  return out;
+}
 // Rücklauf fast auf derselben Linie seitlich versetzen, damit der Haken in der Grafik sichtbar ist
 function showReversals(pts, L) {
   const out = pts.map((p) => ({ ...p }));
@@ -3342,8 +3374,9 @@ function simplifyStroke(raw, L = DRAW_LIMITS, mode = "auto") {
   let cuts = countCuts(pts);
   const shape = mode === "straight" || cuts > 0 || pts.length <= 2 ? "straight" : "curved";
   if (shape === "straight" && pts.length > 2) { pts = simplify(L.rdpTolStraight, L.rdpTolStraightRel); cuts = countCuts(pts); }
+  if (L.cornerDeg) { pts = mergeFlat(keepCorners(pts, thin, L), 10); cuts = countCuts(pts); }
   if (rev.length) pts = showReversals(pts, L);
-  return { points: pts.map(pt), shape, cuts };
+  return { points: pts.map(pt), shape: mode !== "straight" && shape === "curved" && cuts > 0 ? "straight" : shape, cuts };
 }
 // Letztes Stück zeigt deutlich Richtung LOS → Comeback vorschlagen (gleiche Grenzen wie routeShapeHints in derive)
 function suggestsComeback(points) {
@@ -3626,7 +3659,7 @@ function finishDrawPlay(play, { concept = null, comment = null, situation, sourc
   return p;
 }
 
-return { DRAW_LIMITS, DRAW_LIMITS_FINE, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
+return { DRAW_LIMITS, DRAW_LIMITS_FINE, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, thinPoints, rdp, strokeLength, trimTail, reversals, corners, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay };
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
@@ -4422,7 +4455,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "a78f37e56c2c";
+const SEITEN_VERSION = "c2af89686022";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
