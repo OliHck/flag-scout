@@ -11,6 +11,10 @@ Draw, catalog and analyze 5-on-5 flag football plays in your browser. No account
 
 Your plays are stored only in this browser on this device. Nothing is uploaded. Use “Export all plays as JSON” to back up, to move plays to another device or to share them.
 
+## Help
+
+The **?** button in the tool opens the help. It is also available as a [web page](https://olihck.github.io/flag-scout/help.html) and as [Markdown](https://olihck.github.io/flag-scout/help.md) – easy to search, or to give to your own AI.
+
 ## Install as an app
 
 The tool works as an app on your home screen and also starts without internet.
