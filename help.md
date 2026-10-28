@@ -107,6 +107,11 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Hidden teams are left out of the catalog, the heatmap and the PDF. “Show hidden teams” shows them again (marked “hidden”). The JSON export and the backup always contain all teams.
 - Backups: the dialog links to [Backup & restore](#backup).
 
+### Opponents {#opponents}
+- **Manage teams → Opponents** lists every name that only appears as an opponent (no plays of its own), with the number of plays and uses.
+- **Rename** fixes a name everywhere – in the plays, the [game log](#game-log) and the drafts. Renaming to a name that already exists (upper/lower case does not matter) merges both.
+- **Delete** removes the name from all plays and drafts. The uses stay in the game log, with unknown opponent.
+
 ### Select plays {#select}
 - **Select** turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.
 - The bar at the bottom: **Select all** (all filtered plays, never [archived](#archive) ones), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**.
@@ -152,7 +157,8 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Uses and opponents {#uses}
 - The **Game log** area in the play details records each time a play was used: against whom, who was targeted and on which down. There is no result (complete, yards).
 - Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).
-- Choose the opponent under **vs** (or “+ new opponent …”), then tap a target button. **Undo last entry** removes the last one; the list below lets you delete single entries.
+- Choose the opponent under **vs**, then tap a target button. The list shows this play's opponents first (“This play”), then all other known teams (“Other teams”), or “+ new opponent …”. Choosing a team saves nothing yet – the first entry makes it an opponent of the play. **Undo last entry** removes the last one; the list below lets you delete single entries.
+- Rename, merge or delete opponents in [Manage teams → Opponents](#opponents).
 - Opponents of a play can also be set in Draw, Drafts and with [Edit several plays](#bulk-edit).
 
 ### Targets {#targets}
@@ -164,6 +170,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Downs {#downs}
 - Optional: pick **1st–4th** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later. Opening a play starts without a down; in Draw, **Save & next** clears it.
 - The summary shows e.g. “Downs: 1st 2 · 3rd 1”.
+
+### Flipped {#flipped}
+- **↔ Flipped** next to the downs: the play was run mirrored (left and right swapped). It applies to the next entries until you tap it again and is off for every new play. The target stays the same route, e.g. Z.
+- In the list, **↔** at each entry switches it later. Flipped entries show “↔ flipped”, the summary adds e.g. “2× flipped”.
+- Draw and Drafts have the same switch.
+- In the [heatmap](#count) with Side “Real side” and Count “By frequency” or “Targets only”, flipped uses count on the mirrored side – in the routes view, too. “Strong side right”, the bars and the filters do not change.
 
 ### Where the game log counts {#game-log-use}
 - Filters **Opponent**, **Target** and **Down** (More filters). With an opponent filter only the uses against that opponent count everywhere.
@@ -254,7 +266,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Clearing the selection or reloading the page goes back to Filtered.
 
 ### Side {#side}
-“Real side” shows plays as drawn (not mirrored). “Strong side right” mirrors plays with direction Left, so the strong side is always right.
+“Real side” shows plays as drawn (not mirrored); with Count “By frequency” or “Targets only”, uses marked [flipped](#flipped) count mirrored. “Strong side right” mirrors plays with direction Left, so the strong side is always right.
 
 ### Group by {#group-by}
 Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.
