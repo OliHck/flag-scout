@@ -162,7 +162,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.
 
 ### Downs {#downs}
-- Optional: pick **1st–4th** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later.
+- Optional: pick **1st–4th** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later. Opening a play starts without a down; in Draw, **Save & next** clears it.
 - The summary shows e.g. “Downs: 1st 2 · 3rd 1”.
 
 ### Where the game log counts {#game-log-use}
@@ -204,7 +204,8 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth S-I-D** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
-- **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup.
+- **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. The down for targets is cleared too – pick it again for the next play.
+- Targets: with **1PAT** or **2PAT** and a down selected, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
 
