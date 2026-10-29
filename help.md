@@ -221,6 +221,11 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
 
+### Duplicate hint while drawing {#draw-duplicates}
+- From **3 routes** on, the Save box checks your drawing against the plays and open drafts of the same team – e.g. “Looks identical to …”, “Variant of … (Z route differs)”, “Mirrored version of …”, “Played in 2025 too (…)”. It uses the same rules as **Save & next** ([Duplicates and variants](#duplicates)) and never blocks saving.
+- Tap the play ID to open that play over the Draw tab – e.g. to add a target in its game log if the play came up again. Close it (×) and you are back at your drawing. For an open draft, Drafts opens; **Back to Draw** brings you back. Your drawing stays in both cases.
+- The hint disappears with fewer than 3 routes and while you edit a saved play.
+
 ### Change a saved play {#draw-edit}
 - **Edit in Draw** (play details or a draft) loads the play with line-up and routes. A bar shows what you are editing; **Cancel editing** leaves without saving.
 - **Save changes** saves a catalog play right away (same ID; “Undo last edit” in the play details brings the old version back) or a draft back to Drafts. Your setup and a play you had started stay untouched.
