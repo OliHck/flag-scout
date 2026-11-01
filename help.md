@@ -86,6 +86,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The play ID is built from team, formation, Endzone and a number, e.g. `TIGE_Spread_03` or `TIGE_Pro_EZ_01` (team “Tigers”). It changes when the formation or the field changes.
 - **Sort:** by name, by formation or by date (newest or oldest saved first). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.
 - PDF and ‹ › in the play details follow the same order.
+- **Show targets/frequency** shows the targets on every card and the number of uses from the [game log](#game-log) next to the ★, e.g. “×7”. Off by default.
 
 ### Filters {#catalog-filters}
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
@@ -151,6 +152,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Edit in Draw {#play-draw}
 - **Edit in Draw** opens the play in the [Draw](#draw) tab to change routes and line-up. “Save changes” saves it right back into the catalog with the same ID.
 - **Undo last edit** (tap twice) brings back the version before the last edit in Draw – one step.
+- **Duplicate & draw** opens a copy of the play in Draw. **Save copy** adds it to the catalog as a new play with the next free ID – without game log, targets, opponents and must-know. **Cancel editing** saves nothing.
 
 ## Game log {#game-log}
 
@@ -165,11 +167,13 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus **QB run** (QB or 2nd QB run), **No target** (incomplete without a clear receiver, throwaway or sack) and **Played** (target not known).
 - Faster: **double-click** (mouse, pen) or **long press** (finger) on a route or a player in the graphic adds it as target.
 - “Show targets on the graphic” puts small numbers at the targeted route ends.
+- In Plays, **Show targets/frequency** does this on every card and adds the number of uses next to the ★, e.g. “×7” (no number without uses). Off by default.
 - Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.
 
 ### Downs {#downs}
-- Optional: pick **1st–4th** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later. Opening a play starts without a down; in Draw, **Save & next** clears it.
-- The summary shows e.g. “Downs: 1st 2 · 3rd 1”.
+- Optional: pick **1st–4th**, **1PAT** or **2PAT** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later. Opening a play starts without a down; in Draw, **Save & next** clears it.
+- The summary shows e.g. “Downs: 1st 2 · 3rd 1 · 2PAT 1”.
+- The **Down** filter (More filters) also lists 1PAT and 2PAT: it finds plays with a use on that down **or** with 1PAT/2PAT in their situation.
 
 ### Flipped {#flipped}
 - **↔ Flipped** next to the downs: the play was run mirrored (left and right swapped). It applies to the next entries until you tap it again and is off for every new play. The target stays the same route, e.g. Z.
@@ -189,7 +193,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Good for video analysis: draw many plays in a row, check them later.
 
 ### Line-up {#draw-setup}
-- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
+- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
 - **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up.
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
@@ -203,12 +207,13 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Ball:** from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch).
 - **Move:** drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.
 - **Line style** for the next lines: **Auto** (sharp bends become cuts), **Curve** (smooth, follows your stroke), **Straight** (straight pieces with clear cuts).
+- **Click points** (only with a mouse): instead of holding the button, each click sets a point and the line runs straight from point to point; **double-click** (or Enter) finishes it, Esc cancels. Works for Route, Option, Motion and Ball. Freehand stays the default; finger and pen always draw freehand.
 - **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again).
 - Small wobbles are smoothed out – more with a finger (phone) than with a mouse or pen, where short stems and fake steps from about 1 yd stay.
 - A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, **Comeback ^** is set for you.
 
 ### Selected player {#draw-player}
-- Tap a player: change the **label** (X, Y, Z or initials) and the **colour**, set **Comeback ^** (arrow back toward the line), switch the route between **Curve** and **Straight**, remove delays, or delete the route, the last option, the motion or the ball path.
+- Tap a player: change the **label** (X, Y, Z or initials – Enter or a click anywhere else saves it and ends Move, Esc cancels) and the **colour**, set **Comeback ^** (arrow back toward the line), switch the route between **Curve** and **Straight**, remove delays, or delete the route, the last option, the motion or the ball path.
 
 ### Delay {#delay}
 - Choose the tool **Delay** and tap a route where the receiver delays (stutter at the start, hook & go after 5 yd …) – a short zigzag appears there. Tap it again to remove it, or select the player and use **Remove delay**.
@@ -217,7 +222,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth S-I-D** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
 - **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. The down for targets is cleared too – pick it again for the next play.
-- Targets: with **1PAT** or **2PAT** and a down selected, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
+- Targets: with **1PAT** or **2PAT** and a down 1st–4th selected, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
 
@@ -227,7 +232,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The hint disappears with fewer than 3 routes and while you edit a saved play.
 
 ### Change a saved play {#draw-edit}
-- **Edit in Draw** (play details or a draft) loads the play with line-up and routes. A bar shows what you are editing; **Cancel editing** leaves without saving.
+- **Edit in Draw** (play details or a draft) loads the play with line-up and routes; **Duplicate & draw** (play details) loads a copy that is saved as a new play ([more](#play-draw)). A bar shows what you are editing; **Cancel editing** leaves without saving.
 - **Save changes** saves a catalog play right away (same ID; “Undo last edit” in the play details brings the old version back) or a draft back to Drafts. Your setup and a play you had started stay untouched.
 
 ## Drafts {#drafts}
