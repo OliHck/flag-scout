@@ -14,11 +14,11 @@ More: [Plays](#catalog) · [Play details](#play) · [Select](#select) · [Archiv
 
 ### Analysis {#qs-analysis}
 1. The heatmap shows **where the routes end** for the filtered plays – Open Field or Endzone.
-2. **Options ▸ → Count:** “By frequency” or “Targets only” use the game log.
+2. **Options ▸ → Count:** “By frequency” or “Targets only” use the game log. **Receiver:** only the routes of X, Z …
 3. Open **Concepts & depth** and tap a bar to filter by it.
 4. Only some plays: in the Plays tab **Select** them, then **Analyze**.
 
-More: [Heatmap](#heatmap) · [Selection](#analysis-scope)
+More: [Heatmap](#heatmap) · [Receiver](#receiver) · [Selection](#analysis-scope)
 
 ### Drafts {#qs-drafts}
 1. New plays wait here – from Draw or from Import.
@@ -282,8 +282,15 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.
 
 ### Options {#heatmap-options}
-- **Options ▸** folds out three settings: **Split option endings** (each ending of an option route counts on its own), **Show routes** (the routes next to the heatmap) and **Count**.
+- **Options ▸** folds out four settings: **Split option endings** (each ending of an option route counts on its own), **Show routes** (the routes next to the heatmap), **Count** and [Receiver](#receiver).
 - Folded, settings that differ from the default stay visible as chips; × sets one back.
+
+### Receiver {#receiver}
+- Under **Options**, choose one or more receivers by label – **C** (center), **X**, **Y**, **Z** or other labels from the plays. Heatmap and Show routes then count only their routes and route ends, e.g. to see where Z runs or gets the ball.
+- **All** (default) shows every route. Tap a label again to remove it. Folded, the choice stays visible as a chip “Receivers: X, Z ×”.
+- Works with Count: with “Targets only” only the targets of these receivers count. Field, Side, Group by, the filters and [Selection](#analysis-scope) work as usual.
+- The label counts, not the alignment: X is X whether it lines up outside or in the slot. A label without a route in the plays shown keeps its chip as “(0)”.
+- Concepts & depth stay per play and ignore the receiver choice.
 
 ### Count {#count}
 “Every play once” – each play counts once. “By frequency” – plays count as often as they were used ([game log](#game-log)); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.
