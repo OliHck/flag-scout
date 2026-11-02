@@ -4732,6 +4732,7 @@ function initAnsicht(){
 
 // ---------- Render & Reiter ----------
 function render(){
+  if (S.quiet) return; // Sammel-Schreiben (Modul catalog, quietly): erst am Ende einmal zeichnen
   if (S.cov) ui.covSyncToggles(); // Häkchen immer aus dem Zustand (Safari stellt Formularwerte sonst eigenmächtig wieder her)
   if (S.tab === "drafts"){ $("hiddenF").hidden = true; ui.renderDrafts(); return; }
   if (S.tab === "draw"){ $("hiddenF").hidden = true; ui.wInit(); ui.wRender(); return; }
@@ -4897,7 +4898,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "3d60fd89ae22";
+const SEITEN_VERSION = "2b76f533acba";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -8428,6 +8429,43 @@ function selEditPreview(){
   $("beGo").disabled = !plan.length || S.selBusy === true;
   return plan;
 }
+// ---------- Play-ID ändern (Teamwechsel, Teamkürzel): schnell und abbruchsicher ----------
+// Die settings-Dokumente kennt die Seite schon aus dem gemeinsamen Listener (S.settingDocs) – umgezogen wird nur, was es gibt,
+// ohne Nachsehen je Play. Mehrere Plays laufen gleichzeitig (PLAY_POOL); je Play bleibt die Reihenfolge: neues Play anlegen,
+// Einstellungen umziehen, altes löschen – ein Abbruch lässt nichts verwaisen.
+const PLAY_POOL = 5;
+const undoDocId = (docId) => "undo-" + String(docId).replace(/[^A-Za-z0-9_-]/g, "_"); // wie W_UNDO im Modul draw
+async function settingRead(id){
+  if (S.settingDocs) { const d = S.settingDocs.get(id); return d ? { exists: true, data: () => d.data() } : { exists: false }; }
+  return S.db.doc("settings/" + id).get(); // Listener noch nicht geladen
+}
+const playIdTaken = (id) => S.docIds.has(id) || [...S.docIds.values()].includes(id);
+async function movePlay(r, play, oldDoc, now){
+  if (playIdTaken(r.newId)) throw new Error(`${r.newId} already exists – try again`);
+  await S.db.doc("plays/" + r.newId).set(play);
+  const fns = [...playDocIds, (id) => undoDocId(id === r.id ? oldDoc : id)];
+  await Promise.all(SEL.settingMoves([r], fns).map(async (m) => {
+    const snap = await settingRead(m.from); if (!snap.exists) return;
+    const d = snap.data();
+    if (m.from.startsWith("undo-") && d.play) d.play = { ...d.play, play_id: r.newId };
+    await S.db.doc("settings/" + m.to).set({ ...d, play_id: r.newId, updated_at: now });
+    await S.db.doc("settings/" + m.from).delete();
+  }));
+  await S.db.doc("plays/" + oldDoc).delete();
+}
+// Während vieler Schreibvorgänge nicht nach jedem Live-Abgleich neu zeichnen (render prüft S.quiet), am Ende einmal
+async function quietly(fn){
+  S.quiet = true;
+  try { return await fn(); } finally { S.quiet = false; applyHidden(); }
+}
+// fn für alle items, höchstens n gleichzeitig; nach dem ersten Fehler startet nichts Neues mehr, der Fehler wird weitergegeben
+async function inPool(items, n, fn){
+  let i = 0, err = null;
+  const run = async () => { while (!err && i < items.length){ const it = items[i++]; try { await fn(it); } catch (e) { err = err || e; } } };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
+  if (err) throw err;
+}
+
 async function selEditSave(){
   if (!selCanOwn() || S.selBusy) return;
   const plan = selEditPreview(); if (!plan.length) return;
@@ -8436,33 +8474,21 @@ async function selEditSave(){
   const renamed = {};
   let done = 0;
   try {
-    for (const r of plan){
+    const now = new Date().toISOString();
+    await quietly(() => inPool(plan, PLAY_POOL, async (r) => {
       const oldDoc = S.docIds.get(r.id) || r.id;
       if (r.newId === r.id){
         const patch = { season: r.play.season ?? null, opponents: r.play.opponents ?? null, _meta: r.play._meta };
         await S.db.doc("plays/" + oldDoc).update(patch);
       } else {
         // Teamwechsel: neues Play anlegen (nie überschreiben), Einstellungen umziehen, dann das alte löschen
-        const ref = S.db.doc("plays/" + r.newId);
-        if ((await ref.get()).exists) throw new Error(`${r.newId} already exists – try again`);
-        await ref.set(r.play);
-        for (const m of SEL.settingMoves([r], playDocIds)){
-          const from = S.db.doc("settings/" + m.from), snap = await from.get();
-          if (!snap.exists) continue;
-          await S.db.doc("settings/" + m.to).set({ ...snap.data(), play_id: m.newId, updated_at: new Date().toISOString() });
-          await from.delete();
-        }
-        await S.db.doc("plays/" + oldDoc).delete();
+        await movePlay(r, r.play, oldDoc, now);
         renamed[r.id] = r.newId;
       }
       done++; msg(`Saving … ${done}/${plan.length}`);
-    }
+    }));
     if (Object.keys(renamed).length){
-      if ((S.marks || []).some(id => renamed[id])){
-        const marks = [...new Set(S.marks.map(id => renamed[id] || id))];
-        await S.db.doc("settings/marks").set({ plays: marks.sort(nameCmp), updated_at: new Date().toISOString() });
-        S.marks = marks;
-      }
+      await marksRename(renamed, now);
       S.sel = S.sel.map(id => renamed[id] || id);
       if (S.selAnchor && renamed[S.selAnchor]) S.selAnchor = renamed[S.selAnchor];
     }
@@ -8475,7 +8501,7 @@ async function selEditSave(){
     selMsg(`${done} ${done === 1 ? "play" : "plays"} changed${nMoved ? `, ${nMoved} with a new ID` : ""}.`);
   } catch (err) {
     S.selBusy = false; $("selDlgX").disabled = false;
-    if (Object.keys(renamed).length) S.sel = S.sel.map(id => renamed[id] || id);
+    if (Object.keys(renamed).length){ S.sel = S.sel.map(id => renamed[id] || id); try { await marksRename(renamed, new Date().toISOString()); } catch (e2) { /* Meldung unten */ } }
     msg(`Stopped after ${done} of ${plan.length}: ${err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can edit plays." : (err && err.message || err)}`, true);
   }
 }
@@ -8697,46 +8723,40 @@ async function applyTeamCode(t, to, ids){
   let done = 0;
   const step = () => { done++; $("tToast").textContent = `Renaming … ${done}/${total}`; };
   const byId = new Map((S.allPlays || []).map(p => [p.play_id, p]));
-  for (const r of plan.plays){
-    const p = byId.get(r.id), oldDoc = S.docIds.get(r.id) || r.id, ref = S.db.doc("plays/" + r.newId);
-    if ((await ref.get()).exists) throw new Error(`${r.newId} already exists`);
-    const n = JSON.parse(JSON.stringify(p)); delete n.depth_distribution;
-    n.play_id = r.newId;
-    n._meta = { ...(p._meta || {}), edited_at: now, korrekturen: [...(p._meta?.korrekturen || []), `play_id: ${r.id} → ${r.newId} (Teamkürzel)`] };
-    await ref.set(n);
-    for (const m of SEL.settingMoves([r], [...playDocIds, (id) => "undo-" + String(id === r.id ? oldDoc : id).replace(/[^A-Za-z0-9_-]/g, "_")])){
-      const from = S.db.doc("settings/" + m.from), snap = await from.get();
-      if (!snap.exists) continue;
-      const d = snap.data();
-      if (m.from.startsWith("undo-") && d.play) d.play = { ...d.play, play_id: r.newId };
-      await S.db.doc("settings/" + m.to).set({ ...d, play_id: r.newId, updated_at: now });
-      await from.delete();
-    }
-    await S.db.doc("plays/" + oldDoc).delete();
-    renamed[r.id] = r.newId; step();
+  try {
+    await inPool(plan.plays, PLAY_POOL, async (r) => {
+      const p = byId.get(r.id), oldDoc = S.docIds.get(r.id) || r.id;
+      const n = JSON.parse(JSON.stringify(p)); delete n.depth_distribution;
+      n.play_id = r.newId;
+      n._meta = { ...(p._meta || {}), edited_at: now, korrekturen: [...(p._meta?.korrekturen || []), `play_id: ${r.id} → ${r.newId} (Teamkürzel)`] };
+      await movePlay(r, n, oldDoc, now);
+      renamed[r.id] = r.newId; step();
+    });
+  } finally { // auch nach einem Abbruch: Must-know der schon umbenannten Plays nachziehen
+    await marksRename(renamed, now);
   }
+  // Entwürfe: eigene ID (neues Dokument) und Ziel (_entwurf.ziel) auf ein umbenanntes Play
+  const dNew = new Map(plan.drafts.map(r => [r.id, r.newId])), zNew = new Map(plan.ziele.map(z => [z.id, z.newZiel]));
+  await inPool((S.drafts || []).filter(d => dNew.has(d.play_id) || zNew.has(d.play_id)), PLAY_POOL, async (d) => {
+    const nd = JSON.parse(JSON.stringify(d)), oldDoc = S.draftDoc?.get(d.play_id) || d.play_id;
+    if (zNew.has(d.play_id)) nd._entwurf = { ...(nd._entwurf || {}), ziel: zNew.get(d.play_id) };
+    if (dNew.has(d.play_id)){
+      nd.play_id = dNew.get(d.play_id);
+      if (S.draftDoc?.has(nd.play_id) || [...(S.draftDoc?.values() || [])].includes(nd.play_id)) throw new Error(`draft ${nd.play_id} already exists`);
+      await S.db.doc("entwuerfe/" + nd.play_id).set(nd); await S.db.doc("entwuerfe/" + oldDoc).delete(); step();
+    } else await S.db.doc("entwuerfe/" + oldDoc).set(nd);
+  });
+  S.sel = (S.sel || []).map(id => renamed[id] || id);
+  if (S.selAnchor && renamed[S.selAnchor]) S.selAnchor = renamed[S.selAnchor];
+  if (S.detailId && renamed[S.detailId]) S.detailId = renamed[S.detailId];
+  return plan.plays.length;
+}
+async function marksRename(renamed, now){
   if ((S.marks || []).some(id => renamed[id])){
     const marks = [...new Set(S.marks.map(id => renamed[id] || id))];
     await S.db.doc("settings/marks").set({ plays: marks.sort(nameCmp), updated_at: now });
     S.marks = marks;
   }
-  // Entwürfe: eigene ID (neues Dokument) und Ziel (_entwurf.ziel) auf ein umbenanntes Play
-  const dNew = new Map(plan.drafts.map(r => [r.id, r.newId])), zNew = new Map(plan.ziele.map(z => [z.id, z.newZiel]));
-  for (const d of S.drafts || []){
-    if (!dNew.has(d.play_id) && !zNew.has(d.play_id)) continue;
-    const nd = JSON.parse(JSON.stringify(d)), oldDoc = S.draftDoc?.get(d.play_id) || d.play_id;
-    if (zNew.has(d.play_id)) nd._entwurf = { ...(nd._entwurf || {}), ziel: zNew.get(d.play_id) };
-    if (dNew.has(d.play_id)){
-      nd.play_id = dNew.get(d.play_id);
-      const ref = S.db.doc("entwuerfe/" + nd.play_id);
-      if ((await ref.get()).exists) throw new Error(`draft ${nd.play_id} already exists`);
-      await ref.set(nd); await S.db.doc("entwuerfe/" + oldDoc).delete(); step();
-    } else await S.db.doc("entwuerfe/" + oldDoc).set(nd);
-  }
-  S.sel = (S.sel || []).map(id => renamed[id] || id);
-  if (S.selAnchor && renamed[S.selAnchor]) S.selAnchor = renamed[S.selAnchor];
-  if (S.detailId && renamed[S.detailId]) S.detailId = renamed[S.detailId];
-  return plan.plays.length;
 }
 
 async function onTeamAction(e){
@@ -8757,7 +8777,7 @@ async function onTeamAction(e){
     if (act === "code-go" || act === "code-ids" || act === "code-only"){
       const to = act === "code-go" ? SEL.normTeamCode(S.tCode?.value) : S.tCode?.to, from = teamCodeOf(t);
       const err = SEL.checkTeamCode(to, t, teamUse()); if (err) throw new Error(err);
-      const n = await applyTeamCode(t, to, act === "code-ids");
+      const n = await quietly(() => applyTeamCode(t, to, act === "code-ids"));
       S.tCode = null;
       $("tToast").textContent = act === "code-ids" ? `Code of ${t}: ${from} → ${to}, ${n} ${n === 1 ? "play" : "plays"} renamed.` : `Code of ${t}: ${from} → ${to}.${act === "code-only" ? " Existing play IDs stay, new plays get " + to + "." : ""}`;
       if (!$("overlay").hidden && S.detailId) openDetail(S.detailId);
@@ -9040,6 +9060,7 @@ function initKatalog(){
   onDb("settings", { detail: () => { if (!$("teamsDlg").hidden && !$("oList").contains(document.activeElement)) renderOpps(); } }); // P40: Einsätze geändert
   // Teamkürzel aus „Manage teams“ (settings/team-codes): { codes: { Team: Kürzel } }
   onDb("settings", { data: (docs) => {
+    S.settingDocs = new Map(docs.map(x => [x.id, x])); // für movePlay: umziehen ohne Nachsehen je Play
     const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null;
     S.teamCodes = c && typeof c === "object" ? Object.fromEntries(Object.entries(c).filter(([k, v]) => k && typeof v === "string" && SEL.TEAM_CODE_RE.test(v))) : {};
   } });
