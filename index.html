@@ -5133,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "250b2b5aa54c";
+const SEITEN_VERSION = "457b7c02389c";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -6491,7 +6491,7 @@ registerUi({ logDetailRender, svgDetail });
 
 const D_SELECTS = EDIT_FIELDS.filter(([k]) => k !== "direction"); // Field, Formation, QB, Concept (Direction wird berechnet)
 const D_NAMES = { field_type: "Field", formation: "Formation", qb_alignment: "QB", play_concept: "Concept" };
-const dState = (id) => (S.dState[id] ||= {});
+const dState = (id) => (S.dr.dState[id] ||= {});
 const dFind = (id) => S.drafts.find(d => d.play_id === id);
 const dTarget = (d) => { const z = d._entwurf?.ziel; return z ? (S.allPlays || S.plays).find(p => p.play_id === z) || null : null; };
 function draftSort(a, b){
@@ -6565,8 +6565,8 @@ function renderDrafts(){
   $("dEmpty").hidden = n > 0;
   const unsure = list.filter(d => (d.unresolved_fields || []).some(f => D_NAMES[f])).length, dups = list.filter(d => (d._entwurf?.aktion || "neu") !== "neu").length;
   $("dCount").textContent = n ? `${n} draft${n === 1 ? "" : "s"}${unsure ? ` · ${unsure} with unsure fields` : ""}${dups ? ` · ${dups} duplicate${dups === 1 ? "" : "s"}` : ""}` : "";
-  $("dAll").hidden = n < 2; $("dAll").textContent = S.dAllConfirm ? `Approve ${n} drafts?` : "Approve all";
-  $("dAll").disabled = !!S.dAllBusy;
+  $("dAll").hidden = n < 2; $("dAll").textContent = S.dr.dAllConfirm ? `Approve ${n} drafts?` : "Approve all";
+  $("dAll").disabled = !!S.dr.dAllBusy;
   const old = list.filter(d => ENTW.entwurfAlterTage(d, Date.now()) >= ENTW.ENTWURF_ALT_TAGE).length;
   $("dOld").hidden = !old; $("dOld").textContent = old ? `${old} draft${old === 1 ? " is" : "s are"} older than ${ENTW.ENTWURF_ALT_TAGE} days – approve or discard ${old === 1 ? "it" : "them"}.` : "";
   // Gruppen nach Sheet. Bei gleicher Reihenfolge nur geänderte Karten ersetzen – die Karte mit dem Eingabefokus bleibt stehen.
@@ -6574,17 +6574,17 @@ function renderDrafts(){
   const order = groups.map(g => g.k + ":" + g.items.map(d => d.play_id).join(",")).join("|");
   const html = new Map(list.map(d => [d.play_id, draftCardHTML(d)]));
   const box = $("dList");
-  if (order !== S.dOrder){
+  if (order !== S.dr.dOrder){
     box.innerHTML = groups.map(g => { const e = g.items[0]._entwurf || {}, src = g.items[0]._meta?.source;
       return `<h3 class="dgroup">${esc(g.k)}<small>${g.items.length} play${g.items.length === 1 ? "" : "s"}${src ? ` · ${esc(src)}` : ""}${e.abgelegt_am ? ` · filed ${esc(new Date(e.abgelegt_am).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }))}` : ""}</small></h3><div class="dlist">${g.items.map(d => html.get(d.play_id)).join("")}</div>`; }).join("");
-    S.dOrder = order; S.dCache = html; return;
+    S.dr.dOrder = order; S.dr.dCache = html; return;
   }
   for (const [id, h] of html){
-    if (S.dCache.get(id) === h) continue;
+    if (S.dr.dCache.get(id) === h) continue;
     const el = box.querySelector(`[data-draft="${CSS.escape(id)}"]`);
     const act = document.activeElement;
     if (!el || (el.contains(act) && act.matches("input[type=text],textarea"))) continue; // Eingabe läuft: nach dem Verlassen des Felds
-    el.outerHTML = h; S.dCache.set(id, h);
+    el.outerHTML = h; S.dr.dCache.set(id, h);
   }
 }
 function updateDraftTab(){
@@ -6634,7 +6634,7 @@ async function draftApprove(id, { batch = false } = {}){
     // Must-know aus einem Import (P39a, _entwurf.must_know): das freigegebene Play wird markiert
     if (e.must_know === true){ try { await marksAdd([r.id]); } catch (err3) { logErr += ` (must-know not saved: ${err3 && err3.message || err3})`; } }
     await S.db.doc("entwuerfe/" + (S.draftDoc.get(id) || id)).delete();
-    S.drafts = S.drafts.filter(x => x.play_id !== id); delete S.dState[id];
+    S.drafts = S.drafts.filter(x => x.play_id !== id); delete S.dr.dState[id];
     renderDrafts(); updateDraftTab();
     if (logErr) $("dToastAll").textContent = `${r.id}${logErr}`;
     return { done: (r.typ === "neu" ? r.id : r.typ === "zusammenlegen" ? (r.who === "opponents" ? `opponent added to ${r.id}` : `merged into ${r.id}`) : ents.length ? `targets added to ${r.id}` : `skipped (same as ${r.id})`) + logErr };
@@ -6644,12 +6644,14 @@ async function draftApprove(id, { batch = false } = {}){
 // Zustand und Klick-Handler – aufgerufen von app/main.js an der alten Stelle (nach dem ersten Rendern)
 function initDrafts(){
   onRender("drafts", renderDrafts);
-  S.drafts = []; S.draftDoc = new Map(); S.dState = {}; S.dCache = new Map(); S.dOrder = "";
+  S.drafts = []; S.draftDoc = new Map();
+  // Zustand des Reiters Drafts (P50 Schritt 5e: S.dr, Typ DraftsZustand in types/zustand.d.ts)
+  S.dr = { dState: {}, dCache: new Map(), dOrder: "", dAllBusy: false, dAllConfirm: false, draftsSub: false };
   // Update-Hinweis (P36): Felder speichern beim Verlassen – offen ist nur ein Textfeld mit neuer Eingabe oder ein laufendes Speichern
   onUngespeichert(() => {
     const a = document.activeElement;
     const tippt = a && a.matches("input[data-dfield], textarea[data-dfield]") && $("dList").contains(a) && a.value !== a.defaultValue;
-    return tippt || Object.values(S.dState).some(st => st.busy) ? "Drafts" : null;
+    return tippt || Object.values(S.dr.dState).some(st => st.busy) ? "Drafts" : null;
   });
   tgTapBind($("dList"), ".dcard > .field, .dcard .dgfx-w .field", (f) => {
     const card = f.closest("[data-draft]"), d = card && dFind(card.dataset.draft); if (!d || !S.owner || !S.db) return null;
@@ -6692,20 +6694,20 @@ function initDrafts(){
     else if (act === "discard"){
       if (!st.confirmDiscard){ st.confirmDiscard = true; renderDrafts(); setTimeout(() => { if (st.confirmDiscard){ st.confirmDiscard = false; renderDrafts(); } }, 4000); return; }
       st.confirmDiscard = false; st.busy = true; renderDrafts();
-      try { await S.db.doc("entwuerfe/" + (S.draftDoc.get(id) || id)).delete(); S.drafts = S.drafts.filter(x => x.play_id !== id); delete S.dState[id]; renderDrafts(); updateDraftTab(); }
+      try { await S.db.doc("entwuerfe/" + (S.draftDoc.get(id) || id)).delete(); S.drafts = S.drafts.filter(x => x.play_id !== id); delete S.dr.dState[id]; renderDrafts(); updateDraftTab(); }
       catch (err) { st.busy = false; st.err = "Not discarded: " + (err && err.message || err); renderDrafts(); }
     }
   });
   $("dAll").onclick = async () => {
-    if (!S.dAllConfirm){ S.dAllConfirm = true; renderDrafts(); setTimeout(() => { if (S.dAllConfirm){ S.dAllConfirm = false; renderDrafts(); } }, 4000); return; }
-    S.dAllConfirm = false; S.dAllBusy = true; $("dToastAll").textContent = "Approving …"; renderDrafts();
+    if (!S.dr.dAllConfirm){ S.dr.dAllConfirm = true; renderDrafts(); setTimeout(() => { if (S.dr.dAllConfirm){ S.dr.dAllConfirm = false; renderDrafts(); } }, 4000); return; }
+    S.dr.dAllConfirm = false; S.dr.dAllBusy = true; $("dToastAll").textContent = "Approving …"; renderDrafts();
     const done = [], skipped = [];
     for (const d of [...S.drafts].sort(draftSort)){
       const r = await draftApprove(d.play_id, { batch: true });
       if (r.done) done.push(r.done); else skipped.push(`${d._entwurf?.nr ? "Nr. " + d._entwurf.nr : d.play_id}`);
       $("dToastAll").textContent = `Approving … ${done.length + skipped.length}/${S.drafts.length + done.length}`;
     }
-    S.dAllBusy = false;
+    S.dr.dAllBusy = false;
     $("dToastAll").textContent = `${done.length} approved${skipped.length ? ` · ${skipped.length} left (${skipped.join(", ")}) – see the message on each draft` : ""}.`;
     renderDrafts();
   };
@@ -6713,8 +6715,8 @@ function initDrafts(){
   onDb("owner", () => {
     updateDraftTab();
     // Entwürfe: nur der Besitzer (db-Regel „entwuerfe: read owner“ – für alle anderen technisch unlesbar)
-    if (S.owner && !S.draftsSub){
-      S.draftsSub = true;
+    if (S.owner && !S.dr.draftsSub){
+      S.dr.draftsSub = true;
       S.db.collection("entwuerfe").onSnapshot((snap) => {
         S.draftDoc = new Map();
         S.drafts = snap.docs.map(d => { const v = d.data() || {}, pid = v.play_id || d.id; S.draftDoc.set(pid, d.id); return { ...v, play_id: pid }; });
