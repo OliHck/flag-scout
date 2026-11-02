@@ -4808,8 +4808,8 @@ const EDIT_FIELDS = [
 function svgFor(p, opts){ try { return fieldSVG(p, opts); } catch(e){ return `<div class="note" style="padding:20px;line-height:1.4">Graphic not available: ${esc(e.message)}</div>`; } }
 
 // Funktionen der übrigen Teile, die core aufruft (tragen die Module selbst ein)
-const UI_NAMEN = ["covSyncToggles", "renderDrafts", "wInit", "wRender", "renderCovTab", "refreshFilters", "updateReset", "updateHiddenHint",
-  "renderGrid", "renderZones", "updatePdfBtn", "renderMatchups", "setZField", "fieldCouple", "logDetailRender", "covDetailRender", "detailNavUpdate",
+// (Neuzeichnen je Reiter seit P50 Schritt 3 nicht mehr hier, sondern über onRender)
+const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRender", "detailNavUpdate",
   "svgDetail",
   // Coverages und Matchups (abschaltbar): Name auf Karte und im PDF, Defense, Offline-Datei, Restore, Review
   "covName", "covActive", "covPlaySetting", "covVariantCount", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
@@ -4822,7 +4822,7 @@ const UI_NAMEN = ["covSyncToggles", "renderDrafts", "wInit", "wRender", "renderC
 // Ihr HTML fehlt dann in der Seite (@modul-Blöcke in app/seite.html) – core greift nur geprüft darauf zu.
 // Geladene Module überschreiben die Einträge mit registerUi().
 const ui = {
-  covSyncToggles(){}, renderCovTab(){}, renderMatchups(){}, revBtnUpdate(){}, revRender(){},
+  revBtnUpdate(){}, revRender(){},
   covActive: () => false, covName: () => "", covVariantCount: () => 1, covDefense: () => null, covExportEntry: () => null,
   covPlaySetting: () => ({ variants: [null] }), covRestorePlan: () => ({ n: 0 }), covRestoreWrite: async () => 0, svgCat: (p, extra) => svgFor(p, extra), covLabelFor: () => "",
   covPdfAllSync(){}, covPdfAll: () => false, covOfflineBoot(){}, covTabUpdate(){},
@@ -4846,10 +4846,15 @@ function registerUi(fns){
 // die Anmeldungen in ihrer Reihenfolge auf (nur dort – in der Offline-Datei fehlt der Block, dort läuft keine davon).
 //   "db"        h(db)  – eigene Listener und Knöpfe, sobald die Datenbank offen ist
 //   "settings"  { data(docs), detail(), error() } – Anteil am gemeinsamen Listener auf der Collection settings: data
-//               übernimmt nur die eigenen Dokumente; danach rendert die Seite einmal, dann detail() (offene Detailansicht)
+//               übernimmt nur die eigenen Dokumente und gibt zurück, ob sich dadurch etwas Sichtbares geändert hat
+//               (false = nein; true bzw. nichts = ja). Nur wenn mindestens ein Modul „ja“ meldet, rendert die Seite einmal
+//               und ruft danach detail() (offene Detailansicht) – so löst z. B. die Rückmeldung des eigenen Schreibens
+//               (Target, Coverage) kein zweites Neuzeichnen aus (P50 Schritt 3).
 //   "owner"     h()    – nach der Prüfung, ob der Besitzer angemeldet ist (S.owner)
 //   "downloads" h(dl)  – Downloads der Laufzeit (null = in dieser Ansicht nicht verfügbar)
 const dbHooks = { db: [], settings: [], owner: [], downloads: [] };
+// Gleicher Inhalt zweier Maps (Zustand eines Moduls vor/nach einer settings-Meldung; Werte als JSON verglichen)
+const gleicheMap = (a, b) => !!a && !!b && a.size === b.size && [...a].every(([k, v]) => b.has(k) && JSON.stringify(b.get(k)) === JSON.stringify(v));
 function onDb(art, h){
   if (!dbHooks[art]) throw new Error(`onDb: unbekannte Art ${art}`);
   dbHooks[art].push(h);
@@ -4894,13 +4899,21 @@ function initAnsicht(){
 }
 
 // ---------- Render & Reiter ----------
+// Neu zeichnen (P50 Schritt 3): core kennt die Reiter nicht – jedes Modul meldet in seinem init…() mit onRender an, was es
+// für welchen Reiter zeichnet (wie onDb). render() ruft nur die Anmeldungen des offenen Reiters auf: zuerst alle mit
+// { vorab: true } (Häkchen, Filterzeile), dann die übrigen, jeweils in der Reihenfolge der Anmeldung (init… in app/main.js:
+// Analysis = Heatmap, PDF-Knopf, Matchups). Reiter "*" = jeder Reiter. Reiter: katalog, zonen (Analysis), drafts, draw, cov.
+const REITER = ["katalog", "zonen", "drafts", "draw", "cov"];
+const renderHooks = [];
+function onRender(reiter, fn, { vorab = false } = {}){
+  const liste = [].concat(reiter);
+  if (typeof fn !== "function" || !liste.length || liste.some(r => r !== "*" && !REITER.includes(r))) throw new Error(`onRender: unbekannter Reiter ${liste.join(", ")}`);
+  renderHooks.push({ liste, fn, vorab: !!vorab });
+}
 function render(){
   if (S.quiet) return; // Sammel-Schreiben (Modul catalog, quietly): erst am Ende einmal zeichnen
-  if (S.cov) ui.covSyncToggles(); // Häkchen immer aus dem Zustand (Safari stellt Formularwerte sonst eigenmächtig wieder her)
-  if (S.tab === "drafts"){ $("hiddenF").hidden = true; ui.renderDrafts(); return; }
-  if (S.tab === "draw"){ $("hiddenF").hidden = true; ui.wInit(); ui.wRender(); return; }
-  if (S.tab === "cov"){ $("hiddenF").hidden = true; ui.renderCovTab(); return; }
-  ui.refreshFilters(); ui.updateReset(); ui.updateHiddenHint(); if (S.tab === "katalog") ui.renderGrid(); else { ui.renderZones(); ui.updatePdfBtn(); ui.renderMatchups(); } // P28.3: Matchups unter der Heatmap
+  const t = S.tab;
+  for (const vorab of [true, false]) for (const h of renderHooks) if (h.vorab === vorab && (h.liste.includes(t) || h.liste.includes("*"))) h.fn();
 }
 
 function setTab(t){
@@ -5061,7 +5074,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "987b6f3748de";
+const SEITEN_VERSION = "5e89a9418ccf";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -5114,7 +5127,7 @@ function initUpdate(quelle){
   addEventListener("focus", updPruefen);
   addEventListener("pageshow", (e) => { if (e.persisted) updPruefen(); }); // aus dem Zurück-Speicher des Browsers
   setTimeout(updPruefen, 4000); // einmal nach dem Start (die App kann aus dem Speicher gestartet sein)
-  onDb("settings", { data: (docs) => { const d = docs.find(x => x.id === "seiten-version"); if (d) updLive(d.data()); } });
+  onDb("settings", { data: (docs) => { const d = docs.find(x => x.id === "seiten-version"); if (d) updLive(d.data()); return false; } }); // nur Hinweis, kein Neuzeichnen
 }
 
 // „Save to folder“ des Flag Scout Tools (Backlog P52): Sicherung der Plays als JSON-Datei in einem Ordner auf dem PC
@@ -6140,7 +6153,9 @@ function logFromSettings(docs){
     if (typeof v.play_id === "string" && v.play_id) m.set(v.play_id, LOG.cleanLog(v, v.play_id));
   }
   for (const id of S.lgPending) if (S.logs.has(id)) m.set(id, S.logs.get(id)); else m.delete(id); // eigene Eingabe noch unterwegs
+  const neu = !gleicheMap(m, S.logs);
   S.logs = m;
+  return neu; // false: nur die Rückmeldung des eigenen Schreibens (schon gezeichnet)
 }
 const logCanEdit = () => !!(S.owner && S.db && !S.offline);
 function usesChip(p){
@@ -6250,11 +6265,13 @@ async function logWrite(id, next){
   const doc = S.db.doc("settings/" + LOG.logDocId(id));
   const run = () => LOG.isEmptyLog(next) ? doc.delete() : doc.set({ play_id: id, entries: next.entries, updated_at: new Date().toISOString() });
   S.lgChain[id] = (S.lgChain[id] || Promise.resolve()).catch(() => {}).then(run);
+  let fehler = false;
   try { await S.lgChain[id]; S.lg.msg = S.lgTapMsg ? `${S.lgTapMsg} – saved.` : "Saved."; S.lgTapMsg = null; }
-  catch (e) { if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.lg.msg = ""; S.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
+  catch (e) { fehler = true; if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.lg.msg = ""; S.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
   finally { S.lgPending.delete(id); }
   if (S.lg && S.lg.id === id) logDetailRender();
-  render(); ui.covDetailRender();
+  // Gezeichnet ist schon oben (P50 Schritt 3); nur wenn das Speichern scheitert, ist der alte Stand zurück → neu zeichnen
+  if (fehler){ render(); ui.covDetailRender(); }
 }
 // Neuer Gegner: in play.opponents eintragen (P16a), danach für die Einsätze vorausgewählt
 async function logAddOpponent(p, name){
@@ -6567,6 +6584,7 @@ async function draftApprove(id, { batch = false } = {}){
 
 // Zustand und Klick-Handler – aufgerufen von app/main.js an der alten Stelle (nach dem ersten Rendern)
 function initDrafts(){
+  onRender("drafts", renderDrafts);
   S.drafts = []; S.draftDoc = new Map(); S.dState = {}; S.dCache = new Map(); S.dOrder = "";
   // Update-Hinweis (P36): Felder speichern beim Verlassen – offen ist nur ein Textfeld mit neuer Eingabe oder ein laufendes Speichern
   onUngespeichert(() => {
@@ -6650,8 +6668,6 @@ function initDrafts(){
   });
   onDb("downloads", (dl) => { if (dl) updateDraftTab(); });
 }
-
-registerUi({ renderDrafts });
 
 // Modul draw (P25c Teil 2b, docs/p25-plan.md): Zeichen-Editor im Reiter „Draw“ (nur Besitzer, Backlog P19) und
 // „Edit in Draw“ für Katalog-Plays und Entwürfe (P19b, „Undo last edit“ in der Detailansicht). Kern: scripts/lib/zeichnen.mjs (Z).
@@ -7285,6 +7301,7 @@ async function wUndoLastEdit(id){
 
 // Start-Zustand und Klick-Handler – aufgerufen von app/main.js an der alten Stelle (nach initDrafts)
 function initDraw(){
+  onRender("draw", () => { wInit(); wRender(); });
   S.w = { tool: "route", undo: [], redo: [], sel: null, pen: false, conceptTouched: false, snapType: "Side Snap", handoffType: "Handoff", sitTouched: false, raw: {}, log: [] };
   // Linienart für neue Striche (Auto | Curve | Straight), pro Browser gemerkt
   S.w.line = (() => { try { const v = localStorage.getItem(W_LINE_STORE); return ["auto", "curved", "straight"].includes(v) ? v : "auto"; } catch (e) { return "auto"; } })();
@@ -7404,8 +7421,6 @@ function initDraw(){
   $("wEditCancel").onclick = () => { const ed = S.w.edit; wEditEnd(); if (ed?.kind === "play" || ed?.kind === "copy"){ setTab("katalog"); openDetail(ed.id); } else if (ed) setTab("drafts"); else wRender(); };
   onDb("owner", () => { if (S.owner && location.hash === "#draw") setTab("draw"); }); // „#draw“ öffnet den Reiter (nur Besitzer)
 }
-
-registerUi({ wInit, wRender });
 
 const CONFIG = {"app":"flag-scout","optionen":{"gameLogImPlayExport":true}};
 
@@ -7933,6 +7948,7 @@ async function doImport(){
 
 // Menü „Export ▾“ schließen (Klick daneben, Esc) – aufgerufen von app/main.js an der alten Stelle
 function initExport(){
+  onRender("zonen", updatePdfBtn); // PDF-Knopf in Analysis (Katalog: renderGrid setzt ihn selbst)
   $("expMenu").addEventListener("click", (e) => { if (e.target.closest(".mlist .btn")) $("expMenu").open = false; });
   document.addEventListener("click", (e) => { if ($("expMenu").open && !e.target.closest("#expMenu")) $("expMenu").open = false; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("expMenu").open){ $("expMenu").open = false; $("expMenu").querySelector("summary").focus(); } });
@@ -7955,7 +7971,7 @@ function initExport(){
       restoreData: (data, nachher) => { openBackup(); restoreFromData(data, nachher); $("rInfo").scrollIntoView?.({ block: "nearest" }); },
     });
   });
-  onDb("settings", { data: () => { S.settingsLoaded = true; } }); // P52: Ordnerdatei erst mit Game log und Must-know
+  onDb("settings", { data: () => { S.settingsLoaded = true; return false; } }); // P52: Ordnerdatei erst mit Game log und Must-know
   if (GL_EXPORT) onDb("settings", { detail: updateBackupBar }); // neue Einsätze zählen für den Backup-Hinweis (P25d)
   onDb("owner", () => { $("importBtn").hidden = !S.owner; $("backupMenuBtn").hidden = !(S.owner && S.db); }); // JSON-Import, Backup & restore: nur Besitzer
   // Backup & restore (P39c)
@@ -8045,8 +8061,6 @@ function initImport(){
   $("importDlg").addEventListener("click", (e) => { if (e.target === $("importDlg") && !S.imp.busy) $("importDlg").hidden = true; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("importDlg").hidden && !S.imp.busy) $("importDlg").hidden = true; });
 }
-
-registerUi({ updatePdfBtn });
 
 // Modul catalog (P25c Teil 2a, docs/p25-plan.md): Katalog – Filterzeile (Facetten, Filter, „Also filtered“, Filter löschen),
 // Sortierung, Karten im Raster, Must-know, Play-Auswahl (P27: Klick/Bereich, PDF/JSON der Auswahl, Must-know, Sammel-
@@ -8986,6 +9000,11 @@ async function onTeamAction(e){
 
 // Klick-Handler (Filterzeile, Raster, Auswahl, Detailansicht) – aufgerufen von app/main.js an der alten Stelle
 function initKatalog(){
+  // Neu zeichnen (P50 Schritt 3): Filterzeile in Catalog und Analysis vorab, Raster nur im Catalog; in Drafts/Draw/Coverages
+  // keine Katalog-Filter, also auch kein Hinweis auf ausgeblendete Teams
+  onRender(["katalog", "zonen"], () => { refreshFilters(); updateReset(); updateHiddenHint(); }, { vorab: true });
+  onRender(["drafts", "draw", "cov"], () => { $("hiddenF").hidden = true; }, { vorab: true });
+  onRender("katalog", renderGrid);
   onUngespeichert(() => S.editing ? "Edit" : null); // Update-Hinweis (P36): Felder in der Detailansicht offen
   // P32: Zustand pro Browser gemerkt (wer Expert hatte, startet offen – migrateMode in core)
   S.filtersOpen = (() => { try { return localStorage.getItem("playbook-filters-open") === "1"; } catch (e) { return false; } })();
@@ -9245,12 +9264,13 @@ function initKatalog(){
   // Teamkürzel aus „Manage teams“ (settings/team-codes): { codes: { Team: Kürzel } }
   onDb("settings", { data: (docs) => {
     S.settingDocs = new Map(docs.map(x => [x.id, x])); // für movePlay: umziehen ohne Nachsehen je Play
-    const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null;
+    const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null, vorher = JSON.stringify(S.teamCodes);
     S.teamCodes = c && typeof c === "object" ? Object.fromEntries(Object.entries(c).filter(([k, v]) => k && typeof v === "string" && SEL.TEAM_CODE_RE.test(v))) : {};
+    return JSON.stringify(S.teamCodes) !== vorher;
   } });
 }
 
-registerUi({ renderGrid, refreshFilters, updateReset, updateHiddenHint, detailNavUpdate });
+registerUi({ detailNavUpdate });
 
 // Modul heatmap (P25c Teil 2a, docs/p25-plan.md): Reiter „Analysis“ – Heatmap der Routenenden je Zone, Routen-Feld
 // („Show routes“), Beispiel-Plays, Auswertung „Concepts & depth“ mit Cross-Filter, Schalter Open Field/Endzone, Side,
@@ -9581,6 +9601,7 @@ function seg(id, key){
 
 // Klick-Handler (Auswertung, Chips, Schalter) – aufgerufen von app/main.js an der alten Stelle
 function initHeatmap(){
+  onRender("zonen", renderZones); // Analysis: zuerst die Heatmap, danach PDF-Knopf (export) und Matchups
   $("zStats").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.stoggle){ S.statsOpen = !S.statsOpen; renderZones(); return; }
@@ -9613,7 +9634,7 @@ function initHeatmap(){
   });
 }
 
-registerUi({ renderZones, setZField, fieldCouple });
+registerUi({ setZField, fieldCouple });
 
 // Seiten-Skript (Einstieg des Vite-Builds, docs/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
 // Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
@@ -9644,14 +9665,16 @@ initDraw(); // Zustand und Klick-Handler (modules/draw/)
 // Die Module melden ihre Listener selbst an (onDb in modules/core/, in ihren init…()); hier wird die Datenbank geöffnet und
 // die Anmeldungen werden in ihrer Reihenfolge aufgerufen. Der gemeinsame Listener auf der Collection settings verteilt die
 // Dokumente an die Module (jedes übernimmt nur seine Schlüssel: Game log play-log-…, Coverages coverages/coverage-…,
-// Matchups matchup-…), rendert danach einmal und frischt die offene Detailansicht auf.
+// Matchups matchup-…). Nur wenn ein Modul meldet, dass sich sein Zustand geändert hat (data() ≠ false), rendert die Seite
+// einmal und frischt die offene Detailansicht auf (P50 Schritt 3: die Rückmeldung eigener Schreibvorgänge zeichnet nicht neu).
 (async () => {
   const db = await openDb();
   if (!db){ $("status").textContent = "This browser cannot store data here (private window?). Open the page in a normal browser window."; renderGrid(); return; }
   S.db = db;
   dbHooks.db.forEach(h => h(db));
   db.collection("settings").onSnapshot((snap) => {
-    dbHooks.settings.forEach(h => h.data?.(snap.docs));
+    const neu = dbHooks.settings.map(h => h.data ? h.data(snap.docs) : false).some(x => x !== false);
+    if (!neu) return;
     if (S.playsLoaded) render();
     dbHooks.settings.forEach(h => h.detail?.());
   }, () => { dbHooks.settings.forEach(h => h.error?.()); });
