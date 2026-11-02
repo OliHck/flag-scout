@@ -105,7 +105,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Cards and sorting {#cards}
 - Each card shows the play's graphic, its ID and the ★ for [must-know](#must-know). Formation, concept, depth and comment are in the [play details](#play).
 - The play ID is built from team, formation, Endzone and a number, e.g. `TIGE_Spread_03` or `TIGE_Pro_EZ_01` (team “Tigers”). It changes when the formation or the field changes.
-- **Sort:** by name, by formation or by date (newest or oldest saved first). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.
+- **Sort:** by name, by formation, by date (newest or oldest saved first) or by **Frequency** (most uses in the [game log](#game-log) first – the Opponent and Down filters count; same number → by ID). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.
 - PDF and ‹ › in the play details follow the same order.
 - **Show targets/frequency** shows the targets on every card and the number of uses from the [game log](#game-log) next to the ★, e.g. “×7”. Off by default.
 
@@ -126,6 +126,9 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Manage teams {#teams}
 - **Manage teams** next to the Team filter: **Hide** / **Show** a team or **Delete** all its plays (you confirm by typing the team name).
+- Each team shows its **code** – the start of its play IDs, e.g. `MAIN` in `MAIN_Spread_03`. **Code** changes it: 2–6 capital letters or digits, not used by another team.
+- If plays already use the old code, you choose: **Rename play IDs too** (only the code at the start changes, e.g. `MAIN_Spread_03` → `MAI_Spread_03`; game log, must-know marks, Undo last edit and drafts move along) or **Only change the team code** (existing IDs stay, new plays get the new code). If a new ID already exists, nothing is renamed and the IDs are listed.
+- **+ New team** adds a team with name and code before it has plays – choose it in [Draw](#draw) or when you edit plays.
 - Hidden teams are left out of the catalog, the heatmap and the PDF. “Show hidden teams” shows them again (marked “hidden”). The JSON export and the backup always contain all teams.
 - Backups: the dialog links to [Backup & restore](#backup).
 
