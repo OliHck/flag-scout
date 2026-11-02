@@ -822,7 +822,7 @@ const PAGE_SRC = {
 };
 
 // Kern-Dateien der Seite (P25c Teil 2a, docs/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
-// (ENTW, Z, COV, MU, LOG, SEL, KAT, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
+// (ENTW, Z, COV, MU, LOG, SEL, KAT, HM, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
 // Seite und Module importieren die Namen von hier – ein globaler Name, den nur dieses Modul anlegt, würde Rollup umbenennen.
 // Coverages, Matchups und Präsentieren (COV, MU, PR) braucht nur das Modul coverages (mit matchups): Zeilen mit
@@ -4582,6 +4582,93 @@ function facetValues(key, counts, t = {}) {
 
 return { nameCmp, isEZ, EZ_GROUPS, ezDist, ezGroup, FILTER_KEYS, matchFilter, filterPlays, savedStamp, ezGroupsOn, sortPlays, facetCount, facetValues };
 })();
+// Heatmap-Regeln: Zonen, Seiten, Gewichte, Matrix (scripts/lib/heatmap.mjs) – gekapselt
+const HM = (() => {
+// Heatmap-Regeln (Reiter „Analysis“, Backlog P50 Schritt 2; spec: claude/makroanalyse-zielzonen.md, §7e, P16b, P40, P45):
+// Zonenzuordnung der Routenenden, Seiten (real/strong), Gewichte („Every play once“, „By frequency“, „Targets only“),
+// Receiver-Filter, Matrix und Balken-Anteile der Auswertung „Concepts & depth“ – gemeinsamer Kern für Seite und Test.
+// Ohne Imports (die Seite setzt die Datei als `HM` ein); reine Funktionen, kein DOM, kein Dateizugriff.
+// Was von anderen Kern-Dateien bzw. vom Zustand der Seite abhängt, kommt als Werkzeug-Parameter T herein:
+//   T = { LOG (scripts/lib/einsatz.mjs), val(p, k), zoneOfEnd, routeLegs, routeLegAt (scripts/lib/derive.mjs),
+//         entries(p, opp, down) (Einsätze eines Plays gegen Gegner/Down, aus dem Game log) }
+// Optionen opt = { field: "Open Field" | "Endzone", side: "real" | "strong", weight (Option-Enden aufteilen),
+//   count: "plays" | "freq" | "targets", opp, down, recv (Labels, null = alle) }.
+
+// Zeilen der Matrix = S-I-D-Zonen von oben nach unten (Endzone: EZ deep, EZ short, before goal line)
+const ZONES = ["deep", "intermediate", "short"];
+// Spalten: fünf Streifen à 5 yd über die 25 yd Feldbreite; Namen je Seite
+const COLS = {
+  strong: ["Weak Sideline", "Weak Seam", "Middle", "Strong Seam", "Strong Sideline"],
+  real: ["Left Sideline", "Left Seam", "Middle", "Right Seam", "Right Sideline"],
+};
+const column = (x) => Math.min(4, Math.max(0, Math.floor(x / 5)));
+
+// P40: bei „Real side“ zählen gespiegelt gespielte Einsätze (flipped) gespiegelt; „Strong side right“ spiegelt nach direction
+const flipSide = (opt) => opt.side !== "strong";
+const mirrored = (play, opt, T) => opt.side === "strong" && T.val(play, "direction") === "Left";
+// „By frequency“: Gewicht normal/gespiegelt (ohne Einsatz 1 normal)
+function freqSides(play, opt, T) {
+  const list = T.entries(play, opt.opp, opt.down);
+  return flipSide(opt) ? T.LOG.freqSplit(list) : { normal: T.LOG.freqWeight(list), flipped: 0 };
+}
+// „Targets only“: angeworfene Routen (Receiver-Filter angewandt) mit Route und Teilstück bis zum gewählten Ending
+function targetLegs(play, opt, T) {
+  return T.LOG.targetPicks(play, T.entries(play, opt.opp, opt.down), { byFlip: flipSide(opt) })
+    .filter((t) => T.LOG.recvHas(opt.recv, t.target))
+    .map((t) => { const route = T.LOG.routeOfTarget(play, t.target); return { t, route, leg: T.routeLegAt(route, t.ending) }; })
+    .filter((x) => x.leg);
+}
+
+// Routenenden eines Plays: [{ x, zone, w }]. Dieselbe Zonenregel wie Depth S-I-D (zoneOfEnd, inkl. „läuft weiter → deep“).
+// Gezählt werden Center + Receiver mit Route (Center zählt im Flag Football immer; P45: opt.recv = nur diese Labels,
+// C = Center); Spieler ohne Route und QB-Routen zählen nicht. opt.weight: Option-Enden je 1/n statt nur das primäre.
+function routeEnds(play, opt, T) {
+  const mirror = mirrored(play, opt, T);
+  const out = (l, w, fl) => ({ x: mirror || fl ? 25 - l.end.x : l.end.x, zone: T.zoneOfEnd(play, l.end, l.prev), w });
+  if (opt.count === "targets") return targetLegs(play, opt, T).map(({ t, leg }) => out(leg, t.n, t.flipped));
+  const f = opt.count === "freq" ? freqSides(play, opt, T) : { normal: 1, flipped: 0 };
+  const legs = [];
+  T.LOG.labeledRoutes(play, opt.recv).forEach(({ route }) => legs.push(...T.routeLegs(route, opt.weight)));
+  return [...(f.normal ? legs.map((l) => out(l, l.w * f.normal)) : []), ...(f.flipped ? legs.map((l) => out(l, l.w * f.flipped, true)) : [])];
+}
+
+// Matrix 3 × 5 (Zeilen ZONES, Spalten COLS) mit Summe der Gewichte
+function heatMatrix(plays, opt, T) {
+  const m = ZONES.map(() => [0, 0, 0, 0, 0]);
+  let total = 0;
+  plays.forEach((p) => routeEnds(p, opt, T).forEach((e) => {
+    const r = ZONES.indexOf(e.zone);
+    if (r >= 0) { m[r][column(e.x)] += e.w; total += e.w; }
+  }));
+  return { m, total };
+}
+
+// Gewicht eines Plays in der Auswertung (Concept-/S-I-D-Balken, Matchups): Plays 1, Häufigkeit = Einsätze (mind. 1,
+// flipped zählt gleich), Targets = Zahl der angeworfenen Routen
+function playWeight(p, opt, T) {
+  if (opt.count === "freq") return T.LOG.freqWeight(T.entries(p, opt.opp, opt.down));
+  if (opt.count === "targets") return T.LOG.targetPicks(p, T.entries(p, opt.opp, opt.down)).reduce((a, t) => a + t.n, 0);
+  return 1;
+}
+
+// Balken „Concepts & depth“: [[Wert, Gewicht]] absteigend, gleiche Gewichte nach Name; unknownLast: „Unknown“ ans Ende.
+// Werte mit Gewicht 0 fehlen.
+const nameCmp = new Intl.Collator("de", { numeric: true, sensitivity: "base" }).compare;
+function shareRows(list, keyOf, unknownLast, wOf) {
+  const m = new Map();
+  list.forEach((p) => { const k = keyOf(p) ?? "Unknown", w = wOf ? wOf(p) : 1; if (w > 0) m.set(k, (m.get(k) || 0) + w); });
+  return [...m.entries()].sort((a, b) => (unknownLast ? (a[0] === "Unknown") - (b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
+}
+// Balken „Target“: Einsätze je angeworfener Position (ohne „nur gespielt“); Receiver zuerst, dann QB, dann No target
+function targetRows(plays, opt, T) {
+  const m = new Map();
+  plays.forEach((p) => T.entries(p, opt.opp, opt.down).forEach((e) => { const k = T.LOG.targetKey(e); if (k) m.set(k, (m.get(k) || 0) + 1); }));
+  const rank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
+  return [...m.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0]));
+}
+
+return { ZONES, COLS, column, flipSide, mirrored, freqSides, targetLegs, routeEnds, heatMatrix, playWeight, shareRows, targetRows };
+})();
 
 // Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
 // npm run tool-test sie prüfen kann. Die Seite (modules/catalog/index.js) setzt sie mit ihrem Zustand ein.
@@ -4974,7 +5061,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "aea3e3cd55a3";
+const SEITEN_VERSION = "987b6f3748de";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -9171,50 +9258,21 @@ registerUi({ renderGrid, refreshFilters, updateReset, updateHiddenHint, detailNa
 // (analysisPlays: ohne Archiv, Scope Filtered/Selection, Cross-Filter – P37/P38), Einsätze und Gegner aus gamelog.
 
 // ---------- Zielzonen (Spec: claude/makroanalyse-zielzonen.md) ----------
-const lastPt = (pts) => pts && pts.length ? pts[pts.length - 1] : null;
-
-// Routenenden mit Zone: dieselbe Regel wie die Tiefenverteilung S-I-D (zoneOfEnd, inkl. „läuft weiter → deep“).
-// Gezählt werden Center + Receiver mit Route; Spieler ohne Route haben keinen Endpunkt und fehlen hier
-// (in S-I-D zählen sie als short). QB-Routen zählen nicht.
-// P16b: opt.count = "plays" (jedes Play einmal), "freq" (Gewicht = Anzahl der Einsätze, ohne Einsatz 1) oder
-// "targets" (nur angeworfene Routenenden, bei Option-Routen das gewählte Ending); opt.opp = Gegner der Einsätze.
-// P40: bei Side „Real side“ zählen gespiegelt gespielte Einsätze (flipped) mit gespiegelten Routenenden (x → 25 − x);
-// „Strong side right“ und „Every play once“ bleiben unverändert.
-const flipSide = (opt) => opt.side !== "strong";
-function freqSides(play, opt){
-  const list = playEntries(play, opt.opp, opt.down);
-  return flipSide(opt) ? LOG.freqSplit(list) : { normal: LOG.freqWeight(list), flipped: 0 };
-}
-function routeEnds(play, opt){
-  const mirror = opt.side === "strong" && val(play, "direction") === "Left";
-  const out = (l, w, fl) => ({ x: mirror || fl ? 25 - l.end.x : l.end.x, zone: zoneOfEnd(play, l.end, l.prev), w });
-  if (opt.count === "targets") return LOG.targetPicks(play, playEntries(play, opt.opp, opt.down), { byFlip: flipSide(opt) }).filter(t => LOG.recvHas(opt.recv, t.target)).map(t => { const l = routeLegAt(LOG.routeOfTarget(play, t.target), t.ending); return l ? out(l, t.n, t.flipped) : null; }).filter(Boolean);
-  const f = opt.count === "freq" ? freqSides(play, opt) : { normal: 1, flipped: 0 };
-  const legs = [];
-  // Center-Routen zählen im Flag Football immer; P45: opt.recv = nur diese Receiver (Labels, C = Center)
-  LOG.labeledRoutes(play, opt.recv).forEach(({ route }) => legs.push(...routeLegs(route, opt.weight)));
-  return [...(f.normal ? legs.map(l => out(l, l.w * f.normal)) : []), ...(f.flipped ? legs.map(l => out(l, l.w * f.flipped, true)) : [])];
-}
-// Gewicht eines Plays in der Auswertung (Concept-/S-I-D-Balken): Plays 1, Häufigkeit = Einsätze (mind. 1),
-// Targets = Zahl der angeworfenen Routen
-function playWeight(p, opt){
-  if (opt.count === "freq") return LOG.freqWeight(playEntries(p, opt.opp, opt.down)); // flipped zählt hier gleich (P40)
-  if (opt.count === "targets") return LOG.targetPicks(p, playEntries(p, opt.opp, opt.down)).reduce((a, t) => a + t.n, 0);
-  return 1;
-}
+// Regeln (Zonen, Seiten, Gewichte, Receiver-Filter, Matrix, Balken) seit P50 Schritt 2 in scripts/lib/heatmap.mjs (HM);
+// hier nur die Werkzeuge der Seite (Einsätze aus dem Game log, Filter Gegner/Down) und die Darstellung.
+const HT = { LOG, val, zoneOfEnd, routeLegs, routeLegAt, entries: (p, op, dn) => playEntries(p, op, dn) }; // Aufruf erst zur Laufzeit (Modul gamelog)
+const routeEnds = (play, opt) => HM.routeEnds(play, opt, HT);
+// Gewicht eines Plays in der Auswertung (auch Matchups): Plays 1, Häufigkeit = Einsätze (mind. 1), Targets = angeworfene Routen
+const playWeight = (p, opt) => HM.playWeight(p, opt, HT);
 
 // Zeilen = S-I-D-Zonen (oben deep, unten short); Grenzen kommen aus DEPTH_LIMITS
 const ROWS = {
   "Open Field": [["deep", "Deep", `> ${DEPTH_LIMITS.intermediateMax} yd`], ["intermediate", "Interm.", `${DEPTH_LIMITS.shortMax}–${DEPTH_LIMITS.intermediateMax} yd`], ["short", "Short", `≤ ${DEPTH_LIMITS.shortMax} yd\n+ Backfield`]], // P28.9: kurze Labels, „+ Backfield“ eigene Zeile
   "Endzone": [["deep", "EZ deep", `${DEPTH_LIMITS.endzoneMid}–10 yd`], ["intermediate", "EZ short", `goal line–${DEPTH_LIMITS.endzoneMid} yd`], ["short", "Before goal line", ""]]
 };
-const COLS = {
-  strong: ["Weak Sideline", "Weak Seam", "Middle", "Strong Seam", "Strong Sideline"],
-  real: ["Left Sideline", "Left Seam", "Middle", "Right Seam", "Right Sideline"]
-};
 
 function heatHTML(plays, opt){
-  const { rows, m, total } = heatMatrix(plays, opt);
+  const { m, total } = HM.heatMatrix(plays, opt, HT), rows = ROWS[opt.field];
   const max = Math.max(...m.flat(), 0.0001);
   const pct = (v) => total ? Math.round(v / total * 100) : 0;
   const ez = opt.field === "Endzone";
@@ -9231,7 +9289,7 @@ function heatHTML(plays, opt){
     h += `<div class="tot" title="Share of all route ends in this zone">${pct(m[r].reduce((a, b) => a + b, 0))}%</div>`;
   });
   if (!ez) h += losLine; // LOS unter „Short“ (Backfield ist Teil von Short)
-  h += `<div></div>` + COLS[opt.side].map((c, i) => `<div class="cl">${c}<br><b style="font-family:var(--mono);font-weight:500">${pct(m.reduce((a, row) => a + row[i], 0))}%</b></div>`).join("") + `<div></div>`;
+  h += `<div></div>` + HM.COLS[opt.side].map((c, i) => `<div class="cl">${c}<br><b style="font-family:var(--mono);font-weight:500">${pct(m.reduce((a, row) => a + row[i], 0))}%</b></div>`).join("") + `<div></div>`;
   return { html: `<div class="heat">${h}</div>`, total };
 }
 
@@ -9343,7 +9401,7 @@ function renderZones(){
   else plays.forEach(p => gAdd(g === "season" ? seasonOf(p) : g === "depth" ? (depthOf(p) ?? "not computed") : (val(p, g) ?? "Unknown"), p));
   const cnt = opt.count, logN = plays.reduce((a, p) => a + playEntries(p, opt.opp, opt.down).length, 0);
   // P28.6: kurz auf der Seite, Hintergrund als Tooltip
-  const flN = cnt !== "plays" && flipSide(opt) ? plays.reduce((a, p) => a + LOG.flippedCount(playEntries(p, opt.opp, opt.down)), 0) : 0; // P40
+  const flN = cnt !== "plays" && HM.flipSide(opt) ? plays.reduce((a, p) => a + LOG.flippedCount(playEntries(p, opt.opp, opt.down)), 0) : 0; // P40
   const zShort = [demo ? "Example data" : `${plays.length} ${plays.length === 1 ? "play" : "plays"}`, opt.side === "strong" ? "mirrored (strong side right)" : flN ? `not mirrored (${flN} flipped ${flN === 1 ? "use" : "uses"} mirrored)` : "not mirrored",
     opt.recv ? `receivers ${opt.recv.join(", ")}` : "",
     cnt === "freq" ? `weighted by uses (${logN} game log ${logN === 1 ? "entry" : "entries"})` : cnt === "targets" ? `targets only (${logN} ${logN === 1 ? "entry" : "entries"})` : ""].filter(Boolean).join(" · ");
@@ -9378,17 +9436,6 @@ function renderZones(){
 // Gleiche Zählung wie die Heatmap (Center + Receiver, keine QB-Routen); bei „Split option endings“ werden
 // Options-Enden gestrichelt und mit kleinerem Punkt gezeichnet. Spiegelung wie der Side-Schalter.
 const ZONE_YD = { "Open Field": { yMin: -4, yMax: 20 }, "Endzone": { yMin: -11, yMax: 10 } };
-function heatMatrix(plays, opt){
-  const rows = ROWS[opt.field];
-  const m = rows.map(() => [0, 0, 0, 0, 0]);
-  let total = 0;
-  plays.forEach(p => routeEnds(p, opt).forEach(e => {
-    const c = Math.min(4, Math.max(0, Math.floor(e.x / 5)));
-    const r = rows.findIndex(([z]) => z === e.zone);
-    if (r >= 0){ m[r][c] += e.w; total += e.w; }
-  }));
-  return { rows, m, total };
-}
 function routesFieldSVG(plays, opt){
   const ez = opt.field === "Endzone", Z = ZONE_YD[opt.field];
   const P = 12, LM = 6, RM = 70, TM = 8, BM = 8;
@@ -9412,13 +9459,12 @@ function routesFieldSVG(plays, opt){
   let paths = "", dots = "";
   const op = Math.max(0.14, Math.min(0.45, 1.2 / Math.sqrt(plays.length + 1)));
   plays.forEach(p => {
-    const mirror = opt.side === "strong" && val(p, "direction") === "Left";
+    const mirror = HM.mirrored(p, opt, HT);
     const off = ez ? (p.los_yard_line ?? 5) : 0; // Endzone: Tiefe ab Goal-Line
     const pt = (q, fl) => [X(mirror || fl ? 25 - q.x : q.x), Y(q.y - off)];
     const poly = (pts, dashed, fl) => `<polyline points="${pts.map(q => pt(q, fl).map(f1).join(",")).join(" ")}"${dashed ? ` stroke-dasharray="4 4"` : ""}/>`;
     if (opt.count === "targets"){ // nur angeworfene Routen (Linie bis zum gewählten Ending) und deren Enden; P40: flipped gespiegelt
-      LOG.targetPicks(p, playEntries(p, opt.opp, opt.down), { byFlip: flipSide(opt) }).filter(t => LOG.recvHas(opt.recv, t.target)).forEach(t => {
-        const r = LOG.routeOfTarget(p, t.target), l = routeLegAt(r, t.ending); if (!l) return;
+      HM.targetLegs(p, opt, HT).forEach(({ t, route: r, leg: l }) => {
         const e = t.ending != null && r.endings?.[t.ending]?.points?.length ? r.endings[t.ending] : (r.endings || []).find(x => x?.points?.length && x.style !== "dashed") || (r.endings || []).find(x => x?.points?.length);
         paths += poly([...r.stem.points, ...(e ? e.points : [])], false, t.flipped);
         const [x, y] = pt(l.end, t.flipped); dots += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${Math.min(7, 3.4 + (t.n - 1) * 0.8)}" fill-opacity=".95"/>`;
@@ -9426,7 +9472,7 @@ function routesFieldSVG(plays, opt){
       return;
     }
     // P40: „By frequency“ + „Real side“ – gespiegelt gespielte Plays (auch) gespiegelt zeichnen
-    const f = opt.count === "freq" ? freqSides(p, opt) : { normal: 1, flipped: 0 };
+    const f = opt.count === "freq" ? HM.freqSides(p, opt, HT) : { normal: 1, flipped: 0 };
     [false, true].filter(fl => fl ? f.flipped : f.normal).forEach(fl =>
       LOG.labeledRoutes(p, opt.recv).map(x => x.route).forEach(r => { // P45: nur gewählte Receiver
         const stem = r.stem.points, ends = (r.endings || []).filter(e => e?.points?.length);
@@ -9446,11 +9492,6 @@ function routesFieldSVG(plays, opt){
 // (Concept bzw. Depth S-I-D), zweiter Klick hebt ihn auf. Die angeklickte Liste ignoriert ihren eigenen
 // Filter (bleibt vollständig, Auswahl hervorgehoben); die andere Liste und die Heatmap filtern mit.
 const DEPTH_TOP = 4;
-function shareRows(list, keyOf, unknownLast, wOf){
-  const m = new Map();
-  list.forEach(p => { const k = keyOf(p) ?? "Unknown", w = wOf ? wOf(p) : 1; if (w > 0) m.set(k, (m.get(k) || 0) + w); });
-  return [...m.entries()].sort((a, b) => (unknownLast ? (a[0] === "Unknown") - (b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
-}
 function barsHTML(kind, rows, total, sel, demo){
   return rows.map(([v, n]) => {
     const pc = total ? n / total * 100 : 0;
@@ -9472,8 +9513,8 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   const wSum = (list) => wOf ? list.reduce((a, p) => a + wOf(p), 0) : list.length;
   const unit = cnt === "freq" ? "uses" : cnt === "targets" ? "targets" : "Plays";
   const cTot = wSum(conceptBase), dTot = wSum(depthBase);
-  const cRows = shareRows(conceptBase, p => val(p, "play_concept"), true, wOf);
-  let dRows = shareRows(depthBase, depthOf, false, wOf);
+  const cRows = HM.shareRows(conceptBase, p => val(p, "play_concept"), true, wOf);
+  let dRows = HM.shareRows(depthBase, depthOf, false, wOf);
   let more = "";
   if (dRows.length > DEPTH_TOP + 1 && !S.depthMore && !dRows.slice(DEPTH_TOP).some(([v]) => String(v) === selD)){
     const rest = dRows.slice(DEPTH_TOP), restN = rest.reduce((a, [, n]) => a + n, 0);
@@ -9481,10 +9522,7 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
     more = `<button type="button" class="bar more" data-more="1" title="Show all combinations"><span class="nm">other (${rest.length})</span><span class="tr"><span class="f" style="width:${(restN / dTot * 100).toFixed(1)}%;opacity:.45"></span></span><span class="p">${Math.round(restN / dTot * 100)}%</span></button>`;
   }
   // Targets (P16b): Verteilung der Einsätze nach angeworfener Position (ohne „nur gespielt“), Cross-Filter wie oben
-  const tm = new Map();
-  if (!demo) (targetBase || []).forEach(p => playEntries(p, opt?.opp, opt?.down).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
-  const tRank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
-  const tRows = [...tm.entries()].sort((a, b) => tRank(a[0]) - tRank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0])), tTot = tRows.reduce((a, [, n]) => a + n, 0);
+  const tRows = demo ? [] : HM.targetRows(targetBase || [], { opp: opt?.opp, down: opt?.down }, HT), tTot = tRows.reduce((a, [, n]) => a + n, 0);
   const names = field === "Endzone" ? "before goal line – EZ short – EZ deep" : `short ≤ ${DEPTH_LIMITS.shortMax} – intermediate ≤ ${DEPTH_LIMITS.intermediateMax} – deep`;
   const small = (n) => n && n < 5 ? " · small sample" : "";
   const none = `<p class="note">${cnt === "targets" ? "No targets." : "No plays."}</p>`;
