@@ -4774,7 +4774,7 @@ const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 /** @typedef {import("../../../types/play.js").Play} Play */
 // Alle Felder: types/zustand.d.ts (npm run typecheck prüft, dass jedes benutzte Feld dort steht); hier nur die Startwerte
 /** @type {Zustand} */
-const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", zRecv: [], logs: new Map(),
+const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", logs: new Map(),
   aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 })); // P37 Analysis-Scope, P38 Archiv
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -5133,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "69f54da7437d";
+const SEITEN_VERSION = "3054ac2e07bc";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -8220,7 +8220,7 @@ function clearCross(k){ if (selScopeOn()) S.aCross[k] = ""; else $(CROSS_IDS[k])
 // Gegner und Down der Gewichtung: im Scope „Selection“ alle Einsätze (Katalogfilter gelten dort nicht)
 const analysisOpp = () => selScopeOn() ? "" : $("fOpp").value;
 const analysisDown = () => selScopeOn() ? "" : $("fDown").value;
-function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.depthMore = false; S.mSel = null; render(); }
+function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.hm.depthMore = false; S.mSel = null; render(); }
 // Rückfall auf „Filtered“, sobald die Auswahl leer ist
 function scopeSync(){ if (S.aScope !== "filtered" && !S.sel.length){ S.aScope = "filtered"; S.aCross = emptyCross(); } }
 // Schalter „Filtered / Selection (n)“ und Banner oben im Reiter Analysis (nur mit Auswahl); im Scope „Selection“ ist die
@@ -9081,7 +9081,7 @@ function initKatalog(){
   let searchTimer = null;
   $("fSearch").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 150); };
   $("fReset").onclick = () => {
-    FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.depthMore = false;
+    FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.hm.depthMore = false;
     if (S.showArchived && S.tab === "katalog"){ S.showArchived = false; applyHidden(); return; } // P38: Reset blendet das Archiv wieder aus
     if (S.tab === "zonen") ui.fieldCouple(); // P39f: in Analysis bleibt das gezeigte Feld der Filter
     render();
@@ -9436,29 +9436,29 @@ const EXAMPLES = [
 // P32: „Options ▸“ statt Expert-Modus – zugeklappt stehen abweichende Optionen als Chips da (nichts wirkt unsichtbar)
 const Z_OPTS_KEY = "playbook-zopts-open";
 function zOptsSync(){
-  const open = !!S.zOptsOpen, box = $("zOptChips");
+  const open = !!S.hm.zOptsOpen, box = $("zOptChips");
   $("zMore").closest(".controls").classList.toggle("zfold", !open);
   $("zMore").setAttribute("aria-expanded", String(open));
   $("zMore").lastChild.textContent = open ? " ▾" : " ▸";
   const list = [];
   if (!$("zOpt").checked) list.push(["zOpt", "Option endings not split"]);
   if ($("zRoutes").checked) list.push(["zRoutes", "Routes shown"]);
-  if (S.zCount !== "plays") list.push(["zCount", S.zCount === "freq" ? "Count: by frequency" : "Count: targets only"]);
-  if (LOG.recvActive(S.zRecv)) list.push(["zRecv", "Receivers: " + S.zRecv.join(", ")]); // P45
+  if (S.hm.zCount !== "plays") list.push(["zCount", S.hm.zCount === "freq" ? "Count: by frequency" : "Count: targets only"]);
+  if (LOG.recvActive(S.hm.zRecv)) list.push(["zRecv", "Receivers: " + S.hm.zRecv.join(", ")]); // P45
   $("zMoreN").textContent = !open && list.length ? `(${list.length})` : "";
   box.hidden = open || !list.length;
   box.innerHTML = box.hidden ? "" : `<span class="lbl">Options</span>` + list.map(([k, t]) => `<button type="button" class="xchip" data-zreset="${k}" title="Back to the default">${esc(t)} <span aria-hidden="true">×</span></button>`).join("");
 }
 // P45: Auswahl der Receiver (unter „Options“) – Labels mit Route in den ausgewerteten Plays, gewählte ohne Route mit (0)
 function recvSync(plays){
-  const keys = LOG.receiverKeys(plays, S.zRecv), on = LOG.recvActive(S.zRecv);
+  const keys = LOG.receiverKeys(plays, S.hm.zRecv), on = LOG.recvActive(S.hm.zRecv);
   const btn = (v, t, pressed, title) => `<button type="button" data-v="${esc(v)}" aria-pressed="${pressed}"${title ? ` title="${esc(title)}"` : ""}>${esc(t)}</button>`;
-  $("zRecv").innerHTML = btn("all", "All", !on, "") + keys.map(k => btn(k.target, k.plays ? k.target : `${k.target} (0)`, on && S.zRecv.includes(k.target), k.target === "C" ? `Center · ${k.plays} plays with a route` : `${k.plays} plays with a route`)).join("");
+  $("zRecv").innerHTML = btn("all", "All", !on, "") + keys.map(k => btn(k.target, k.plays ? k.target : `${k.target} (0)`, on && S.hm.zRecv.includes(k.target), k.target === "C" ? `Center · ${k.plays} plays with a route` : `${k.plays} plays with a route`)).join("");
 }
 function renderZones(){
   scopeUpdate(); // P37: Schalter Filtered/Selection und Banner
   zOptsSync();
-  const opt = { field: S.zField, side: S.zSide, weight: $("zOpt").checked, count: S.zCount, opp: analysisOpp(), down: analysisDown(), recv: LOG.recvActive(S.zRecv) ? S.zRecv : null };
+  const opt = { field: S.zField, side: S.hm.zSide, weight: $("zOpt").checked, count: S.hm.zCount, opp: analysisOpp(), down: analysisDown(), recv: LOG.recvActive(S.hm.zRecv) ? S.hm.zRecv : null };
   const g = $("zGroup").value;
   // Noch keine Open-Field-Plays in der Datenbank: Beispiel-Plays zeigen, damit man die Ansicht beurteilen kann
   const demo = opt.field === "Open Field" && !S.plays.some(p => val(p, "field_type") === "Open Field");
@@ -9595,7 +9595,7 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   const cRows = HM.shareRows(conceptBase, p => val(p, "play_concept"), true, wOf);
   let dRows = HM.shareRows(depthBase, depthOf, false, wOf);
   let more = "";
-  if (dRows.length > DEPTH_TOP + 1 && !S.depthMore && !dRows.slice(DEPTH_TOP).some(([v]) => String(v) === selD)){
+  if (dRows.length > DEPTH_TOP + 1 && !S.hm.depthMore && !dRows.slice(DEPTH_TOP).some(([v]) => String(v) === selD)){
     const rest = dRows.slice(DEPTH_TOP), restN = rest.reduce((a, [, n]) => a + n, 0);
     dRows = dRows.slice(0, DEPTH_TOP);
     more = `<button type="button" class="bar more" data-more="1" title="Show all combinations"><span class="nm">other (${rest.length})</span><span class="tr"><span class="f" style="width:${(restN / dTot * 100).toFixed(1)}%;opacity:.45"></span></span><span class="p">${Math.round(restN / dTot * 100)}%</span></button>`;
@@ -9607,10 +9607,10 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   const none = `<p class="note">${cnt === "targets" ? "No targets." : "No plays."}</p>`;
   box.hidden = false;
   // P28.3: standardmäßig eingeklappt; Zustand bis zum Neuladen. Aktive Klick-Filter stehen oben als Chips.
-  box.classList.toggle("fold", !S.statsOpen);
+  box.classList.toggle("fold", !S.hm.statsOpen);
   const nSel = [selC, selD, selT].filter(Boolean).length;
-  const head = `<h3><button type="button" data-stoggle="1" aria-expanded="${!!S.statsOpen}" title="${S.statsOpen ? "Hide" : "Show"} the share of concepts and depth">Concepts &amp; depth ${S.statsOpen ? "▾" : "▸"}${!S.statsOpen && nSel ? `<small>${nSel} filter${nSel > 1 ? "s" : ""} active</small>` : ""}</button></h3>`;
-  if (!S.statsOpen){ box.innerHTML = head; return; }
+  const head = `<h3><button type="button" data-stoggle="1" aria-expanded="${!!S.hm.statsOpen}" title="${S.hm.statsOpen ? "Hide" : "Show"} the share of concepts and depth">Concepts &amp; depth ${S.hm.statsOpen ? "▾" : "▸"}${!S.hm.statsOpen && nSel ? `<small>${nSel} filter${nSel > 1 ? "s" : ""} active</small>` : ""}</button></h3>`;
+  if (!S.hm.statsOpen){ box.innerHTML = head; return; }
   box.innerHTML = head + `<div class="meta">Share of ${cnt === "freq" ? "uses (plays weighted by how often they were used)" : cnt === "targets" ? "targeted routes" : "plays"}${demo ? " (example data)" : " · click a bar to filter"}</div>
     <div class="cols">
       <div class="${selC ? "sel" : ""}"><span class="lbl">Concept · ${cTot} ${unit}${small(cTot)}</span>${cTot ? barsHTML("concept", cRows, cTot, selC, demo) : none}</div>
@@ -9649,9 +9649,9 @@ function seg(id, key){
       // S-I-D bedeutet in Open Field und Endzone etwas anderes: gibt es die Kombination dort nicht, Filter lösen
       const de = crossValue("depth");
       if (de && !S.plays.some(p => val(p, "field_type") === b.dataset.v && depthOf(p) === de)) clearCross("depth");
-      S.depthMore = false;
+      S.hm.depthMore = false;
     } else {
-      S[key] = b.dataset.v;
+      S.hm[key] = b.dataset.v;
       $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
     }
     render();
@@ -9660,11 +9660,13 @@ function seg(id, key){
 
 // Klick-Handler (Auswertung, Chips, Schalter) – aufgerufen von app/main.js an der alten Stelle
 function initHeatmap(){
+  // Zustand der Heatmap (P50 Schritt 5c: S.hm, Typ HeatmapZustand in types/zustand.d.ts) – vor allen Zugriffen
+  S.hm = { zSide: "real", zCount: "plays", zRecv: [], zOptsOpen: false, statsOpen: false, depthMore: false };
   onRender("zonen", renderZones); // Analysis: zuerst die Heatmap, danach PDF-Knopf (export) und Matchups
   $("zStats").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.stoggle){ S.statsOpen = !S.statsOpen; renderZones(); return; }
-    if (b.dataset.more){ S.depthMore = true; renderZones(); return; }
+    if (b.dataset.stoggle){ S.hm.statsOpen = !S.hm.statsOpen; renderZones(); return; }
+    if (b.dataset.more){ S.hm.depthMore = true; renderZones(); return; }
     if (b.dataset.k) setCross(b.dataset.k, b.dataset.v);
   });
   $("zChips").addEventListener("click", (e) => {
@@ -9676,19 +9678,19 @@ function initHeatmap(){
     }
   });
   ["zGroup", "zOpt", "zRoutes"].forEach(id => $(id).onchange = renderZones);
-  S.zOptsOpen = (() => { try { return localStorage.getItem(Z_OPTS_KEY) === "1"; } catch (e) { return false; } })();
-  $("zMore").onclick = () => { S.zOptsOpen = !S.zOptsOpen; try { localStorage.setItem(Z_OPTS_KEY, S.zOptsOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } renderZones(); };
+  S.hm.zOptsOpen = (() => { try { return localStorage.getItem(Z_OPTS_KEY) === "1"; } catch (e) { return false; } })();
+  $("zMore").onclick = () => { S.hm.zOptsOpen = !S.hm.zOptsOpen; try { localStorage.setItem(Z_OPTS_KEY, S.hm.zOptsOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } renderZones(); };
   $("zOptChips").addEventListener("click", (e) => {
     const k = e.target.closest("[data-zreset]")?.dataset.zreset; if (!k) return;
     if (k === "zOpt") $("zOpt").checked = true; else if (k === "zRoutes") $("zRoutes").checked = false;
-    else if (k === "zRecv") S.zRecv = [];
-    else { S.zCount = "plays"; $("zCount").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === "plays")); }
+    else if (k === "zRecv") S.hm.zRecv = [];
+    else { S.hm.zCount = "plays"; $("zCount").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === "plays")); }
     render();
   });
   seg("zField", "zField"); seg("zSide", "zSide"); seg("zCount", "zCount");
   $("zRecv").addEventListener("click", (e) => { // P45: Mehrfachauswahl, „All“ = alle
     const b = e.target.closest("button[data-v]"); if (!b) return;
-    S.zRecv = LOG.toggleRecv(S.zRecv, b.dataset.v);
+    S.hm.zRecv = LOG.toggleRecv(S.hm.zRecv, b.dataset.v);
     renderZones();
   });
 }
