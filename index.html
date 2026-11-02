@@ -5133,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "fba3c091b673";
+const SEITEN_VERSION = "f1b2894f3149";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -7831,7 +7831,7 @@ const playStamp = (p) => Math.max(Date.parse(p.archived_at || "") || 0, ...["cre
 const logStamp = (p) => GL_EXPORT ? Math.max(0, ...(logOf(p)?.entries || []).map(e => Date.parse(e.at || "") || 0)) : 0;
 function backupState(now = Date.now()){
   const plays = S.allPlays || [];
-  const last = Date.parse(S.backup?.last_at || "") || 0;
+  const last = Date.parse(S.ex.backup?.last_at || "") || 0;
   if (!plays.length) return null;
   if (!last) return { never: true, n: plays.length };
   const changed = plays.filter(p => Math.max(playStamp(p), logStamp(p)) > last).length;
@@ -7840,7 +7840,7 @@ function backupState(now = Date.now()){
 }
 // Dialog „Backup & restore“ (P39c): letzter Backup-Zeitpunkt, Backup jetzt, Restore – geöffnet aus Export ▾ oder Manage teams
 function backupLastText(now = Date.now()){
-  const last = Date.parse(S.backup?.last_at || "") || 0;
+  const last = Date.parse(S.ex.backup?.last_at || "") || 0;
   if (!last) return "No backup yet.";
   const days = Math.floor((now - last) / 86400000), day = new Date(last).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return `Last backup: ${days === 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`} (${day}).`;
@@ -7855,7 +7855,7 @@ function openBackup(){
 function updateBackupBar(){
   if (!$("backupDlg").hidden) $("bLast").textContent = backupLastText();
   // P52: läuft die Ordner-Sicherung (Flag Scout Tool), zählt das als Backup – kein Balken
-  const st = S.owner && S.playsLoaded && S.backupLoaded && !S.noDownloads && !lokaleSicherung?.sichert() ? backupState() : null;
+  const st = S.owner && S.playsLoaded && S.ex.backupLoaded && !S.noDownloads && !lokaleSicherung?.sichert() ? backupState() : null;
   $("backupBar").hidden = !st;
   if (!st) return;
   $("backupText").innerHTML = st.never
@@ -7871,7 +7871,7 @@ const restoreWords = () => S.cov
   : { file: "Game log file: ", one: "game log", many: "game logs", plus: " + game log", only: "Restore missing game logs", none: "No plays or game log found in this file." };
 async function onRestoreFile(){
   const f = $("rFile").files && $("rFile").files[0];
-  S.restore = null; S.restoreNachher = null; $("rGo").hidden = true; $("rInfo").textContent = "";
+  S.ex.restore = null; S.ex.restoreNachher = null; $("rGo").hidden = true; $("rInfo").textContent = "";
   if (!f) return;
   try { restoreFromData(JSON.parse(await f.text())); }
   catch (e) { $("rInfo").innerHTML = `<span class="err">File not readable: ${esc(e.message || e)}</span>`; }
@@ -7879,7 +7879,7 @@ async function onRestoreFile(){
 // Inhalt einer Sicherung prüfen und „Restore …“ anbieten – aus einer gewählten Datei oder (P52, Flag Scout Tool) aus der
 // Datei im Ordner; nachher() läuft nach einem erfolgreichen Restore (Ordner-Sicherung schreibt dann wieder)
 function restoreFromData(data, nachher = null){
-  S.restore = null; S.restoreNachher = nachher; $("rGo").hidden = true; $("rInfo").textContent = "";
+  S.ex.restore = null; S.ex.restoreNachher = nachher; $("rGo").hidden = true; $("rInfo").textContent = "";
   // Regeln in ./backup.js (restorePlan): fehlende Plays (alte IDs), Game log (Feld game_log der Plays oder Block
   // _playbook_settings), Must-know (P39a) – vorhandene nie überschreiben. Coverages und Matchups plant das Modul coverages
   // (über core, ohne das Modul: nichts).
@@ -7889,16 +7889,16 @@ function restoreFromData(data, nachher = null){
   // P48: Datei neuer als die Seite, unbekannte Felder (bleiben im Play) – Hinweis unter dem Text
   const note = pl.hinweis ? `<span class="note">${esc(pl.hinweis)}</span>` : "";
   const cov = ui.covRestorePlan(pl.settings), nCov = cov.n + Object.keys(pl.logs).length, nMk = pl.marks.length;
-  S.restore = { ...pl, cov };
+  S.ex.restore = { ...pl, cov };
   $("rInfo").innerHTML = esc((pl.plays ? `${pl.plays} plays in the file: ${pl.missing.length} missing in the database, ${pl.differ.length} different (not changed), ${pl.same} identical.` : w.file) + (!pl.plays && !nCov && !nMk ? `nothing missing – all ${w.many} already exist.` : "") + (pl.differ.length ? ` Different: ${pl.differ.slice(0, 8).join(", ")}${pl.differ.length > 8 ? " …" : ""}` : "") + (nCov ? ` · ${nCov} missing ${nCov === 1 ? w.one : w.many}` : "") + (nMk ? ` · ${nMk} missing must-know ${nMk === 1 ? "mark" : "marks"}` : "")) + note;
   const n = pl.missing.length;
   $("rGo").hidden = !n && !nCov && !nMk; $("rGo").disabled = false;
   $("rGo").textContent = n ? `Restore ${n} missing ${n === 1 ? "play" : "plays"}${nCov ? w.plus : ""}${nMk ? " + must-know" : ""}` : nCov ? w.only : "Restore missing must-know marks";
-  if ($("rGo").hidden && nachher){ S.restoreNachher = null; nachher(); } // nichts fehlt: Datei ist übernommen
+  if ($("rGo").hidden && nachher){ S.ex.restoreNachher = null; nachher(); } // nichts fehlt: Datei ist übernommen
 }
 
 async function doRestore(){
-  const pl = S.restore; if (!pl || !S.owner || !S.db) return;
+  const pl = S.ex.restore; if (!pl || !S.owner || !S.db) return;
   $("rGo").disabled = true; let done = 0, nc = 0, nm = 0;
   const docs = restoreDocs(pl, new Date().toISOString(), { LOG, SEL }), nPlays = pl.missing.length;
   try {
@@ -7912,8 +7912,8 @@ async function doRestore(){
     const w = restoreWords();
     $("rInfo").textContent = [done && `${done} ${done === 1 ? "play" : "plays"}`, nc && `${nc} ${nc === 1 ? w.one : w.many}`, nm && `${nm} must-know ${nm === 1 ? "mark" : "marks"}`].filter(Boolean).join(", ") + " restored.";
     if (!done && !nc && !nm) $("rInfo").textContent = "Nothing restored – everything already exists.";
-    S.restore = null; $("rGo").hidden = true; $("rFile").value = "";
-    const nachher = S.restoreNachher; S.restoreNachher = null; if (nachher) await nachher();
+    S.ex.restore = null; $("rGo").hidden = true; $("rFile").value = "";
+    const nachher = S.ex.restoreNachher; S.ex.restoreNachher = null; if (nachher) await nachher();
   } catch (e) {
     $("rInfo").innerHTML = `<span class="err">Restore stopped after ${done}: ${esc(e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can restore plays." : (e && e.message || e))}</span>`;
     $("rGo").disabled = false;
@@ -8010,6 +8010,8 @@ async function doImport(){
 
 // Menü „Export ▾“ schließen (Klick daneben, Esc) – aufgerufen von app/main.js an der alten Stelle
 function initExport(){
+  // Zustand von Backup und Restore (P50 Schritt 5g: S.ex, Typ ExportZustand in types/zustand.d.ts) – vor allen Zugriffen
+  S.ex = { backup: null, backupLoaded: false, restore: null, restoreNachher: null, settingsLoaded: false };
   onRender("zonen", updatePdfBtn); // PDF-Knopf in Analysis (Katalog: renderGrid setzt ihn selbst)
   $("expMenu").addEventListener("click", (e) => { if (e.target.closest(".mlist .btn")) $("expMenu").open = false; });
   document.addEventListener("click", (e) => { if ($("expMenu").open && !e.target.closest("#expMenu")) $("expMenu").open = false; });
@@ -8017,8 +8019,8 @@ function initExport(){
   // Datenbank (P25c Teil 2b): Zeitpunkt des letzten Backups, Restore, Import-Knopf, Download-Knöpfe
   onDb("db", (db) => {
     db.doc("settings/backup").onSnapshot((snap) => {
-      S.backup = snap.exists ? (snap.data() || {}) : {};
-      S.backupLoaded = true; updateBackupBar();
+      S.ex.backup = snap.exists ? (snap.data() || {}) : {};
+      S.ex.backupLoaded = true; updateBackupBar();
     }, () => {});
     $("rFile").onchange = onRestoreFile;
     $("rGo").onclick = doRestore;
@@ -8026,14 +8028,14 @@ function initExport(){
     // Must-know), erst wenn Plays und Einstellungen geladen sind
     lokaleSicherung?.init({ $, esc, openBackup, onState: updateBackupBar,
       getData: () => {
-        if (!S.playsLoaded || !S.settingsLoaded) return null;
+        if (!S.playsLoaded || !S.ex.settingsLoaded) return null;
         const all = S.allPlays || S.plays;
         return { text: JSON.stringify(exportList(all, true, "folder"), null, 2), count: all.length };
       },
       restoreData: (data, nachher) => { openBackup(); restoreFromData(data, nachher); $("rInfo").scrollIntoView?.({ block: "nearest" }); },
     });
   });
-  onDb("settings", { data: () => { S.settingsLoaded = true; return false; } }); // P52: Ordnerdatei erst mit Game log und Must-know
+  onDb("settings", { data: () => { S.ex.settingsLoaded = true; return false; } }); // P52: Ordnerdatei erst mit Game log und Must-know
   if (GL_EXPORT) onDb("settings", { detail: updateBackupBar }); // neue Einsätze zählen für den Backup-Hinweis (P25d)
   onDb("owner", () => { $("importBtn").hidden = !S.owner; $("backupMenuBtn").hidden = !(S.owner && S.db); }); // JSON-Import, Backup & restore: nur Besitzer
   // Backup & restore (P39c)
