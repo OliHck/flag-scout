@@ -822,7 +822,7 @@ const PAGE_SRC = {
 };
 
 // Kern-Dateien der Seite (P25c Teil 2a, docs/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
-// (ENTW, Z, COV, MU, LOG, SEL, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
+// (ENTW, Z, COV, MU, LOG, SEL, KAT, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
 // Seite und Module importieren die Namen von hier – ein globaler Name, den nur dieses Modul anlegt, würde Rollup umbenennen.
 // Coverages, Matchups und Präsentieren (COV, MU, PR) braucht nur das Modul coverages (mit matchups): Zeilen mit
@@ -4501,6 +4501,87 @@ function teamCodeRenamePlan({ team, from, to, plays = [], drafts = [] } = {}) {
 
 return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMarks, withMustKnow, mustKnowOf, withoutMustKnow, marksToRestore, bulkPlan, settingMoves, TEAM_CODE_RE, normTeamCode, teamCodeUse, checkTeamCode, checkTeamName, teamCodeRenamePlan };
 })();
+// Katalog-Regeln: Filter, Sortierung, Facetten (scripts/lib/katalog.mjs) – gekapselt
+const KAT = (() => {
+// Katalog-Regeln (Backlog P49, spec §7): Filter-Bedingung, Sortierung, Facetten – gemeinsamer Kern für die Seite und den Test.
+// Ohne Imports (die Seite setzt die Datei als `KAT` ein); reine Funktionen, kein DOM, kein Dateizugriff.
+// Was vom Zustand der Seite abhängt (Game log, Must-know, Tiefe S-I-D, Formations-Reihenfolge, LOS aus Text), kommt als
+// Werkzeug-Parameter herein – die Seite übergibt ihre Funktionen, scripts/katalog-test.mjs eigene aus den Kern-Dateien.
+//
+// Filterwerte (Objekt, "" = alle): { team, field, formation, direction, concept, depth, season, opponent, target, down,
+//   search, marked }. Werkzeuge der Filter-Bedingung: { val(p, k), seasonOf(p), depthOf(p), isMarked(p), oppsOf(p),
+//   oppMatch(p, op), downMatch(p, op, dn), targetMatch(p, op, dn, tg) }.
+
+// Play-IDs/Namen vergleichen: Zahlen der Größe nach, ohne Groß/Klein
+const nameCmp = new Intl.Collator("de", { numeric: true, sensitivity: "base" }).compare;
+
+const fieldOf = (p) => (p.field_type && typeof p.field_type === "object") ? p.field_type.value : p.field_type;
+const isEZ = (p) => fieldOf(p) === "Endzone";
+
+// Endzone-Distanz-Gruppen (Backlog P17): maßgeblich los_yard_line, sonst Distanz aus Situation bzw. Name
+// („10y“, „5-7y“ → 6, 1PAT/2PAT), sonst 5 yd. ≥ 10 → 10 yd / 2PAT · > 5 und < 10 → 5–10 yd · ≤ 5 → 5 yd / 1PAT.
+// losFromText: Regel aus scripts/lib/derive.mjs (Text → Liste möglicher LOS-Werte)
+const EZ_GROUPS = ["10 yd / 2PAT", "5–10 yd", "5 yd / 1PAT"];
+function ezDist(p, losFromText) {
+  if (typeof p.los_yard_line === "number" && Number.isFinite(p.los_yard_line)) return p.los_yard_line;
+  for (const t of [p.situation, p.source_label]) { const v = losFromText(t); if (v.length === 1) return v[0]; }
+  return 5;
+}
+function ezGroup(p, losFromText) { if (!isEZ(p)) return -1; const d = ezDist(p, losFromText); return d >= 10 ? 0 : d > 5 ? 1 : 2; }
+
+// ---------- Filter ----------
+// Schlüssel der Filter mit Dropdown (Facetten); search und marked gehören nicht dazu
+const FILTER_KEYS = ["team", "field", "formation", "direction", "concept", "depth", "season", "opponent", "target", "down"];
+
+// Erfüllt ein Play alle gesetzten Filter? skip: Schlüssel eines Filters, der ignoriert wird (Facetten: das eigene Dropdown
+// zeigt alle Werte, die mit den ÜBRIGEN Filtern Plays haben; Analyse: die angeklickte Liste bleibt vollständig).
+// Gegner und Down wirken auch auf die Einsätze (Target, Down); wird der Gegner übersprungen, gelten alle Einsätze.
+function matchFilter(p, f, t, skip) {
+  const v = (k) => (skip === k ? "" : f[k] || "");
+  const op = v("opponent"), dn = v("down"), tg = v("target");
+  const q = String(f.search || "").trim().toLowerCase();
+  return (!f.marked || t.isMarked(p)) &&
+    (!v("team") || p.team === v("team")) && (!v("field") || t.val(p, "field_type") === v("field")) && (!v("formation") || t.val(p, "formation") === v("formation")) &&
+    (!v("direction") || t.val(p, "direction") === v("direction")) && (!v("season") || t.seasonOf(p) === v("season")) &&
+    (!v("concept") || t.val(p, "play_concept") === v("concept")) && (!v("depth") || t.depthOf(p) === v("depth")) &&
+    t.oppMatch(p, op) && t.downMatch(p, op, dn) && (!tg || t.targetMatch(p, op, dn, tg)) &&
+    (!q || [p.play_id, p.comment, t.val(p, "play_concept"), p.situation, ...t.oppsOf(p)].join(" ").toLowerCase().includes(q));
+}
+function filterPlays(plays, f, t, skip) { return (plays || []).filter((p) => matchFilter(p, f, t, skip)); }
+
+// ---------- Sortierung (docs/spec.md §7) ----------
+// how: "name" | "formation" | "new" | "old" | "freq". Immer erst Open Field, dann Endzone; Endzone nach Start-Distanz
+// gruppiert (P17) – außer bei „Frequency“ (Oli 02.11.2026, auch im PDF); darin nach Formation (Reihenfolge wie
+// lists/formations.json), nach Speicherzeitpunkt (P28.10: saved_at, sonst created_at; ohne Datum ganz hinten bzw. vorn) oder
+// nach Einsätzen im Game log (hoch → niedrig); zuletzt nach Play-ID. Werkzeuge: { ezGroup(p), formRank(p), uses(p) }
+// (uses nur für "freq": Zahl der Einsätze wie „×7“ auf der Karte). Die übergebene Liste bleibt unverändert.
+const savedStamp = (p) => Date.parse(p._meta?.saved_at || p._meta?.created_at || "") || 0;
+const ezGroupsOn = (how) => how !== "freq";
+function sortPlays(list, how, t) {
+  const byForm = how === "formation", byDate = how === "new" ? -1 : how === "old" ? 1 : 0;
+  const freq = how === "freq" ? new Map(list.map((p) => [p, t.uses(p)])) : null;
+  return [...list].sort((a, b) => (isEZ(a) - isEZ(b)) || (freq ? 0 : t.ezGroup(a) - t.ezGroup(b)) || (byForm ? t.formRank(a) - t.formRank(b) : 0) ||
+    (byDate ? byDate * (savedStamp(a) - savedStamp(b)) : 0) || (freq ? freq.get(b) - freq.get(a) : 0) || nameCmp(a.play_id || "", b.play_id || ""));
+}
+
+// ---------- Facetten ----------
+// Anzahl Plays je Wert; get(p) liefert einen Wert oder eine Liste (Gegner, Targets, Downs). Leere Werte zählen nicht.
+function facetCount(list, get) {
+  const counts = new Map();
+  (list || []).forEach((p) => { const g = get(p); (Array.isArray(g) ? g : [g]).forEach((v) => { if (v != null && v !== "") counts.set(v, (counts.get(v) || 0) + 1); }); });
+  return counts;
+}
+// Reihenfolge der Werte im Dropdown: Text-Reihenfolge; Down 1st … 4th, 1PAT, 2PAT, no down (downs = Liste der Down-Namen,
+// unbekannte zuletzt); Formation wie lists/formations.json (formIndex(Wert), Unknown/sonstige zuletzt), darin nach Name.
+function facetValues(key, counts, t = {}) {
+  const values = [...counts.keys()].sort();
+  if (key === "down") { const r = (v) => { const i = (t.downs || []).indexOf(v); return i < 0 ? 99 : i; }; values.sort((a, b) => r(a) - r(b)); }
+  if (key === "formation") values.sort((a, b) => t.formIndex(a) - t.formIndex(b) || nameCmp(a, b));
+  return values;
+}
+
+return { nameCmp, isEZ, EZ_GROUPS, ezDist, ezGroup, FILTER_KEYS, matchFilter, filterPlays, savedStamp, ezGroupsOn, sortPlays, facetCount, facetValues };
+})();
 
 // Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
 // npm run tool-test sie prüfen kann. Die Seite (modules/catalog/index.js) setzt sie mit ihrem Zustand ein.
@@ -4591,8 +4672,8 @@ function depthText(p){
   return `${d.value}${per ? ` (${per})` : ""}`;
 }
 
-// Namen vergleichen wie in der Katalog-Sortierung (Zahlen der Größe nach, ohne Groß/Klein)
-const nameCmp = new Intl.Collator("de", { numeric: true, sensitivity: "base" }).compare;
+// Namen vergleichen wie in der Katalog-Sortierung (Zahlen der Größe nach, ohne Groß/Klein; scripts/lib/katalog.mjs)
+const nameCmp = KAT.nameCmp;
 
 function chip(p, k, prefix){
   const o = p[k]; if (!o) return "";
@@ -4622,16 +4703,11 @@ function distanceChip(p){
 const uniq = (arr) => [...new Set(arr.filter(v => v != null && v !== ""))].sort();
 // Formation in der Reihenfolge von lists/formations.json (Unknown/sonstige zuletzt), Endzone-Plays
 const formRank = (p) => { const i = FORMATIONS.indexOf(val(p, "formation")); return i < 0 ? FORMATIONS.length : i; };
-const isEZ = (p) => val(p, "field_type") === "Endzone";
-// Endzone-Distanz-Gruppen (Backlog P17): maßgeblich los_yard_line, sonst Distanz aus Situation bzw. Name
-// („10y“, „5-7y“ → 6, 1PAT/2PAT), sonst 5 yd. ≥ 10 → 10 yd / 2PAT · > 5 und < 10 → 5–10 yd · ≤ 5 → 5 yd / 1PAT.
-const EZ_GROUPS = ["10 yd / 2PAT", "5–10 yd", "5 yd / 1PAT"];
-function ezDist(p){
-  if (typeof p.los_yard_line === "number" && Number.isFinite(p.los_yard_line)) return p.los_yard_line;
-  for (const t of [p.situation, p.source_label]){ const v = losFromText(t); if (v.length === 1) return v[0]; }
-  return 5;
-}
-function ezGroup(p){ if (!isEZ(p)) return -1; const d = ezDist(p); return d >= 10 ? 0 : d > 5 ? 1 : 2; }
+const isEZ = KAT.isEZ;
+// Endzone-Distanz-Gruppen (Backlog P17, Regel in scripts/lib/katalog.mjs): 10 yd / 2PAT · 5–10 yd · 5 yd / 1PAT
+const EZ_GROUPS = KAT.EZ_GROUPS;
+const ezDist = (p) => KAT.ezDist(p, losFromText);
+const ezGroup = (p) => KAT.ezGroup(p, losFromText);
 
 // Feste Schema-Werte der Auswahlfelder (Bearbeiten in der Detailansicht, Drafts, Draw; Stand play.schema.json v3.19)
 const EDIT_FIELDS = [
@@ -4898,7 +4974,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "4e568e8e7370";
+const SEITEN_VERSION = "aea3e3cd55a3";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -7924,46 +8000,36 @@ function facetBase(skip){
   const list = filtered(zonen, skip);
   return zonen ? list.filter(p => val(p, "field_type") === S.zField) : list;
 }
+// Zählen und Reihenfolge der Werte (Down 1st … 4th, 1PAT, 2PAT, no down; Formation wie lists/formations.json): scripts/lib/katalog.mjs
+const facetOrder = { downs: LOG.DOWNS, formIndex: (v) => formRank({ formation: { value: v } }) };
 function refreshFilters(){
   FACETS.forEach(([key, id, get]) => {
-    const base = facetBase(key);
-    const counts = new Map();
-    base.forEach(p => { const g = get(p); (Array.isArray(g) ? g : [g]).forEach(v => { if (v != null && v !== "") counts.set(v, (counts.get(v) || 0) + 1); }); });
-    let values = [...counts.keys()].sort();
-    if (key === "down"){ const r = (v) => { const i = LOG.DOWNS.indexOf(v); return i < 0 ? 99 : i; }; values.sort((a, b) => r(a) - r(b)); } // 1st … 4th, 1PAT, 2PAT, no down
-    if (key === "formation") values.sort((a, b) => formRank({ formation: { value: a } }) - formRank({ formation: { value: b } }) || nameCmp(a, b));
-    fillSelect($(id), values, "all", counts);
+    const counts = KAT.facetCount(facetBase(key), get);
+    fillSelect($(id), KAT.facetValues(key, counts, facetOrder), "all", counts);
     if (key === "team" && (S.hidden || []).length) [...$(id).options].forEach(o => { if (S.hidden.includes(o.value)) o.textContent += " · hidden"; });
   });
 }
 
-// skip: Schlüssel eines Filters (team, field, formation, direction, concept, depth, season, opponent, target) – diesen ignorieren (für die Auswertungsleiste: die angeklickte Liste
+// Filterwerte aus der Filterzeile; die Bedingung selbst steht in scripts/lib/katalog.mjs (KAT.matchFilter)
+const filterValues = () => ({ team: $("fTeam").value, field: $("fField").value, formation: $("fForm").value, direction: $("fDir").value,
+  concept: $("fConc").value, depth: $("fDepth").value, season: $("fSeason").value, opponent: $("fOpp").value, target: $("fTarget").value,
+  down: $("fDown").value, search: $("fSearch").value, marked: $("fMarked").checked });
+// (als Pfeile: gamelog importiert dieses Modul, seine Funktionen stehen beim Laden noch nicht bereit)
+const filterTools = { val, seasonOf, depthOf, isMarked: (p) => isMarked(p), oppsOf: (p) => oppsOf(p), oppMatch: (p, op) => oppMatch(p, op),
+  downMatch: (p, op, dn) => downMatch(p, op, dn), targetMatch: (p, op, dn, tg) => LOG.entriesFor(logOf(p), op, dn).some(e => LOG.targetKey(e) === tg) };
+// skip: Schlüssel eines Filters (team, field, formation, direction, concept, depth, season, opponent, target, down) – diesen ignorieren (für die Auswertungsleiste: die angeklickte Liste
 // bleibt vollständig, nur die jeweils andere Liste und die Heatmap werden gefiltert)
 function filtered(ignoreField, skip){
-  const v = (key, id) => skip === key ? "" : $(id).value;
-  const t = v("team", "fTeam"), f = ignoreField ? "" : v("field", "fField"), fo = v("formation", "fForm"), d = v("direction", "fDir"), se = v("season", "fSeason");
-  const co = v("concept", "fConc"), de = v("depth", "fDepth"), op = v("opponent", "fOpp"), tg = v("target", "fTarget"), dn = v("down", "fDown");
-  const q = $("fSearch").value.trim().toLowerCase();
-  const mk = $("fMarked").checked;
-  return S.plays.filter(p => (!mk || isMarked(p)) &&
-    (!t || p.team === t) && (!f || val(p, "field_type") === f) && (!fo || val(p, "formation") === fo) &&
-    (!d || val(p, "direction") === d) && (!se || seasonOf(p) === se) && (!co || val(p, "play_concept") === co) && (!de || depthOf(p) === de) &&
-    oppMatch(p, op) && downMatch(p, op, dn) && (!tg || LOG.entriesFor(logOf(p), op, dn).some(e => LOG.targetKey(e) === tg)) &&
-    (!q || [p.play_id, p.comment, val(p, "play_concept"), p.situation, ...oppsOf(p)].join(" ").toLowerCase().includes(q)));
+  const f = filterValues(); if (ignoreField) f.field = "";
+  return KAT.filterPlays(S.plays, f, filterTools, skip);
 }
 
-// Sortierung (docs/spec.md §7): immer erst Open Field, dann Endzone; Endzone nach Start-Distanz gruppiert (P17);
-// darin nach Name oder nach Formation (Reihenfolge wie lists/formations.json, Unknown/sonstige zuletzt), innerhalb nach Name.
-// P28.10: Sortierung nach Speicherzeitpunkt (saved_at, sonst created_at; ohne Datum ganz hinten bzw. vorn)
-const savedStamp = (p) => Date.parse(p._meta?.saved_at || p._meta?.created_at || "") || 0;
-// „Frequency“: Zahl der Einsätze im Game log (wie „×7“ auf der Karte, Gegner- und Down-Filter gelten), hoch → niedrig;
-// gleiche Zahl → nach Play-ID. Open Field vor Endzone bleibt, die Distanz-Gruppen der Endzone entfallen (Oli 02.11.2026).
-const ezGroupsOn = () => $("fSort").value !== "freq"; // auch für die Zwischenüberschriften im PDF
-function sortPlays(list){
-  const how = $("fSort").value, byForm = how === "formation", byDate = how === "new" ? -1 : how === "old" ? 1 : 0;
-  const freq = how === "freq" ? new Map(list.map(p => [p, playEntries(p).length])) : null;
-  return [...list].sort((a, b) => (isEZ(a) - isEZ(b)) || (freq ? 0 : ezGroup(a) - ezGroup(b)) || (byForm ? formRank(a) - formRank(b) : 0) || (byDate ? byDate * (savedStamp(a) - savedStamp(b)) : 0) || (freq ? freq.get(b) - freq.get(a) : 0) || nameCmp(a.play_id || "", b.play_id || ""));
-}
+// Sortierung (docs/spec.md §7, Regeln in scripts/lib/katalog.mjs): immer erst Open Field, dann Endzone; Endzone nach
+// Start-Distanz gruppiert (P17); darin nach Name, Formation, Speicherzeitpunkt (P28.10) oder „Frequency“ = Zahl der Einsätze
+// im Game log (wie „×7“ auf der Karte, Gegner- und Down-Filter gelten; ohne Distanz-Gruppen, Oli 02.11.2026).
+const ezGroupsOn = () => KAT.ezGroupsOn($("fSort").value); // auch für die Zwischenüberschriften im PDF
+const sortTools = { ezGroup, formRank, uses: (p) => playEntries(p).length };
+function sortPlays(list){ return KAT.sortPlays(list, $("fSort").value, sortTools); }
 // P27: „Only selection“ zeigt nur die Auswahl in Klickreihenfolge (Filter bleiben gesetzt und wirken beim Ausschalten wieder)
 const selOnlyOn = () => S.selMode && S.selOnly;
 const catalogList = () => selOnlyOn() ? SEL.ordered(S.sel, S.plays) : sortPlays(filtered());
@@ -8056,19 +8122,45 @@ function renderGrid(){
   ui.revBtnUpdate();
   // P17: Trennlinie vor dem ersten Endzone-Play, wenn auch Open-Field-Plays in der Liste sind (nicht bei „Only selection“: Klickreihenfolge)
   const sepAt = list.length && !isEZ(list[0]) && !selOnlyOn() ? list.findIndex(isEZ) : -1;
-  const sm = S.selMode, selPos = new Map(S.sel.map((id, i) => [id, i + 1]));
-  $("grid").classList.toggle("selmode", sm);
   const used = new Map();
+  // Auswahl (Haken, Nummer, aria-pressed) steht nicht im HTML, sondern kommt danach per selApply() – so bleibt das Raster
+  // bei einem Auswahl-Klick gleich und wird nicht neu gesetzt (P49)
   const html = list.map((p, i) => (i === sepAt ? `<div class="ezsep" role="separator" aria-label="Endzone plays"></div>` : "") + `
-    <button class="card${sm && selPos.has(p.play_id) ? " sel" : ""}${isArchived(p) ? " archived" : ""}" type="button" data-id="${esc(p.play_id)}"${sm ? ` aria-pressed="${selPos.has(p.play_id)}"` : ""}>
-      ${sm ? `<span class="selbox" aria-hidden="true">${selPos.has(p.play_id) ? "✓" : ""}</span>${selPos.has(p.play_id) ? `<span class="selord" title="Position in the PDF">${selPos.get(p.play_id)}</span>` : ""}` : ""}
+    <button class="card${isArchived(p) ? " archived" : ""}" type="button" data-id="${esc(p.play_id)}">
       <div class="field">${cardSVG(p, used)}</div>
       <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${isArchived(p) ? `<span class="hidtag archtag" title="Not in the analysis, Select all and PDF">Archived</span>` : ""}${starEnd(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
     </button>`).join("");
   svgMemo = used; // nur die Grafiken des aktuellen Rasters behalten
   if (html !== gridHTML){ $("grid").innerHTML = html; gridHTML = html; }
+  selApply();
   selBarUpdate();
   if (!$("overlay").hidden) detailNavUpdate();
+}
+// Auswahl an den Karten anzeigen (P27): im Auswahlmodus Kästchen (✓ bei gewählten) und Nummer der Klickreihenfolge, Klasse
+// „sel“ und aria-pressed. Ändert nur, was abweicht – ein Klick kostet damit keinen Neuaufbau des Rasters (P49).
+function selApply(){
+  const sm = S.selMode, pos = new Map(S.sel.map((id, i) => [id, i + 1])), grid = $("grid");
+  grid.classList.toggle("selmode", sm);
+  for (const c of grid.children){
+    if (!c.classList.contains("card")) continue;
+    const n = sm ? pos.get(c.dataset.id) : undefined;
+    let box = c.querySelector(":scope > .selbox"), ord = c.querySelector(":scope > .selord");
+    c.classList.toggle("sel", !!n);
+    if (!sm){ c.removeAttribute("aria-pressed"); box?.remove(); ord?.remove(); continue; }
+    if (c.getAttribute("aria-pressed") !== String(!!n)) c.setAttribute("aria-pressed", String(!!n));
+    if (!box){ box = document.createElement("span"); box.className = "selbox"; box.setAttribute("aria-hidden", "true"); c.prepend(box); }
+    if (box.textContent !== (n ? "✓" : "")) box.textContent = n ? "✓" : "";
+    if (!n){ ord?.remove(); continue; }
+    if (!ord){ ord = document.createElement("span"); ord.className = "selord"; ord.title = "Position in the PDF"; box.after(ord); }
+    if (ord.textContent !== String(n)) ord.textContent = String(n);
+  }
+}
+// Nach einer Änderung der Auswahl: bleibt die angezeigte Liste gleich (nicht „Only selection“), nur Karten und Leiste
+// nachziehen statt render() – Filter, Facetten und Raster hängen nicht von der Auswahl ab (P49). Analysis (Scope) und die
+// Detailansicht zeichnen beim nächsten Reiterwechsel bzw. Öffnen neu. onlyBefore: „Only selection“ war vor der Änderung an.
+function selRefresh(onlyBefore){
+  if (onlyBefore || selOnlyOn() || S.tab !== "katalog"){ render(); return; }
+  selApply(); selBarUpdate();
 }
 
 function openDetail(id){
@@ -8317,9 +8409,10 @@ function selBarUpdate(){
   kataloge.selBar(); // „Move to catalog (n)“
 }
 function selSetMode(on){
+  const only = selOnlyOn();
   S.selMode = !!on;
   if (!on){ S.selOnly = false; $("selToast").textContent = ""; }
-  render();
+  selRefresh(only);
 }
 // ---------- Archivieren (P38, spec §7j) ----------
 // Nur der Besitzer (Flag Scout Tool: immer). Archivieren setzt archived + archived_at, „Unarchive“ entfernt beide Felder
@@ -8364,12 +8457,13 @@ async function detailArchive(){
 }
 
 function selClick(id, shift){
+  const only = selOnlyOn();
   if (!S.selMode){ S.selMode = true; }
   const vis = catalogList().map(p => p.play_id);
   S.sel = shift && S.selAnchor ? SEL.range(S.sel, vis, S.selAnchor, id) : SEL.toggle(S.sel, id);
   S.selAnchor = id;
   if (selOnlyOn() && !S.sel.length) S.selOnly = false;
-  render();
+  selRefresh(only);
 }
 const selPlays = () => SEL.ordered(S.sel, S.plays);
 const selMsg = (t, err) => { $("selToast").innerHTML = t ? (err ? `<span class="err">${esc(t)}</span>` : esc(t)) : ""; };
@@ -8818,7 +8912,9 @@ function initKatalog(){
     render();
   });
   ["fTeam", "fField", "fForm", "fDir", "fConc", "fDepth", "fSeason", "fOpp", "fTarget", "fDown"].forEach(id => $(id).onchange = render);
-  $("fSearch").oninput = render;
+  // Suche erst 150 ms nach dem letzten Tastendruck auswerten (P49, wie hSearch in modules/core/hilfe.js)
+  let searchTimer = null;
+  $("fSearch").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 150); };
   $("fReset").onclick = () => {
     FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.depthMore = false;
     if (S.showArchived && S.tab === "katalog"){ S.showArchived = false; applyHidden(); return; } // P38: Reset blendet das Archiv wieder aus
@@ -8849,9 +8945,9 @@ function initKatalog(){
   $("dStar").onclick = () => { if (S.detailId) toggleMark(S.detailId); };
   $("selBtn").onclick = () => selSetMode(!S.selMode);
   $("selDone").onclick = () => selSetMode(false);
-  $("selAll").onclick = () => { S.sel = SEL.addAll(S.sel, withoutArchived(catalogList()).map(p => p.play_id)); render(); };
-  $("selNone").onclick = () => { S.sel = SEL.removeAll(S.sel, catalogList().map(p => p.play_id)); render(); };
-  $("selClear").onclick = () => { S.sel = []; S.selAnchor = null; S.selOnly = false; render(); };
+  $("selAll").onclick = () => { const only = selOnlyOn(); S.sel = SEL.addAll(S.sel, withoutArchived(catalogList()).map(p => p.play_id)); selRefresh(only); };
+  $("selNone").onclick = () => { const only = selOnlyOn(); S.sel = SEL.removeAll(S.sel, catalogList().map(p => p.play_id)); selRefresh(only); };
+  $("selClear").onclick = () => { const only = selOnlyOn(); S.sel = []; S.selAnchor = null; S.selOnly = false; selRefresh(only); };
   $("selOnly").onchange = () => { S.selOnly = $("selOnly").checked && S.sel.length > 0; render(); };
   $("selPdf").onclick = async () => {
     const list = withoutArchived(selPlays()); if (!list.length || !$("pdfBtn").onclick) return;
