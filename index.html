@@ -5133,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "457b7c02389c";
+const SEITEN_VERSION = "fba3c091b673";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -6211,7 +6211,7 @@ function logFromSettings(docs){
     const v = d.data() || {};
     if (typeof v.play_id === "string" && v.play_id) m.set(v.play_id, LOG.cleanLog(v, v.play_id));
   }
-  for (const id of S.lgPending) if (S.logs.has(id)) m.set(id, S.logs.get(id)); else m.delete(id); // eigene Eingabe noch unterwegs
+  for (const id of S.gl.lgPending) if (S.logs.has(id)) m.set(id, S.logs.get(id)); else m.delete(id); // eigene Eingabe noch unterwegs
   const neu = !gleicheMap(m, S.logs);
   S.logs = m;
   return neu; // false: nur die Rückmeldung des eigenen Schreibens (schon gezeichnet)
@@ -6225,7 +6225,7 @@ function usesChip(p){
 // Zahlen in der Grafik nur auf Wunsch (Schalter im Game log, pro Browser gemerkt, Standard aus – Nutzer 20.10.2026)
 const LG_SHOW_KEY = "playbook-log-counts";
 function detailCounts(p){
-  if (S.editing || !p || !S.lgShow || !$("dLogSec")?.open) return null; // P32: nur bei offenem Bereich „Game log“
+  if (S.editing || !p || !S.gl.lgShow || !$("dLogSec")?.open) return null; // P32: nur bei offenem Bereich „Game log“
   const c = LOG.targetPicks(p, playEntries(p)).map(t => ({ ...LOG.targetEnd(p, t.target, t.ending), n: t.n })).filter(x => Number.isFinite(x.x) && Number.isFinite(x.y));
   return c.length ? c : null;
 }
@@ -6290,45 +6290,45 @@ function lgDefaultOpp(p){
 }
 function logDetailRender(){
   const box = $("dLog"), p = S.plays.find(x => x.play_id === S.detailId);
-  if (!p || !S.lg || S.lg.id !== p.play_id || S.editing){ box.hidden = true; lgTapClass(); return; }
+  if (!p || !S.gl.lg || S.gl.lg.id !== p.play_id || S.editing){ box.hidden = true; lgTapClass(); return; }
   const ed = logCanEdit(), log = logOf(p), all = log?.entries || [], op = $("fOpp").value, dn = $("fDown").value, shown = LOG.entriesFor(log, op, dn);
   if (!ed && !all.length){ box.hidden = true; lgTapClass(); return; }
   box.hidden = false;
-  if (S.lg.opp === undefined || (S.lg.opp && !oppPick(p.team, oppsOf(p), S.lg.opp))) S.lg.opp = lgDefaultOpp(p);
+  if (S.gl.lg.opp === undefined || (S.gl.lg.opp && !oppPick(p.team, oppsOf(p), S.gl.lg.opp))) S.gl.lg.opp = lgDefaultOpp(p);
   const opName = (o) => o === LOG.NO_OPPONENT ? "unknown opponent" : o;
   $("dLogSum").textContent = shown.length ? LOG.summary(shown).text : all.length ? `${all.length}× (other filter)` : "";
-  let h = (all.length ? `<label class="chk"><input type="checkbox" data-lgc="show"${S.lgShow ? " checked" : ""}> Show targets on the graphic</label>` : "") + `<p class="lgsum">${shown.length ? `<b>${esc(LOG.summary(shown).text)}</b>` : all.length ? (dn && !op ? "Not used on this down yet." : "Not used against this opponent yet.") : "Not recorded yet."}${(op || dn) && all.length !== shown.length ? ` <span class="note">${[op ? "vs " + esc(opName(op)) : "", dn ? esc(dn === LOG.NO_DOWN ? "no down" : dn) : ""].filter(Boolean).join(" · ")} · ${all.length} in total</span>` : ""}${shown.length && LOG.downSummary(shown) ? `<br><span class="note">Downs: ${esc(LOG.downSummary(shown))}</span>` : ""}</p>`;
+  let h = (all.length ? `<label class="chk"><input type="checkbox" data-lgc="show"${S.gl.lgShow ? " checked" : ""}> Show targets on the graphic</label>` : "") + `<p class="lgsum">${shown.length ? `<b>${esc(LOG.summary(shown).text)}</b>` : all.length ? (dn && !op ? "Not used on this down yet." : "Not used against this opponent yet.") : "Not recorded yet."}${(op || dn) && all.length !== shown.length ? ` <span class="note">${[op ? "vs " + esc(opName(op)) : "", dn ? esc(dn === LOG.NO_DOWN ? "no down" : dn) : ""].filter(Boolean).join(" · ")} · ${all.length} in total</span>` : ""}${shown.length && LOG.downSummary(shown) ? `<br><span class="note">Downs: ${esc(LOG.downSummary(shown))}</span>` : ""}</p>`;
   if (ed){
-    h += `<div class="row lgopp"><label for="lgOpp">vs</label><select id="lgOpp">${oppOptionsHTML(p.team, oppsOf(p), S.lg.opp, true)}</select>` +
-      (S.lg.newOpp ? `<input type="text" id="lgOppNew" list="teamList" autocomplete="off" placeholder="Team name" aria-label="New opponent"><button class="btn" type="button" data-lg="oppok">Add</button>` : "") + `</div>`;
-    h += downSegHTML("lg", S.lg.down || null, S.lg.flip);
+    h += `<div class="row lgopp"><label for="lgOpp">vs</label><select id="lgOpp">${oppOptionsHTML(p.team, oppsOf(p), S.gl.lg.opp, true)}</select>` +
+      (S.gl.lg.newOpp ? `<input type="text" id="lgOppNew" list="teamList" autocomplete="off" placeholder="Team name" aria-label="New opponent"><button class="btn" type="button" data-lg="oppok">Add</button>` : "") + `</div>`;
+    h += downSegHTML("lg", S.gl.lg.down || null, S.gl.lg.flip);
     h += `<p class="cvhint">Tap a button – or double-click a route (long-press on a phone or tablet) to record it as the target.</p>`;
     h += `<div class="lgbtns" role="group" aria-label="Record a use of this play">` + LOG.targetOptions(p).map(o => `<button class="btn" type="button" data-lg="add" data-t="${esc(o.target)}"${o.ending != null ? ` data-e="${o.ending}"` : ""} title="${o.ending != null ? `${esc(o.target)} targeted – option ending ${o.option}` : `${esc(o.target)} targeted`}">+${esc(o.label)}</button>`).join("") +
       `<button class="btn" type="button" data-lg="add" data-t="QB" title="QB or 2nd QB run">QB run</button><button class="btn" type="button" data-lg="add" data-t="none" title="Incomplete without a clear receiver, throwaway or sack">No target</button><button class="btn" type="button" data-lg="add" data-t="unknown" title="Played, target not known">Played</button></div>`;
   }
   if (all.length){
     const rows = all.map((e, i) => ({ e, i })).reverse();
-    h += `<details class="lglist"${S.lg.openList ? " open" : ""}><summary>${all.length} ${all.length === 1 ? "entry" : "entries"}</summary><ol>` + rows.map(({ e, i }) =>
+    h += `<details class="lglist"${S.gl.lg.openList ? " open" : ""}><summary>${all.length} ${all.length === 1 ? "entry" : "entries"}</summary><ol>` + rows.map(({ e, i }) =>
       `<li><span class="lgt">${esc(lgOptLabel(p, e))}</span>${ed ? `<button class="lgf${e.flipped ? " on" : ""}" type="button" data-lg="flipe" data-i="${i}" aria-pressed="${!!e.flipped}" title="Played mirrored – tap to change">${e.flipped ? "↔ flipped" : "↔"}</button>` : e.flipped ? `<span class="lgf on">↔ flipped</span>` : ""}${ed ? `<select class="lgdn" data-lgdown="${i}" aria-label="Down of this entry">${["", ...LOG.DOWN_VALUES].map(d => `<option value="${d}"${(e.down || "") === d ? " selected" : ""}>${d ? LOG.downName(d) : "–"}</option>`).join("")}</select>` : e.down ? `<span class="lgdv">${LOG.downName(e.down)}</span>` : ""}<span class="note">${e.opponent ? "vs " + esc(e.opponent) : "unknown opponent"}${e.at ? " · " + esc(new Date(e.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })) : ""}</span>` +
-      (ed ? (S.lg.confirm === i ? `<button class="btn danger" type="button" data-lg="del" data-i="${i}">Delete?</button>` : `<button class="lgx" type="button" data-lg="ask" data-i="${i}" aria-label="Delete this entry" title="Delete this entry">×</button>`) : "") + `</li>`).join("") + `</ol></details>`;
+      (ed ? (S.gl.lg.confirm === i ? `<button class="btn danger" type="button" data-lg="del" data-i="${i}">Delete?</button>` : `<button class="lgx" type="button" data-lg="ask" data-i="${i}" aria-label="Delete this entry" title="Delete this entry">×</button>`) : "") + `</li>`).join("") + `</ol></details>`;
     if (ed) h += `<div class="row"><button class="btn" type="button" data-lg="undo" title="Remove the last entry">Undo last entry</button></div>`;
   }
-  h += `<span class="toast" role="status">${S.lg.err ? `<span class="err">${esc(S.lg.err)}</span>` : esc(S.lg.msg || "")}</span>`;
+  h += `<span class="toast" role="status">${S.gl.lg.err ? `<span class="err">${esc(S.gl.lg.err)}</span>` : esc(S.gl.lg.msg || "")}</span>`;
   box.innerHTML = h;
   lgTapClass();
 }
 async function logWrite(id, next){
   const prev = S.logs.get(id) || null;
-  S.logs.set(id, next); S.lgPending.add(id); S.lg.err = ""; S.lg.msg = "Saving …";
+  S.logs.set(id, next); S.gl.lgPending.add(id); S.gl.lg.err = ""; S.gl.lg.msg = "Saving …";
   render(); logDetailRender(); ui.covDetailRender();
   const doc = S.db.doc("settings/" + LOG.logDocId(id));
   const run = () => LOG.isEmptyLog(next) ? doc.delete() : doc.set({ play_id: id, entries: next.entries, updated_at: new Date().toISOString() });
-  S.lgChain[id] = (S.lgChain[id] || Promise.resolve()).catch(() => {}).then(run);
+  S.gl.lgChain[id] = (S.gl.lgChain[id] || Promise.resolve()).catch(() => {}).then(run);
   let fehler = false;
-  try { await S.lgChain[id]; S.lg.msg = S.lgTapMsg ? `${S.lgTapMsg} – saved.` : "Saved."; S.lgTapMsg = null; }
-  catch (e) { fehler = true; if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.lg.msg = ""; S.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
-  finally { S.lgPending.delete(id); }
-  if (S.lg && S.lg.id === id) logDetailRender();
+  try { await S.gl.lgChain[id]; S.gl.lg.msg = S.gl.lgTapMsg ? `${S.gl.lgTapMsg} – saved.` : "Saved."; S.gl.lgTapMsg = null; }
+  catch (e) { fehler = true; if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.gl.lg.msg = ""; S.gl.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
+  finally { S.gl.lgPending.delete(id); }
+  if (S.gl.lg && S.gl.lg.id === id) logDetailRender();
   // Gezeichnet ist schon oben (P50 Schritt 3); nur wenn das Speichern scheitert, ist der alte Stand zurück → neu zeichnen
   if (fehler){ render(); ui.covDetailRender(); }
 }
@@ -6336,18 +6336,18 @@ async function logWrite(id, next){
 async function logAddOpponent(p, name){
   const list = ENTW.normOpponents([...(p.opponents || []), name], p.team);
   const n = String(name || "").trim();
-  if (!n || !list || !list.some(x => x.toLowerCase() === n.toLowerCase())){ S.lg.err = n ? "That is the team itself." : "Enter a team name."; logDetailRender(); return; }
+  if (!n || !list || !list.some(x => x.toLowerCase() === n.toLowerCase())){ S.gl.lg.err = n ? "That is the team itself." : "Enter a team name."; logDetailRender(); return; }
   const ex = list.find(x => x.toLowerCase() === n.toLowerCase());
-  S.lg.newOpp = false; S.lg.opp = ex; S.logOpp = ex;
+  S.gl.lg.newOpp = false; S.gl.lg.opp = ex; S.logOpp = ex;
   if ((p.opponents || []).join("|") === list.join("|")){ logDetailRender(); return; }
   try {
     await S.db.doc("plays/" + (S.docIds.get(p.play_id) || p.play_id)).update({ opponents: list, _meta: { ...(p._meta || {}), edited_at: new Date().toISOString() } });
-    p.opponents = list; S.lg.msg = `${ex} added as opponent.`;
-  } catch (e) { S.lg.err = "Opponent not saved: " + (e && e.message || e); }
+    p.opponents = list; S.gl.lg.msg = `${ex} added as opponent.`;
+  } catch (e) { S.gl.lg.err = "Opponent not saved: " + (e && e.message || e); }
   openDetailKeep(p.play_id);
 }
 // Detail neu zeichnen, ohne den Zustand des Game-log-Bereichs zu verlieren
-function openDetailKeep(id){ const lg = S.lg; openDetail(id); if (lg && lg.id === id){ S.lg = lg; logDetailRender(); } }
+function openDetailKeep(id){ const lg = S.gl.lg; openDetail(id); if (lg && lg.id === id){ S.gl.lg = lg; logDetailRender(); } }
 
 // ---------- Targets in Draw und Drafts (Nutzer 20.10.2026) ----------
 // Gleiche Knöpfe wie im Game log; die Einträge liegen beim Entwurf in _entwurf.einsaetze und kommen bei der Freigabe in
@@ -6430,48 +6430,49 @@ function tgTapBind(root, sel, ctx){
   root.addEventListener("contextmenu", (e) => { const f = e.target.closest(sel); if (f && ctx(f)) e.preventDefault(); });
 }
 // Detailansicht (Besitzer, Game log offen): Target ins Game log
-const lgTapOn = () => logCanEdit() && !!$("dLogSec")?.open && !S.editing && !S.cd?.mu && !!S.lg && S.lg.id === S.detailId && !$("overlay").hidden;
+const lgTapOn = () => logCanEdit() && !!$("dLogSec")?.open && !S.editing && !S.cd?.mu && !!S.gl.lg && S.gl.lg.id === S.detailId && !$("overlay").hidden;
 function lgTapClass(){ $("dField").classList.toggle("lgtap", lgTapOn()); }
 
 // Zustand, Klick-Handler im Game log und Route antippen in der Detailansicht – aufgerufen von app/main.js an der alten Stelle
 function initGamelog(){
   onPlayDoc(LOG.logDocId); // Game log zieht beim Löschen/Teamwechsel mit (Modul catalog)
-  S.lgPending = new Set(); S.lgChain = {};
-  S.lgShow = (() => { try { return localStorage.getItem(LG_SHOW_KEY) === "1"; } catch (e) { return false; } })();
+  // Zustand des Game log (P50 Schritt 5f: S.gl, Typ GameLogZustand in types/zustand.d.ts) – vor allen Zugriffen
+  S.gl = { lg: null, lgPending: new Set(), lgChain: {}, lgShow: false, lgTapMsg: null };
+  S.gl.lgShow = (() => { try { return localStorage.getItem(LG_SHOW_KEY) === "1"; } catch (e) { return false; } })();
   $("dLog").addEventListener("change", (e) => {
-    if (e.target.dataset.lgc === "show"){ S.lgShow = e.target.checked; try { localStorage.setItem(LG_SHOW_KEY, S.lgShow ? "1" : "0"); } catch (err) { /* nur Komfort */ } ui.covDetailRender(); return; }
+    if (e.target.dataset.lgc === "show"){ S.gl.lgShow = e.target.checked; try { localStorage.setItem(LG_SHOW_KEY, S.gl.lgShow ? "1" : "0"); } catch (err) { /* nur Komfort */ } ui.covDetailRender(); return; }
     if (e.target.dataset.lgdown != null){ const p = S.plays.find(x => x.play_id === S.detailId), log = p && logOf(p); if (p && log && logCanEdit()) logWrite(p.play_id, LOG.setDown(log, parseInt(e.target.dataset.lgdown, 10), LOG.normDown(e.target.value))); return; }
     if (e.target.id !== "lgOpp") return;
-    if (e.target.value === "__new"){ S.lg.newOpp = true; logDetailRender(); $("lgOppNew")?.focus(); teamListFill(); return; }
-    S.lg.newOpp = false; S.lg.opp = e.target.value; S.logOpp = e.target.value || S.logOpp; logDetailRender();
+    if (e.target.value === "__new"){ S.gl.lg.newOpp = true; logDetailRender(); $("lgOppNew")?.focus(); teamListFill(); return; }
+    S.gl.lg.newOpp = false; S.gl.lg.opp = e.target.value; S.logOpp = e.target.value || S.logOpp; logDetailRender();
   });
   $("dLog").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "lgOppNew"){ e.preventDefault(); $("dLog").querySelector('[data-lg="oppok"]')?.click(); } });
-  $("dLog").addEventListener("toggle", (e) => { if (e.target.matches?.("details.lglist")) S.lg.openList = e.target.open; }, true);
+  $("dLog").addEventListener("toggle", (e) => { if (e.target.matches?.("details.lglist")) S.gl.lg.openList = e.target.open; }, true);
   $("dLog").addEventListener("click", (e) => {
     const b = e.target.closest("[data-lg]"); if (!b || !logCanEdit()) return;
     const p = S.plays.find(x => x.play_id === S.detailId); if (!p) return;
     const act = b.dataset.lg, log = logOf(p) || LOG.cleanLog(null, p.play_id);
-    S.lg.err = ""; if (act !== "ask") S.lg.confirm = null;
+    S.gl.lg.err = ""; if (act !== "ask") S.gl.lg.confirm = null;
     if (act === "oppok"){ logAddOpponent(p, $("lgOppNew")?.value); return; }
-    if (act === "down"){ const d = LOG.normDown(b.dataset.d); S.lg.down = d && d !== S.lg.down ? d : null; logDetailRender(); return; }
-    if (act === "flip"){ S.lg.flip = !S.lg.flip; logDetailRender(); return; }
+    if (act === "down"){ const d = LOG.normDown(b.dataset.d); S.gl.lg.down = d && d !== S.gl.lg.down ? d : null; logDetailRender(); return; }
+    if (act === "flip"){ S.gl.lg.flip = !S.gl.lg.flip; logDetailRender(); return; }
     if (act === "flipe"){ const i = parseInt(b.dataset.i, 10); if (log.entries[i]) logWrite(p.play_id, LOG.setFlipped(log, i, !log.entries[i].flipped)); return; }
     if (act === "add"){
       const ending = b.dataset.e != null ? parseInt(b.dataset.e, 10) : null;
-      if (S.lg.opp) S.logOpp = S.lg.opp;
-      logWrite(p.play_id, LOG.addEntry(log, { opponent: S.lg.opp || null, target: b.dataset.t, ending, down: S.lg.down || null, flipped: !!S.lg.flip }, new Date().toISOString()));
+      if (S.gl.lg.opp) S.logOpp = S.gl.lg.opp;
+      logWrite(p.play_id, LOG.addEntry(log, { opponent: S.gl.lg.opp || null, target: b.dataset.t, ending, down: S.gl.lg.down || null, flipped: !!S.gl.lg.flip }, new Date().toISOString()));
       return;
     }
     if (act === "undo"){ if (log.entries.length) logWrite(p.play_id, LOG.removeEntry(log, log.entries.length - 1)); return; }
-    if (act === "ask"){ S.lg.confirm = parseInt(b.dataset.i, 10); logDetailRender(); return; }
+    if (act === "ask"){ S.gl.lg.confirm = parseInt(b.dataset.i, 10); logDetailRender(); return; }
     if (act === "del") logWrite(p.play_id, LOG.removeEntry(log, parseInt(b.dataset.i, 10)));
   });
   tgTapBind($("dField"), "#dField", () => {
     const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !lgTapOn()) return null;
     return {
       play: p,
-      miss: () => { S.lg.err = ""; S.lg.msg = "No route there – double-click (or long-press) closer to a route."; logDetailRender(); },
-      add: (h) => { if (S.lg.opp) S.logOpp = S.lg.opp; logWrite(p.play_id, LOG.addEntry(logOf(p) || LOG.cleanLog(null, p.play_id), { opponent: S.lg.opp || null, target: h.target, ending: h.ending, down: S.lg.down || null, flipped: !!S.lg.flip }, new Date().toISOString())); S.lgTapMsg = `+${h.label}${S.lg.flip ? " flipped" : ""}${S.lg.down ? " on " + LOG.downName(S.lg.down) : ""}${S.lg.opp ? " vs " + S.lg.opp : ""}`; }
+      miss: () => { S.gl.lg.err = ""; S.gl.lg.msg = "No route there – double-click (or long-press) closer to a route."; logDetailRender(); },
+      add: (h) => { if (S.gl.lg.opp) S.logOpp = S.gl.lg.opp; logWrite(p.play_id, LOG.addEntry(logOf(p) || LOG.cleanLog(null, p.play_id), { opponent: S.gl.lg.opp || null, target: h.target, ending: h.ending, down: S.gl.lg.down || null, flipped: !!S.gl.lg.flip }, new Date().toISOString())); S.gl.lgTapMsg = `+${h.label}${S.gl.lg.flip ? " flipped" : ""}${S.gl.lg.down ? " on " + LOG.downName(S.gl.lg.down) : ""}${S.gl.lg.opp ? " vs " + S.gl.lg.opp : ""}`; }
     };
   });
   // Datenbank (P25c Teil 2b): Einsätze/Targets (P16b) aus settings/play-log-<Play-ID>
@@ -8339,7 +8340,7 @@ function openDetail(id){
   $("dDraw").hidden = !(S.owner && S.db); $("dDup").hidden = !(S.owner && S.db); $("dUndo").hidden = true;
   $("dArch").hidden = !archCanOwn(); $("dArch").textContent = isArchived(p) ? "Unarchive" : "Archive"; $("dArch").disabled = !!S.archBusy;
   if (S.owner && S.db) wUndoInfo(p).then(u => { if (S.detailId === id && !S.editing && u) { $("dUndo").hidden = false; $("dUndo").title = `Restore the version from ${new Date(u.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`; } }).catch(() => {});
-  S.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, Bereich „Game log“)
+  S.gl.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, Bereich „Game log“)
   ui.covDetailOpen(p); // Defense-Ebene (P22): Grafik mit Defense + Bereich „Defense“
   $("overlay").hidden = false; detailNavUpdate(); ui.revRender();
   // Fokus auf „×“ oben, ohne zu scrollen (früher „Close“ unten – das scrollte am Handy ans Ende, P24 Punkt 6)
