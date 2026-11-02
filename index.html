@@ -822,7 +822,7 @@ const PAGE_SRC = {
 };
 
 // Kern-Dateien der Seite (P25c Teil 2a, docs/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
-// (ENTW, Z, COV, MU, LOG, SEL, KAT, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
+// (ENTW, Z, COV, MU, LOG, SEL, KAT, HM, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
 // Seite und Module importieren die Namen von hier – ein globaler Name, den nur dieses Modul anlegt, würde Rollup umbenennen.
 // Coverages, Matchups und Präsentieren (COV, MU, PR) braucht nur das Modul coverages (mit matchups): Zeilen mit
@@ -1658,6 +1658,7 @@ function fieldSVG(play, opts){
 // ---------------------------------------------------------------------
 // Regeln (scripts/lib/derive.mjs): Formation, QB-Ausrichtung, Direction, Concept-Gegenprüfung, waste, LOS
 // ---------------------------------------------------------------------
+// @ts-check
 // Felder, die sich zuverlässiger per Regel berechnen lassen, als von der KI geschätzt.
 // Wird nach jeder Erkennung angewendet (Skill-Werkzeug erfassen.mjs; früher auch scripts/extract.mjs, außer Betrieb).
 
@@ -1888,7 +1889,7 @@ function horizontalRuns(player) {
 }
 const yRange = (r) => [Math.min(r.y0, r.y1), Math.max(r.y0, r.y1)];
 const xRange = (r) => [Math.min(r.x0, r.x1), Math.max(r.x0, r.x1)];
-const overlap = ([a0, a1], [b0, b1]) => Math.min(a1, b1) - Math.max(a0, b0); // negativ = Lücke
+const overlap = (/** @type {number[]} */ [a0, a1], /** @type {number[]} */ [b0, b1]) => Math.min(a1, b1) - Math.max(a0, b0); // negativ = Lücke
 
 // E2 Follow: letzter Lauf zweier Routen in dieselbe Richtung, Beginn und Ende je höchstens followDy auseinander,
 // und der hintere Läufer kommt bis auf followGap an den Startpunkt des vorderen heran (gleiche Bahn).
@@ -2220,6 +2221,7 @@ function derive(play) {
 
 // Entwürfe-Reiter: Dubletten (similarity.mjs), Play-ID (play-id.mjs), Entwürfe (entwurf.mjs) – gekapselt
 const ENTW = (() => {
+// @ts-check
 // Dubletten-Erkennung: Wie ähnlich sind zwei Plays?
 // Gemeinsamer Kern (Skill-Werkzeug erfassen.mjs, später Web-Tool) – reine Funktionen, kein Dateizugriff.
 //
@@ -2577,6 +2579,7 @@ function planDuplicates(batch, stock = [], { keep = new Set() } = {}) {
   return { actions, merged, notes: notes.filter((n) => !gone.has(n.key)), hits };
 }
 
+// @ts-check
 // Play-ID-Schema: TEAM_FORMATION[_EZ]_NR
 //   TEAM       Team-Kürzel. Herkunft (siehe teamCodes): 1. wie bei den schon gespeicherten Plays dieses Teams,
 //              2. lists/teams.json, 3. für neue Teams automatisch: erste 4 Buchstaben, groß (bei Gleichstand
@@ -2639,6 +2642,7 @@ function parsePlayId(id) {
   return m ? { team: m[1], formation: m[2], ez: !!m[3], number: parseInt(m[4], 10) } : null;
 }
 
+// @ts-check
 // Export-Format und Migration (Backlog P48, spec §7n): eine Kopfangabe für alle Play-Exporte (Export all, Auswahl,
 // Back up now, Ordnerdatei des Flag Scout Tools, Export aus der Offline-Datei, Coverage-Datei) und EINE Migration, die
 // Import, Restore from backup, Restore from folder und die Freigabe von Drafts durchlaufen.
@@ -2785,6 +2789,7 @@ function hinweisText(gelesen, unbekannt = []) {
   return parts.join(" ");
 }
 
+// @ts-check
 // Entwürfe (Backlog „Entwürfe-Reiter“, 12.10.2026): erkannte Plays liegen zuerst in der Collection `entwuerfe`
 // (Dokument-ID = geplante Play-ID) und werden auf der Playbook-Seite geprüft, korrigiert und freigegeben.
 // Gemeinsamer Kern für erfassen.mjs (ablegen), die Playbook-Seite (Reiter „Drafts“) und scripts/entwurf-test.mjs –
@@ -2925,6 +2930,10 @@ function entwurfZuPlay(draft, now) {
 //   { typ: "weglassen", id }            → nur Entwurf löschen (identisch mit <id>)
 //   { fehler: "…" }                     → Freigabe nicht möglich (Text englisch für die Seite)
 // geaendert = Ziel-Play hat sich seit dem Ablegen geändert (Seite fragt dann noch einmal nach).
+/**
+ * @param {any} draft
+ * @param {{ target?: any, now?: string }} [o]
+ */
 function entwurfFreigabe(draft, { target = null, now } = {}) {
   const e = draft._entwurf || {}, aktion = e.aktion || "neu";
   if (aktion === "neu") {
@@ -3048,6 +3057,11 @@ function importPlay(raw, version = VOR_P48, migration = {}) {
 //             uebersprungen: [{ nr, orig, text }], fehler: [{ nr, orig, text }] }
 // version: Schema-Version der Datei (Standard raw.version aus importLesen, sonst „vor P48“); migration: { schritte } nur
 // für Tests (simulierte Umbenennung), sonst die Schritte aus exportformat.mjs
+/**
+ * @param {any} raw
+ * @param {any[]} [stock]
+ * @param {Record<string, any>} [o]
+ */
 function importPlanen(raw, stock = [], { teams = {}, overrides = {}, ziel = "entwuerfe", now, quelle = "Import", sheet = null, einsaetze = null, version = raw?.version || VOR_P48, migration = {} } = {}) {
   const fehler = [], uebersprungen = [], eintraege = [];
   const items = [];
@@ -3120,6 +3134,7 @@ return { entwurfHash, entwurfZielId, entwurfFeld, entwurfAllesOk, entwurfDistanz
 const FMT = ENTW.FMT;
 // Zeichen-Editor (scripts/lib/zeichnen.mjs) – gekapselt
 const Z = (() => {
+// @ts-check
 // Zeichen-Editor (Backlog P19, Reiter „Draw“ der Playbook-Seite): Plays direkt am Tablet/PC zeichnen.
 // Gemeinsamer Kern für die Playbook-Seite und scripts/zeichnen-test.mjs – reine Funktionen, kein DOM, kein Dateizugriff,
 // keine Imports (die Seite enthält derive/renderer schon; der Build setzt diese Datei an der Marke ZEICHNEN in die Seite ein).
@@ -3882,6 +3897,10 @@ function ballHolders(play) {
 }
 
 // Fertiges Play für die Ablage: Center-Route null statt fehlend, QB-Route nur wenn vorhanden, Rundung
+/**
+ * @param {any} play
+ * @param {{ concept?: string|null, comment?: string|null, situation?: string|null, source?: string }} [o]
+ */
 function finishDrawPlay(play, { concept = null, comment = null, situation, source = "Draw" } = {}) {
   const p = dClone(play);
   if (concept) p.play_concept = { value: concept, confidence: "high" };
@@ -3944,6 +3963,7 @@ return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, drawLimitsFor, DRAW_P
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
+// @ts-check
 // Einsätze und Targets (Backlog P16b, spec §7e) – gemeinsamer Kern für Playbook-Seite und Tests.
 // Ohne Imports (die Seite setzt die Datei als `LOG` ein); reine Funktionen, kein Dateizugriff.
 //
@@ -4304,6 +4324,7 @@ return { LOG_QB, LOG_NONE, LOG_UNKNOWN, NO_OPPONENT, DOWNS, DOWN_VALUES, PAT_DOW
 })();
 // Play-Auswahl (scripts/lib/auswahl.mjs) – gekapselt
 const SEL = (() => {
+// @ts-check
 // Play-Auswahl im Katalog (Backlog P27, spec §7f): temporäre Auswahl einzelner Plays, z. B. für ein Trainings-PDF.
 // Reine Funktionen ohne Imports und ohne Dateizugriff – die Playbook-Seite setzt die Datei als `SEL` ein,
 // Test: npm run auswahl-test. Eine Auswahl ist ein Array von Play-IDs in Klickreihenfolge (ohne Doppelte).
@@ -4386,6 +4407,11 @@ function marksToRestore(marks, list) {
 // stock = alle Play-IDs, die belegt sind (Katalog + Entwürfe); plays = alle Katalog-Plays (für Team-Kürzel).
 // Rückgabe: Liste { id, newId (= id, wenn gleich), play (neu, vollständig), changes: [Text] } – nur Plays mit Änderung.
 // overrides = Teamkürzel aus „Manage teams“ (settings/team-codes) – gehen vor die Kürzel der gespeicherten Plays.
+/**
+ * @param {any[]} selPlays
+ * @param {any} edit
+ * @param {Record<string, any>} [o] Werkzeuge und Bestand (Typprüfung, P50 Schritt 4)
+ */
 function bulkPlan(selPlays, edit, { tools, stock = [], plays = [], teams = {}, overrides = {}, now = null } = {}) {
   const { normOpponents, makePlayId, parsePlayId, teamCodes } = tools || {};
   const team = typeof edit?.team === "string" ? edit.team.trim().replace(/\s+/g, " ") : "";
@@ -4452,6 +4478,7 @@ function normTeamCode(v) { return String(v ?? "").trim().toUpperCase().replace(/
 // Welche Kürzel sind von welchem Team belegt? Aus Teamliste (teams), gespeicherten Kürzeln (stored) und den Play-IDs
 // von Katalog und Entwürfen (ein Team kann nach „nur Kürzel ändern“ zwei Kürzel in seinen IDs haben).
 // Rückgabe Map Kürzel → Set(Teamnamen).
+/** @param {Record<string, any>} [o] Optionen (Typprüfung P50 Schritt 4) */
 function teamCodeUse({ teams = {}, stored = {}, plays = [], drafts = [], parsePlayId } = {}) {
   const use = new Map(), add = (code, team) => { if (!code || !team) return; if (!use.has(code)) use.set(code, new Set()); use.get(code).add(team); };
   for (const [t, c] of Object.entries(teams || {})) add(c, t);
@@ -4483,6 +4510,7 @@ function checkTeamName(name, names) {
 // umbenanntes Katalog-Play zeigen, bekommen das neue Ziel. collisions = neue IDs, die es schon gibt (dann abbrechen).
 // Rückgabe { plays: [{ id, newId }], drafts: [{ id, newId }], ziele: [{ id (Entwurf), ziel, newZiel }], collisions: [IDs] }
 // from darf auch eine Liste sein (ein Team kann nach „nur Kürzel ändern“ IDs mit mehreren Kürzeln haben).
+/** @param {Record<string, any>} [o] Optionen (Typprüfung P50 Schritt 4) */
 function teamCodeRenamePlan({ team, from, to, plays = [], drafts = [] } = {}) {
   const froms = [].concat(from || []).map(String).filter((f) => f && f !== String(to));
   const pre = (id) => froms.find((f) => id.startsWith(f + "_"));
@@ -4503,6 +4531,7 @@ return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMar
 })();
 // Katalog-Regeln: Filter, Sortierung, Facetten (scripts/lib/katalog.mjs) – gekapselt
 const KAT = (() => {
+// @ts-check
 // Katalog-Regeln (Backlog P49, spec §7): Filter-Bedingung, Sortierung, Facetten – gemeinsamer Kern für die Seite und den Test.
 // Ohne Imports (die Seite setzt die Datei als `KAT` ein); reine Funktionen, kein DOM, kein Dateizugriff.
 // Was vom Zustand der Seite abhängt (Game log, Must-know, Tiefe S-I-D, Formations-Reihenfolge, LOS aus Text), kommt als
@@ -4560,7 +4589,7 @@ const ezGroupsOn = (how) => how !== "freq";
 function sortPlays(list, how, t) {
   const byForm = how === "formation", byDate = how === "new" ? -1 : how === "old" ? 1 : 0;
   const freq = how === "freq" ? new Map(list.map((p) => [p, t.uses(p)])) : null;
-  return [...list].sort((a, b) => (isEZ(a) - isEZ(b)) || (freq ? 0 : t.ezGroup(a) - t.ezGroup(b)) || (byForm ? t.formRank(a) - t.formRank(b) : 0) ||
+  return [...list].sort((a, b) => (+isEZ(a) - +isEZ(b)) || (freq ? 0 : t.ezGroup(a) - t.ezGroup(b)) || (byForm ? t.formRank(a) - t.formRank(b) : 0) ||
     (byDate ? byDate * (savedStamp(a) - savedStamp(b)) : 0) || (freq ? freq.get(b) - freq.get(a) : 0) || nameCmp(a.play_id || "", b.play_id || ""));
 }
 
@@ -4581,6 +4610,94 @@ function facetValues(key, counts, t = {}) {
 }
 
 return { nameCmp, isEZ, EZ_GROUPS, ezDist, ezGroup, FILTER_KEYS, matchFilter, filterPlays, savedStamp, ezGroupsOn, sortPlays, facetCount, facetValues };
+})();
+// Heatmap-Regeln: Zonen, Seiten, Gewichte, Matrix (scripts/lib/heatmap.mjs) – gekapselt
+const HM = (() => {
+// @ts-check
+// Heatmap-Regeln (Reiter „Analysis“, Backlog P50 Schritt 2; spec: claude/makroanalyse-zielzonen.md, §7e, P16b, P40, P45):
+// Zonenzuordnung der Routenenden, Seiten (real/strong), Gewichte („Every play once“, „By frequency“, „Targets only“),
+// Receiver-Filter, Matrix und Balken-Anteile der Auswertung „Concepts & depth“ – gemeinsamer Kern für Seite und Test.
+// Ohne Imports (die Seite setzt die Datei als `HM` ein); reine Funktionen, kein DOM, kein Dateizugriff.
+// Was von anderen Kern-Dateien bzw. vom Zustand der Seite abhängt, kommt als Werkzeug-Parameter T herein:
+//   T = { LOG (scripts/lib/einsatz.mjs), val(p, k), zoneOfEnd, routeLegs, routeLegAt (scripts/lib/derive.mjs),
+//         entries(p, opp, down) (Einsätze eines Plays gegen Gegner/Down, aus dem Game log) }
+// Optionen opt = { field: "Open Field" | "Endzone", side: "real" | "strong", weight (Option-Enden aufteilen),
+//   count: "plays" | "freq" | "targets", opp, down, recv (Labels, null = alle) }.
+
+// Zeilen der Matrix = S-I-D-Zonen von oben nach unten (Endzone: EZ deep, EZ short, before goal line)
+const ZONES = ["deep", "intermediate", "short"];
+// Spalten: fünf Streifen à 5 yd über die 25 yd Feldbreite; Namen je Seite
+const COLS = {
+  strong: ["Weak Sideline", "Weak Seam", "Middle", "Strong Seam", "Strong Sideline"],
+  real: ["Left Sideline", "Left Seam", "Middle", "Right Seam", "Right Sideline"],
+};
+const column = (x) => Math.min(4, Math.max(0, Math.floor(x / 5)));
+
+// P40: bei „Real side“ zählen gespiegelt gespielte Einsätze (flipped) gespiegelt; „Strong side right“ spiegelt nach direction
+const flipSide = (opt) => opt.side !== "strong";
+const mirrored = (play, opt, T) => opt.side === "strong" && T.val(play, "direction") === "Left";
+// „By frequency“: Gewicht normal/gespiegelt (ohne Einsatz 1 normal)
+function freqSides(play, opt, T) {
+  const list = T.entries(play, opt.opp, opt.down);
+  return flipSide(opt) ? T.LOG.freqSplit(list) : { normal: T.LOG.freqWeight(list), flipped: 0 };
+}
+// „Targets only“: angeworfene Routen (Receiver-Filter angewandt) mit Route und Teilstück bis zum gewählten Ending
+function targetLegs(play, opt, T) {
+  return T.LOG.targetPicks(play, T.entries(play, opt.opp, opt.down), { byFlip: flipSide(opt) })
+    .filter((t) => T.LOG.recvHas(opt.recv, t.target))
+    .map((t) => { const route = T.LOG.routeOfTarget(play, t.target); return { t, route, leg: T.routeLegAt(route, t.ending) }; })
+    .filter((x) => x.leg);
+}
+
+// Routenenden eines Plays: [{ x, zone, w }]. Dieselbe Zonenregel wie Depth S-I-D (zoneOfEnd, inkl. „läuft weiter → deep“).
+// Gezählt werden Center + Receiver mit Route (Center zählt im Flag Football immer; P45: opt.recv = nur diese Labels,
+// C = Center); Spieler ohne Route und QB-Routen zählen nicht. opt.weight: Option-Enden je 1/n statt nur das primäre.
+function routeEnds(play, opt, T) {
+  const mirror = mirrored(play, opt, T);
+  const out = (l, w, fl) => ({ x: mirror || fl ? 25 - l.end.x : l.end.x, zone: T.zoneOfEnd(play, l.end, l.prev), w });
+  if (opt.count === "targets") return targetLegs(play, opt, T).map(({ t, leg }) => out(leg, t.n, t.flipped));
+  const f = opt.count === "freq" ? freqSides(play, opt, T) : { normal: 1, flipped: 0 };
+  const legs = [];
+  T.LOG.labeledRoutes(play, opt.recv).forEach(({ route }) => legs.push(...T.routeLegs(route, opt.weight)));
+  return [...(f.normal ? legs.map((l) => out(l, l.w * f.normal)) : []), ...(f.flipped ? legs.map((l) => out(l, l.w * f.flipped, true)) : [])];
+}
+
+// Matrix 3 × 5 (Zeilen ZONES, Spalten COLS) mit Summe der Gewichte
+function heatMatrix(plays, opt, T) {
+  const m = ZONES.map(() => [0, 0, 0, 0, 0]);
+  let total = 0;
+  plays.forEach((p) => routeEnds(p, opt, T).forEach((e) => {
+    const r = ZONES.indexOf(e.zone);
+    if (r >= 0) { m[r][column(e.x)] += e.w; total += e.w; }
+  }));
+  return { m, total };
+}
+
+// Gewicht eines Plays in der Auswertung (Concept-/S-I-D-Balken, Matchups): Plays 1, Häufigkeit = Einsätze (mind. 1,
+// flipped zählt gleich), Targets = Zahl der angeworfenen Routen
+function playWeight(p, opt, T) {
+  if (opt.count === "freq") return T.LOG.freqWeight(T.entries(p, opt.opp, opt.down));
+  if (opt.count === "targets") return T.LOG.targetPicks(p, T.entries(p, opt.opp, opt.down)).reduce((a, t) => a + t.n, 0);
+  return 1;
+}
+
+// Balken „Concepts & depth“: [[Wert, Gewicht]] absteigend, gleiche Gewichte nach Name; unknownLast: „Unknown“ ans Ende.
+// Werte mit Gewicht 0 fehlen.
+const nameCmp = new Intl.Collator("de", { numeric: true, sensitivity: "base" }).compare;
+function shareRows(list, keyOf, unknownLast, wOf) {
+  const m = new Map();
+  list.forEach((p) => { const k = keyOf(p) ?? "Unknown", w = wOf ? wOf(p) : 1; if (w > 0) m.set(k, (m.get(k) || 0) + w); });
+  return [...m.entries()].sort((a, b) => (unknownLast ? +(a[0] === "Unknown") - +(b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
+}
+// Balken „Target“: Einsätze je angeworfener Position (ohne „nur gespielt“); Receiver zuerst, dann QB, dann No target
+function targetRows(plays, opt, T) {
+  const m = new Map();
+  plays.forEach((p) => T.entries(p, opt.opp, opt.down).forEach((e) => { const k = T.LOG.targetKey(e); if (k) m.set(k, (m.get(k) || 0) + 1); }));
+  const rank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
+  return [...m.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0]));
+}
+
+return { ZONES, COLS, column, flipSide, mirrored, freqSides, targetLegs, routeEnds, heatMatrix, playWeight, shareRows, targetRows };
 })();
 
 // Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
@@ -4637,6 +4754,7 @@ function scopeBanner(nSel, nShown, crossOn){
 // Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
 const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
+// @ts-check – Typprüfung mit npm run typecheck (P50 Schritt 4); Typen in types/zustand.d.ts, types/play.d.ts, app/kern.d.ts
 // Grundgerüst der Seite (Modul core, P25c Schritt 2): gemeinsamer Zustand S, Hilfen ($, esc, val), Play-Hilfen (Saison,
 // Tiefe S-I-D, Namensvergleich, Chip, Grafik), Klappbereiche der Detailansicht (P32), Reiter mit render() und setTab(). Alle anderen Teile
 // importieren das hier.
@@ -4650,8 +4768,14 @@ const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
 
 // ---------- Zustand ----------
-const S = { plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", zRecv: [], logs: new Map(),
-  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 }; // P37 Analysis-Scope, P38 Archiv
+/** @typedef {import("../../../types/zustand.js").Zustand} Zustand */
+/** @typedef {import("../../../types/zustand.js").Reiter} Reiter */
+/** @typedef {import("../../../types/zustand.js").DbDoc} DbDoc */
+/** @typedef {import("../../../types/play.js").Play} Play */
+// Alle Felder: types/zustand.d.ts (npm run typecheck prüft, dass jedes benutzte Feld dort steht); hier nur die Startwerte
+/** @type {Zustand} */
+const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", zRecv: [], logs: new Map(),
+  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 })); // P37 Analysis-Scope, P38 Archiv
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const val = (p, k) => (p[k] && typeof p[k] === "object") ? p[k].value : p[k];
@@ -4721,8 +4845,8 @@ const EDIT_FIELDS = [
 function svgFor(p, opts){ try { return fieldSVG(p, opts); } catch(e){ return `<div class="note" style="padding:20px;line-height:1.4">Graphic not available: ${esc(e.message)}</div>`; } }
 
 // Funktionen der übrigen Teile, die core aufruft (tragen die Module selbst ein)
-const UI_NAMEN = ["covSyncToggles", "renderDrafts", "wInit", "wRender", "renderCovTab", "refreshFilters", "updateReset", "updateHiddenHint",
-  "renderGrid", "renderZones", "updatePdfBtn", "renderMatchups", "setZField", "fieldCouple", "logDetailRender", "covDetailRender", "detailNavUpdate",
+// (Neuzeichnen je Reiter seit P50 Schritt 3 nicht mehr hier, sondern über onRender)
+const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRender", "detailNavUpdate",
   "svgDetail",
   // Coverages und Matchups (abschaltbar): Name auf Karte und im PDF, Defense, Offline-Datei, Restore, Review
   "covName", "covActive", "covPlaySetting", "covVariantCount", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
@@ -4735,7 +4859,7 @@ const UI_NAMEN = ["covSyncToggles", "renderDrafts", "wInit", "wRender", "renderC
 // Ihr HTML fehlt dann in der Seite (@modul-Blöcke in app/seite.html) – core greift nur geprüft darauf zu.
 // Geladene Module überschreiben die Einträge mit registerUi().
 const ui = {
-  covSyncToggles(){}, renderCovTab(){}, renderMatchups(){}, revBtnUpdate(){}, revRender(){},
+  revBtnUpdate(){}, revRender(){},
   covActive: () => false, covName: () => "", covVariantCount: () => 1, covDefense: () => null, covExportEntry: () => null,
   covPlaySetting: () => ({ variants: [null] }), covRestorePlan: () => ({ n: 0 }), covRestoreWrite: async () => 0, svgCat: (p, extra) => svgFor(p, extra), covLabelFor: () => "",
   covPdfAllSync(){}, covPdfAll: () => false, covOfflineBoot(){}, covTabUpdate(){},
@@ -4747,6 +4871,10 @@ const ui = {
   },
   muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){},
 };
+/**
+ * Funktionen eines Moduls bei core eintragen (nur Namen aus UI_NAMEN).
+ * @param {Partial<typeof ui>} fns
+ */
 function registerUi(fns){
   for (const [k, f] of Object.entries(fns)) {
     if (!UI_NAMEN.includes(k) || typeof f !== "function") throw new Error(`registerUi: ${k} ist keine erwartete Funktion`);
@@ -4759,13 +4887,29 @@ function registerUi(fns){
 // die Anmeldungen in ihrer Reihenfolge auf (nur dort – in der Offline-Datei fehlt der Block, dort läuft keine davon).
 //   "db"        h(db)  – eigene Listener und Knöpfe, sobald die Datenbank offen ist
 //   "settings"  { data(docs), detail(), error() } – Anteil am gemeinsamen Listener auf der Collection settings: data
-//               übernimmt nur die eigenen Dokumente; danach rendert die Seite einmal, dann detail() (offene Detailansicht)
+//               übernimmt nur die eigenen Dokumente und gibt zurück, ob sich dadurch etwas Sichtbares geändert hat
+//               (false = nein; true bzw. nichts = ja). Nur wenn mindestens ein Modul „ja“ meldet, rendert die Seite einmal
+//               und ruft danach detail() (offene Detailansicht) – so löst z. B. die Rückmeldung des eigenen Schreibens
+//               (Target, Coverage) kein zweites Neuzeichnen aus (P50 Schritt 3).
 //   "owner"     h()    – nach der Prüfung, ob der Besitzer angemeldet ist (S.owner)
 //   "downloads" h(dl)  – Downloads der Laufzeit (null = in dieser Ansicht nicht verfügbar)
+/**
+ * @typedef {{ data?: (docs: DbDoc[]) => boolean | void, detail?: () => void, error?: () => void }} SettingsHook
+ * @typedef {{ db: Array<(db: any) => void>, settings: SettingsHook[], owner: Array<() => void>, downloads: Array<(dl: any) => void> }} DbHooks
+ */
+/** @type {DbHooks} */
 const dbHooks = { db: [], settings: [], owner: [], downloads: [] };
+// Gleicher Inhalt zweier Maps (Zustand eines Moduls vor/nach einer settings-Meldung; Werte als JSON verglichen)
+/** @type {(a: Map<any, any> | null | undefined, b: Map<any, any> | null | undefined) => boolean} */
+const gleicheMap = (a, b) => !!a && !!b && a.size === b.size && [...a].every(([k, v]) => b.has(k) && JSON.stringify(b.get(k)) === JSON.stringify(v));
+/**
+ * @template {keyof DbHooks} A
+ * @param {A} art
+ * @param {DbHooks[A][number]} h
+ */
 function onDb(art, h){
   if (!dbHooks[art]) throw new Error(`onDb: unbekannte Art ${art}`);
-  dbHooks[art].push(h);
+  /** @type {any[]} */ (dbHooks[art]).push(h);
 }
 
 // Einstellungen je Play (settings/<Dokument>), die beim Löschen und beim Teamwechsel (neue ID) eines Plays mitgehen: jedes
@@ -4792,7 +4936,7 @@ function migrateMode(){
 const secKey = (el) => "playbook-sec-" + el.dataset.sec;
 function initAnsicht(){
   migrateMode();
-  document.querySelectorAll("details.dsec[data-sec]").forEach(el => {
+  /** @type {NodeListOf<HTMLDetailsElement>} */ (document.querySelectorAll("details.dsec[data-sec]")).forEach(el => {
     el.open = lsGet(secKey(el)) === "1";
     el.addEventListener("toggle", () => {
       if (!(el.dataset.sec === "cov" && S.rev)) lsSet(secKey(el), el.open ? "1" : "0"); // Review öffnet „Defense“ nur vorübergehend
@@ -4801,19 +4945,34 @@ function initAnsicht(){
       else if (el.dataset.sec === "cov") ui.covDetailRender();
     });
     // ohne Inhalt (innerer Bereich hidden) ganz ausblenden – auch in Browsern ohne CSS :has()
-    const inner = el.querySelector(".dcov");
+    const inner = /** @type {HTMLElement | null} */ (el.querySelector(".dcov"));
     if (inner) new MutationObserver(() => { el.hidden = inner.hidden; }).observe(inner, { attributes: true, attributeFilter: ["hidden"] });
   });
 }
 
 // ---------- Render & Reiter ----------
+// Neu zeichnen (P50 Schritt 3): core kennt die Reiter nicht – jedes Modul meldet in seinem init…() mit onRender an, was es
+// für welchen Reiter zeichnet (wie onDb). render() ruft nur die Anmeldungen des offenen Reiters auf: zuerst alle mit
+// { vorab: true } (Häkchen, Filterzeile), dann die übrigen, jeweils in der Reihenfolge der Anmeldung (init… in app/main.js:
+// Analysis = Heatmap, PDF-Knopf, Matchups). Reiter "*" = jeder Reiter. Reiter: katalog, zonen (Analysis), drafts, draw, cov.
+/** @type {Reiter[]} */
+const REITER = ["katalog", "zonen", "drafts", "draw", "cov"];
+/** @type {Array<{ liste: Array<Reiter | "*">, fn: () => void, vorab: boolean }>} */
+const renderHooks = [];
+/**
+ * @param {Reiter | "*" | Array<Reiter | "*">} reiter
+ * @param {() => void} fn
+ * @param {{ vorab?: boolean }} [o]
+ */
+function onRender(reiter, fn, { vorab = false } = {}){
+  const liste = [].concat(reiter);
+  if (typeof fn !== "function" || !liste.length || liste.some(r => r !== "*" && !REITER.includes(r))) throw new Error(`onRender: unbekannter Reiter ${liste.join(", ")}`);
+  renderHooks.push({ liste, fn, vorab: !!vorab });
+}
 function render(){
   if (S.quiet) return; // Sammel-Schreiben (Modul catalog, quietly): erst am Ende einmal zeichnen
-  if (S.cov) ui.covSyncToggles(); // Häkchen immer aus dem Zustand (Safari stellt Formularwerte sonst eigenmächtig wieder her)
-  if (S.tab === "drafts"){ $("hiddenF").hidden = true; ui.renderDrafts(); return; }
-  if (S.tab === "draw"){ $("hiddenF").hidden = true; ui.wInit(); ui.wRender(); return; }
-  if (S.tab === "cov"){ $("hiddenF").hidden = true; ui.renderCovTab(); return; }
-  ui.refreshFilters(); ui.updateReset(); ui.updateHiddenHint(); if (S.tab === "katalog") ui.renderGrid(); else { ui.renderZones(); ui.updatePdfBtn(); ui.renderMatchups(); } // P28.3: Matchups unter der Heatmap
+  const t = S.tab;
+  for (const vorab of [true, false]) for (const h of renderHooks) if (h.vorab === vorab && (h.liste.includes(t) || h.liste.includes("*"))) h.fn();
 }
 
 function setTab(t){
@@ -4822,7 +4981,7 @@ function setTab(t){
   if (!$("view-" + t) && t !== "mu") t = "katalog"; // Reiter eines ausgeschalteten Moduls (Coverages)
   if (t === "mu") t = "zonen"; // P28.3: Analysis = Heatmap, darunter Matchups (kein eigener Zustand mehr)
   S.tab = t;
-  ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", t === x); });
+  ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", String(t === x)); });
   if ($("view-mu")) $("view-mu").hidden = t !== "zonen";
   $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || (S.plays.length === 0 && !S.nArch); // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
   $("fFieldCtl").hidden = t === "zonen"; // in Analysis steuert der Feldtyp-Schalter der Heatmap (gilt auch für Matchups)
@@ -4851,8 +5010,8 @@ function toggleTip(t){
   t.after(b); t.setAttribute("aria-expanded", "true");
 }
 function initTipps(){
-  document.addEventListener("click", (e) => { const t = e.target.closest?.(".tip"); if (!t) return; e.preventDefault(); e.stopPropagation(); toggleTip(t); }, true);
-  document.addEventListener("keydown", (e) => { const t = e.target.closest?.(".tip"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); toggleTip(t); } });
+  document.addEventListener("click", (e) => { const t = /** @type {Element} */ (e.target).closest?.(".tip"); if (!t) return; e.preventDefault(); e.stopPropagation(); toggleTip(t); }, true);
+  document.addEventListener("keydown", (e) => { const t = /** @type {Element} */ (e.target).closest?.(".tip"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); toggleTip(t); } });
 }
 // iPhone (Nutzer 20.10.2026): Beim Zoomen mit zwei Fingern kommt beim Loslassen ein „Klick“ an – der öffnete ein Play bzw.
 // setzte im gerade geöffneten Play das Häkchen „Show coverages“. Klicks kurz nach einer Mehrfinger-Geste und kurz nach
@@ -4974,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "aea3e3cd55a3";
+const SEITEN_VERSION = "69f54da7437d";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -5027,7 +5186,7 @@ function initUpdate(quelle){
   addEventListener("focus", updPruefen);
   addEventListener("pageshow", (e) => { if (e.persisted) updPruefen(); }); // aus dem Zurück-Speicher des Browsers
   setTimeout(updPruefen, 4000); // einmal nach dem Start (die App kann aus dem Speicher gestartet sein)
-  onDb("settings", { data: (docs) => { const d = docs.find(x => x.id === "seiten-version"); if (d) updLive(d.data()); } });
+  onDb("settings", { data: (docs) => { const d = docs.find(x => x.id === "seiten-version"); if (d) updLive(d.data()); return false; } }); // nur Hinweis, kein Neuzeichnen
 }
 
 // „Save to folder“ des Flag Scout Tools (Backlog P52): Sicherung der Plays als JSON-Datei in einem Ordner auf dem PC
@@ -6053,7 +6212,9 @@ function logFromSettings(docs){
     if (typeof v.play_id === "string" && v.play_id) m.set(v.play_id, LOG.cleanLog(v, v.play_id));
   }
   for (const id of S.lgPending) if (S.logs.has(id)) m.set(id, S.logs.get(id)); else m.delete(id); // eigene Eingabe noch unterwegs
+  const neu = !gleicheMap(m, S.logs);
   S.logs = m;
+  return neu; // false: nur die Rückmeldung des eigenen Schreibens (schon gezeichnet)
 }
 const logCanEdit = () => !!(S.owner && S.db && !S.offline);
 function usesChip(p){
@@ -6163,11 +6324,13 @@ async function logWrite(id, next){
   const doc = S.db.doc("settings/" + LOG.logDocId(id));
   const run = () => LOG.isEmptyLog(next) ? doc.delete() : doc.set({ play_id: id, entries: next.entries, updated_at: new Date().toISOString() });
   S.lgChain[id] = (S.lgChain[id] || Promise.resolve()).catch(() => {}).then(run);
+  let fehler = false;
   try { await S.lgChain[id]; S.lg.msg = S.lgTapMsg ? `${S.lgTapMsg} – saved.` : "Saved."; S.lgTapMsg = null; }
-  catch (e) { if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.lg.msg = ""; S.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
+  catch (e) { fehler = true; if (prev) S.logs.set(id, prev); else S.logs.delete(id); S.lg.msg = ""; S.lg.err = "Not saved: " + (e && (e.code === "permission_denied" || e.code === "not_granted") ? "only the owner can record uses." : (e && e.message || e)); }
   finally { S.lgPending.delete(id); }
   if (S.lg && S.lg.id === id) logDetailRender();
-  render(); ui.covDetailRender();
+  // Gezeichnet ist schon oben (P50 Schritt 3); nur wenn das Speichern scheitert, ist der alte Stand zurück → neu zeichnen
+  if (fehler){ render(); ui.covDetailRender(); }
 }
 // Neuer Gegner: in play.opponents eintragen (P16a), danach für die Einsätze vorausgewählt
 async function logAddOpponent(p, name){
@@ -6480,6 +6643,7 @@ async function draftApprove(id, { batch = false } = {}){
 
 // Zustand und Klick-Handler – aufgerufen von app/main.js an der alten Stelle (nach dem ersten Rendern)
 function initDrafts(){
+  onRender("drafts", renderDrafts);
   S.drafts = []; S.draftDoc = new Map(); S.dState = {}; S.dCache = new Map(); S.dOrder = "";
   // Update-Hinweis (P36): Felder speichern beim Verlassen – offen ist nur ein Textfeld mit neuer Eingabe oder ein laufendes Speichern
   onUngespeichert(() => {
@@ -6563,8 +6727,6 @@ function initDrafts(){
   });
   onDb("downloads", (dl) => { if (dl) updateDraftTab(); });
 }
-
-registerUi({ renderDrafts });
 
 // Modul draw (P25c Teil 2b, docs/p25-plan.md): Zeichen-Editor im Reiter „Draw“ (nur Besitzer, Backlog P19) und
 // „Edit in Draw“ für Katalog-Plays und Entwürfe (P19b, „Undo last edit“ in der Detailansicht). Kern: scripts/lib/zeichnen.mjs (Z).
@@ -7198,6 +7360,7 @@ async function wUndoLastEdit(id){
 
 // Start-Zustand und Klick-Handler – aufgerufen von app/main.js an der alten Stelle (nach initDrafts)
 function initDraw(){
+  onRender("draw", () => { wInit(); wRender(); });
   S.w = { tool: "route", undo: [], redo: [], sel: null, pen: false, conceptTouched: false, snapType: "Side Snap", handoffType: "Handoff", sitTouched: false, raw: {}, log: [] };
   // Linienart für neue Striche (Auto | Curve | Straight), pro Browser gemerkt
   S.w.line = (() => { try { const v = localStorage.getItem(W_LINE_STORE); return ["auto", "curved", "straight"].includes(v) ? v : "auto"; } catch (e) { return "auto"; } })();
@@ -7317,8 +7480,6 @@ function initDraw(){
   $("wEditCancel").onclick = () => { const ed = S.w.edit; wEditEnd(); if (ed?.kind === "play" || ed?.kind === "copy"){ setTab("katalog"); openDetail(ed.id); } else if (ed) setTab("drafts"); else wRender(); };
   onDb("owner", () => { if (S.owner && location.hash === "#draw") setTab("draw"); }); // „#draw“ öffnet den Reiter (nur Besitzer)
 }
-
-registerUi({ wInit, wRender });
 
 const CONFIG = {"app":"flag-scout","optionen":{"gameLogImPlayExport":true}};
 
@@ -7846,6 +8007,7 @@ async function doImport(){
 
 // Menü „Export ▾“ schließen (Klick daneben, Esc) – aufgerufen von app/main.js an der alten Stelle
 function initExport(){
+  onRender("zonen", updatePdfBtn); // PDF-Knopf in Analysis (Katalog: renderGrid setzt ihn selbst)
   $("expMenu").addEventListener("click", (e) => { if (e.target.closest(".mlist .btn")) $("expMenu").open = false; });
   document.addEventListener("click", (e) => { if ($("expMenu").open && !e.target.closest("#expMenu")) $("expMenu").open = false; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("expMenu").open){ $("expMenu").open = false; $("expMenu").querySelector("summary").focus(); } });
@@ -7868,7 +8030,7 @@ function initExport(){
       restoreData: (data, nachher) => { openBackup(); restoreFromData(data, nachher); $("rInfo").scrollIntoView?.({ block: "nearest" }); },
     });
   });
-  onDb("settings", { data: () => { S.settingsLoaded = true; } }); // P52: Ordnerdatei erst mit Game log und Must-know
+  onDb("settings", { data: () => { S.settingsLoaded = true; return false; } }); // P52: Ordnerdatei erst mit Game log und Must-know
   if (GL_EXPORT) onDb("settings", { detail: updateBackupBar }); // neue Einsätze zählen für den Backup-Hinweis (P25d)
   onDb("owner", () => { $("importBtn").hidden = !S.owner; $("backupMenuBtn").hidden = !(S.owner && S.db); }); // JSON-Import, Backup & restore: nur Besitzer
   // Backup & restore (P39c)
@@ -7958,8 +8120,6 @@ function initImport(){
   $("importDlg").addEventListener("click", (e) => { if (e.target === $("importDlg") && !S.imp.busy) $("importDlg").hidden = true; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("importDlg").hidden && !S.imp.busy) $("importDlg").hidden = true; });
 }
-
-registerUi({ updatePdfBtn });
 
 // Modul catalog (P25c Teil 2a, docs/p25-plan.md): Katalog – Filterzeile (Facetten, Filter, „Also filtered“, Filter löschen),
 // Sortierung, Karten im Raster, Must-know, Play-Auswahl (P27: Klick/Bereich, PDF/JSON der Auswahl, Must-know, Sammel-
@@ -8899,6 +9059,11 @@ async function onTeamAction(e){
 
 // Klick-Handler (Filterzeile, Raster, Auswahl, Detailansicht) – aufgerufen von app/main.js an der alten Stelle
 function initKatalog(){
+  // Neu zeichnen (P50 Schritt 3): Filterzeile in Catalog und Analysis vorab, Raster nur im Catalog; in Drafts/Draw/Coverages
+  // keine Katalog-Filter, also auch kein Hinweis auf ausgeblendete Teams
+  onRender(["katalog", "zonen"], () => { refreshFilters(); updateReset(); updateHiddenHint(); }, { vorab: true });
+  onRender(["drafts", "draw", "cov"], () => { $("hiddenF").hidden = true; }, { vorab: true });
+  onRender("katalog", renderGrid);
   onUngespeichert(() => S.editing ? "Edit" : null); // Update-Hinweis (P36): Felder in der Detailansicht offen
   // P32: Zustand pro Browser gemerkt (wer Expert hatte, startet offen – migrateMode in core)
   S.filtersOpen = (() => { try { return localStorage.getItem("playbook-filters-open") === "1"; } catch (e) { return false; } })();
@@ -9158,12 +9323,13 @@ function initKatalog(){
   // Teamkürzel aus „Manage teams“ (settings/team-codes): { codes: { Team: Kürzel } }
   onDb("settings", { data: (docs) => {
     S.settingDocs = new Map(docs.map(x => [x.id, x])); // für movePlay: umziehen ohne Nachsehen je Play
-    const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null;
+    const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null, vorher = JSON.stringify(S.teamCodes);
     S.teamCodes = c && typeof c === "object" ? Object.fromEntries(Object.entries(c).filter(([k, v]) => k && typeof v === "string" && SEL.TEAM_CODE_RE.test(v))) : {};
+    return JSON.stringify(S.teamCodes) !== vorher;
   } });
 }
 
-registerUi({ renderGrid, refreshFilters, updateReset, updateHiddenHint, detailNavUpdate });
+registerUi({ detailNavUpdate });
 
 // Modul heatmap (P25c Teil 2a, docs/p25-plan.md): Reiter „Analysis“ – Heatmap der Routenenden je Zone, Routen-Feld
 // („Show routes“), Beispiel-Plays, Auswertung „Concepts & depth“ mit Cross-Filter, Schalter Open Field/Endzone, Side,
@@ -9171,50 +9337,21 @@ registerUi({ renderGrid, refreshFilters, updateReset, updateHiddenHint, detailNa
 // (analysisPlays: ohne Archiv, Scope Filtered/Selection, Cross-Filter – P37/P38), Einsätze und Gegner aus gamelog.
 
 // ---------- Zielzonen (Spec: claude/makroanalyse-zielzonen.md) ----------
-const lastPt = (pts) => pts && pts.length ? pts[pts.length - 1] : null;
-
-// Routenenden mit Zone: dieselbe Regel wie die Tiefenverteilung S-I-D (zoneOfEnd, inkl. „läuft weiter → deep“).
-// Gezählt werden Center + Receiver mit Route; Spieler ohne Route haben keinen Endpunkt und fehlen hier
-// (in S-I-D zählen sie als short). QB-Routen zählen nicht.
-// P16b: opt.count = "plays" (jedes Play einmal), "freq" (Gewicht = Anzahl der Einsätze, ohne Einsatz 1) oder
-// "targets" (nur angeworfene Routenenden, bei Option-Routen das gewählte Ending); opt.opp = Gegner der Einsätze.
-// P40: bei Side „Real side“ zählen gespiegelt gespielte Einsätze (flipped) mit gespiegelten Routenenden (x → 25 − x);
-// „Strong side right“ und „Every play once“ bleiben unverändert.
-const flipSide = (opt) => opt.side !== "strong";
-function freqSides(play, opt){
-  const list = playEntries(play, opt.opp, opt.down);
-  return flipSide(opt) ? LOG.freqSplit(list) : { normal: LOG.freqWeight(list), flipped: 0 };
-}
-function routeEnds(play, opt){
-  const mirror = opt.side === "strong" && val(play, "direction") === "Left";
-  const out = (l, w, fl) => ({ x: mirror || fl ? 25 - l.end.x : l.end.x, zone: zoneOfEnd(play, l.end, l.prev), w });
-  if (opt.count === "targets") return LOG.targetPicks(play, playEntries(play, opt.opp, opt.down), { byFlip: flipSide(opt) }).filter(t => LOG.recvHas(opt.recv, t.target)).map(t => { const l = routeLegAt(LOG.routeOfTarget(play, t.target), t.ending); return l ? out(l, t.n, t.flipped) : null; }).filter(Boolean);
-  const f = opt.count === "freq" ? freqSides(play, opt) : { normal: 1, flipped: 0 };
-  const legs = [];
-  // Center-Routen zählen im Flag Football immer; P45: opt.recv = nur diese Receiver (Labels, C = Center)
-  LOG.labeledRoutes(play, opt.recv).forEach(({ route }) => legs.push(...routeLegs(route, opt.weight)));
-  return [...(f.normal ? legs.map(l => out(l, l.w * f.normal)) : []), ...(f.flipped ? legs.map(l => out(l, l.w * f.flipped, true)) : [])];
-}
-// Gewicht eines Plays in der Auswertung (Concept-/S-I-D-Balken): Plays 1, Häufigkeit = Einsätze (mind. 1),
-// Targets = Zahl der angeworfenen Routen
-function playWeight(p, opt){
-  if (opt.count === "freq") return LOG.freqWeight(playEntries(p, opt.opp, opt.down)); // flipped zählt hier gleich (P40)
-  if (opt.count === "targets") return LOG.targetPicks(p, playEntries(p, opt.opp, opt.down)).reduce((a, t) => a + t.n, 0);
-  return 1;
-}
+// Regeln (Zonen, Seiten, Gewichte, Receiver-Filter, Matrix, Balken) seit P50 Schritt 2 in scripts/lib/heatmap.mjs (HM);
+// hier nur die Werkzeuge der Seite (Einsätze aus dem Game log, Filter Gegner/Down) und die Darstellung.
+const HT = { LOG, val, zoneOfEnd, routeLegs, routeLegAt, entries: (p, op, dn) => playEntries(p, op, dn) }; // Aufruf erst zur Laufzeit (Modul gamelog)
+const routeEnds = (play, opt) => HM.routeEnds(play, opt, HT);
+// Gewicht eines Plays in der Auswertung (auch Matchups): Plays 1, Häufigkeit = Einsätze (mind. 1), Targets = angeworfene Routen
+const playWeight = (p, opt) => HM.playWeight(p, opt, HT);
 
 // Zeilen = S-I-D-Zonen (oben deep, unten short); Grenzen kommen aus DEPTH_LIMITS
 const ROWS = {
   "Open Field": [["deep", "Deep", `> ${DEPTH_LIMITS.intermediateMax} yd`], ["intermediate", "Interm.", `${DEPTH_LIMITS.shortMax}–${DEPTH_LIMITS.intermediateMax} yd`], ["short", "Short", `≤ ${DEPTH_LIMITS.shortMax} yd\n+ Backfield`]], // P28.9: kurze Labels, „+ Backfield“ eigene Zeile
   "Endzone": [["deep", "EZ deep", `${DEPTH_LIMITS.endzoneMid}–10 yd`], ["intermediate", "EZ short", `goal line–${DEPTH_LIMITS.endzoneMid} yd`], ["short", "Before goal line", ""]]
 };
-const COLS = {
-  strong: ["Weak Sideline", "Weak Seam", "Middle", "Strong Seam", "Strong Sideline"],
-  real: ["Left Sideline", "Left Seam", "Middle", "Right Seam", "Right Sideline"]
-};
 
 function heatHTML(plays, opt){
-  const { rows, m, total } = heatMatrix(plays, opt);
+  const { m, total } = HM.heatMatrix(plays, opt, HT), rows = ROWS[opt.field];
   const max = Math.max(...m.flat(), 0.0001);
   const pct = (v) => total ? Math.round(v / total * 100) : 0;
   const ez = opt.field === "Endzone";
@@ -9231,7 +9368,7 @@ function heatHTML(plays, opt){
     h += `<div class="tot" title="Share of all route ends in this zone">${pct(m[r].reduce((a, b) => a + b, 0))}%</div>`;
   });
   if (!ez) h += losLine; // LOS unter „Short“ (Backfield ist Teil von Short)
-  h += `<div></div>` + COLS[opt.side].map((c, i) => `<div class="cl">${c}<br><b style="font-family:var(--mono);font-weight:500">${pct(m.reduce((a, row) => a + row[i], 0))}%</b></div>`).join("") + `<div></div>`;
+  h += `<div></div>` + HM.COLS[opt.side].map((c, i) => `<div class="cl">${c}<br><b style="font-family:var(--mono);font-weight:500">${pct(m.reduce((a, row) => a + row[i], 0))}%</b></div>`).join("") + `<div></div>`;
   return { html: `<div class="heat">${h}</div>`, total };
 }
 
@@ -9343,7 +9480,7 @@ function renderZones(){
   else plays.forEach(p => gAdd(g === "season" ? seasonOf(p) : g === "depth" ? (depthOf(p) ?? "not computed") : (val(p, g) ?? "Unknown"), p));
   const cnt = opt.count, logN = plays.reduce((a, p) => a + playEntries(p, opt.opp, opt.down).length, 0);
   // P28.6: kurz auf der Seite, Hintergrund als Tooltip
-  const flN = cnt !== "plays" && flipSide(opt) ? plays.reduce((a, p) => a + LOG.flippedCount(playEntries(p, opt.opp, opt.down)), 0) : 0; // P40
+  const flN = cnt !== "plays" && HM.flipSide(opt) ? plays.reduce((a, p) => a + LOG.flippedCount(playEntries(p, opt.opp, opt.down)), 0) : 0; // P40
   const zShort = [demo ? "Example data" : `${plays.length} ${plays.length === 1 ? "play" : "plays"}`, opt.side === "strong" ? "mirrored (strong side right)" : flN ? `not mirrored (${flN} flipped ${flN === 1 ? "use" : "uses"} mirrored)` : "not mirrored",
     opt.recv ? `receivers ${opt.recv.join(", ")}` : "",
     cnt === "freq" ? `weighted by uses (${logN} game log ${logN === 1 ? "entry" : "entries"})` : cnt === "targets" ? `targets only (${logN} ${logN === 1 ? "entry" : "entries"})` : ""].filter(Boolean).join(" · ");
@@ -9378,17 +9515,6 @@ function renderZones(){
 // Gleiche Zählung wie die Heatmap (Center + Receiver, keine QB-Routen); bei „Split option endings“ werden
 // Options-Enden gestrichelt und mit kleinerem Punkt gezeichnet. Spiegelung wie der Side-Schalter.
 const ZONE_YD = { "Open Field": { yMin: -4, yMax: 20 }, "Endzone": { yMin: -11, yMax: 10 } };
-function heatMatrix(plays, opt){
-  const rows = ROWS[opt.field];
-  const m = rows.map(() => [0, 0, 0, 0, 0]);
-  let total = 0;
-  plays.forEach(p => routeEnds(p, opt).forEach(e => {
-    const c = Math.min(4, Math.max(0, Math.floor(e.x / 5)));
-    const r = rows.findIndex(([z]) => z === e.zone);
-    if (r >= 0){ m[r][c] += e.w; total += e.w; }
-  }));
-  return { rows, m, total };
-}
 function routesFieldSVG(plays, opt){
   const ez = opt.field === "Endzone", Z = ZONE_YD[opt.field];
   const P = 12, LM = 6, RM = 70, TM = 8, BM = 8;
@@ -9412,13 +9538,12 @@ function routesFieldSVG(plays, opt){
   let paths = "", dots = "";
   const op = Math.max(0.14, Math.min(0.45, 1.2 / Math.sqrt(plays.length + 1)));
   plays.forEach(p => {
-    const mirror = opt.side === "strong" && val(p, "direction") === "Left";
+    const mirror = HM.mirrored(p, opt, HT);
     const off = ez ? (p.los_yard_line ?? 5) : 0; // Endzone: Tiefe ab Goal-Line
     const pt = (q, fl) => [X(mirror || fl ? 25 - q.x : q.x), Y(q.y - off)];
     const poly = (pts, dashed, fl) => `<polyline points="${pts.map(q => pt(q, fl).map(f1).join(",")).join(" ")}"${dashed ? ` stroke-dasharray="4 4"` : ""}/>`;
     if (opt.count === "targets"){ // nur angeworfene Routen (Linie bis zum gewählten Ending) und deren Enden; P40: flipped gespiegelt
-      LOG.targetPicks(p, playEntries(p, opt.opp, opt.down), { byFlip: flipSide(opt) }).filter(t => LOG.recvHas(opt.recv, t.target)).forEach(t => {
-        const r = LOG.routeOfTarget(p, t.target), l = routeLegAt(r, t.ending); if (!l) return;
+      HM.targetLegs(p, opt, HT).forEach(({ t, route: r, leg: l }) => {
         const e = t.ending != null && r.endings?.[t.ending]?.points?.length ? r.endings[t.ending] : (r.endings || []).find(x => x?.points?.length && x.style !== "dashed") || (r.endings || []).find(x => x?.points?.length);
         paths += poly([...r.stem.points, ...(e ? e.points : [])], false, t.flipped);
         const [x, y] = pt(l.end, t.flipped); dots += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${Math.min(7, 3.4 + (t.n - 1) * 0.8)}" fill-opacity=".95"/>`;
@@ -9426,7 +9551,7 @@ function routesFieldSVG(plays, opt){
       return;
     }
     // P40: „By frequency“ + „Real side“ – gespiegelt gespielte Plays (auch) gespiegelt zeichnen
-    const f = opt.count === "freq" ? freqSides(p, opt) : { normal: 1, flipped: 0 };
+    const f = opt.count === "freq" ? HM.freqSides(p, opt, HT) : { normal: 1, flipped: 0 };
     [false, true].filter(fl => fl ? f.flipped : f.normal).forEach(fl =>
       LOG.labeledRoutes(p, opt.recv).map(x => x.route).forEach(r => { // P45: nur gewählte Receiver
         const stem = r.stem.points, ends = (r.endings || []).filter(e => e?.points?.length);
@@ -9446,11 +9571,6 @@ function routesFieldSVG(plays, opt){
 // (Concept bzw. Depth S-I-D), zweiter Klick hebt ihn auf. Die angeklickte Liste ignoriert ihren eigenen
 // Filter (bleibt vollständig, Auswahl hervorgehoben); die andere Liste und die Heatmap filtern mit.
 const DEPTH_TOP = 4;
-function shareRows(list, keyOf, unknownLast, wOf){
-  const m = new Map();
-  list.forEach(p => { const k = keyOf(p) ?? "Unknown", w = wOf ? wOf(p) : 1; if (w > 0) m.set(k, (m.get(k) || 0) + w); });
-  return [...m.entries()].sort((a, b) => (unknownLast ? (a[0] === "Unknown") - (b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
-}
 function barsHTML(kind, rows, total, sel, demo){
   return rows.map(([v, n]) => {
     const pc = total ? n / total * 100 : 0;
@@ -9472,8 +9592,8 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
   const wSum = (list) => wOf ? list.reduce((a, p) => a + wOf(p), 0) : list.length;
   const unit = cnt === "freq" ? "uses" : cnt === "targets" ? "targets" : "Plays";
   const cTot = wSum(conceptBase), dTot = wSum(depthBase);
-  const cRows = shareRows(conceptBase, p => val(p, "play_concept"), true, wOf);
-  let dRows = shareRows(depthBase, depthOf, false, wOf);
+  const cRows = HM.shareRows(conceptBase, p => val(p, "play_concept"), true, wOf);
+  let dRows = HM.shareRows(depthBase, depthOf, false, wOf);
   let more = "";
   if (dRows.length > DEPTH_TOP + 1 && !S.depthMore && !dRows.slice(DEPTH_TOP).some(([v]) => String(v) === selD)){
     const rest = dRows.slice(DEPTH_TOP), restN = rest.reduce((a, [, n]) => a + n, 0);
@@ -9481,10 +9601,7 @@ function renderStats({ demo, field, plays, conceptBase, depthBase, targetBase, o
     more = `<button type="button" class="bar more" data-more="1" title="Show all combinations"><span class="nm">other (${rest.length})</span><span class="tr"><span class="f" style="width:${(restN / dTot * 100).toFixed(1)}%;opacity:.45"></span></span><span class="p">${Math.round(restN / dTot * 100)}%</span></button>`;
   }
   // Targets (P16b): Verteilung der Einsätze nach angeworfener Position (ohne „nur gespielt“), Cross-Filter wie oben
-  const tm = new Map();
-  if (!demo) (targetBase || []).forEach(p => playEntries(p, opt?.opp, opt?.down).forEach(e => { const k = LOG.targetKey(e); if (k) tm.set(k, (tm.get(k) || 0) + 1); }));
-  const tRank = (k) => (k === "No target" ? 2 : k === "QB" ? 1 : 0);
-  const tRows = [...tm.entries()].sort((a, b) => tRank(a[0]) - tRank(b[0]) || b[1] - a[1] || nameCmp(a[0], b[0])), tTot = tRows.reduce((a, [, n]) => a + n, 0);
+  const tRows = demo ? [] : HM.targetRows(targetBase || [], { opp: opt?.opp, down: opt?.down }, HT), tTot = tRows.reduce((a, [, n]) => a + n, 0);
   const names = field === "Endzone" ? "before goal line – EZ short – EZ deep" : `short ≤ ${DEPTH_LIMITS.shortMax} – intermediate ≤ ${DEPTH_LIMITS.intermediateMax} – deep`;
   const small = (n) => n && n < 5 ? " · small sample" : "";
   const none = `<p class="note">${cnt === "targets" ? "No targets." : "No plays."}</p>`;
@@ -9543,6 +9660,7 @@ function seg(id, key){
 
 // Klick-Handler (Auswertung, Chips, Schalter) – aufgerufen von app/main.js an der alten Stelle
 function initHeatmap(){
+  onRender("zonen", renderZones); // Analysis: zuerst die Heatmap, danach PDF-Knopf (export) und Matchups
   $("zStats").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.stoggle){ S.statsOpen = !S.statsOpen; renderZones(); return; }
@@ -9575,7 +9693,7 @@ function initHeatmap(){
   });
 }
 
-registerUi({ renderZones, setZField, fieldCouple });
+registerUi({ setZField, fieldCouple });
 
 // Seiten-Skript (Einstieg des Vite-Builds, docs/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
 // Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
@@ -9606,14 +9724,16 @@ initDraw(); // Zustand und Klick-Handler (modules/draw/)
 // Die Module melden ihre Listener selbst an (onDb in modules/core/, in ihren init…()); hier wird die Datenbank geöffnet und
 // die Anmeldungen werden in ihrer Reihenfolge aufgerufen. Der gemeinsame Listener auf der Collection settings verteilt die
 // Dokumente an die Module (jedes übernimmt nur seine Schlüssel: Game log play-log-…, Coverages coverages/coverage-…,
-// Matchups matchup-…), rendert danach einmal und frischt die offene Detailansicht auf.
+// Matchups matchup-…). Nur wenn ein Modul meldet, dass sich sein Zustand geändert hat (data() ≠ false), rendert die Seite
+// einmal und frischt die offene Detailansicht auf (P50 Schritt 3: die Rückmeldung eigener Schreibvorgänge zeichnet nicht neu).
 (async () => {
   const db = await openDb();
   if (!db){ $("status").textContent = "This browser cannot store data here (private window?). Open the page in a normal browser window."; renderGrid(); return; }
   S.db = db;
   dbHooks.db.forEach(h => h(db));
   db.collection("settings").onSnapshot((snap) => {
-    dbHooks.settings.forEach(h => h.data?.(snap.docs));
+    const neu = dbHooks.settings.map(h => h.data ? h.data(snap.docs) : false).some(x => x !== false);
+    if (!neu) return;
     if (S.playsLoaded) render();
     dbHooks.settings.forEach(h => h.detail?.());
   }, () => { dbHooks.settings.forEach(h => h.error?.()); });
