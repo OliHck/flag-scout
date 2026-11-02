@@ -1658,6 +1658,7 @@ function fieldSVG(play, opts){
 // ---------------------------------------------------------------------
 // Regeln (scripts/lib/derive.mjs): Formation, QB-Ausrichtung, Direction, Concept-Gegenprüfung, waste, LOS
 // ---------------------------------------------------------------------
+// @ts-check
 // Felder, die sich zuverlässiger per Regel berechnen lassen, als von der KI geschätzt.
 // Wird nach jeder Erkennung angewendet (Skill-Werkzeug erfassen.mjs; früher auch scripts/extract.mjs, außer Betrieb).
 
@@ -1888,7 +1889,7 @@ function horizontalRuns(player) {
 }
 const yRange = (r) => [Math.min(r.y0, r.y1), Math.max(r.y0, r.y1)];
 const xRange = (r) => [Math.min(r.x0, r.x1), Math.max(r.x0, r.x1)];
-const overlap = ([a0, a1], [b0, b1]) => Math.min(a1, b1) - Math.max(a0, b0); // negativ = Lücke
+const overlap = (/** @type {number[]} */ [a0, a1], /** @type {number[]} */ [b0, b1]) => Math.min(a1, b1) - Math.max(a0, b0); // negativ = Lücke
 
 // E2 Follow: letzter Lauf zweier Routen in dieselbe Richtung, Beginn und Ende je höchstens followDy auseinander,
 // und der hintere Läufer kommt bis auf followGap an den Startpunkt des vorderen heran (gleiche Bahn).
@@ -2220,6 +2221,7 @@ function derive(play) {
 
 // Entwürfe-Reiter: Dubletten (similarity.mjs), Play-ID (play-id.mjs), Entwürfe (entwurf.mjs) – gekapselt
 const ENTW = (() => {
+// @ts-check
 // Dubletten-Erkennung: Wie ähnlich sind zwei Plays?
 // Gemeinsamer Kern (Skill-Werkzeug erfassen.mjs, später Web-Tool) – reine Funktionen, kein Dateizugriff.
 //
@@ -2577,6 +2579,7 @@ function planDuplicates(batch, stock = [], { keep = new Set() } = {}) {
   return { actions, merged, notes: notes.filter((n) => !gone.has(n.key)), hits };
 }
 
+// @ts-check
 // Play-ID-Schema: TEAM_FORMATION[_EZ]_NR
 //   TEAM       Team-Kürzel. Herkunft (siehe teamCodes): 1. wie bei den schon gespeicherten Plays dieses Teams,
 //              2. lists/teams.json, 3. für neue Teams automatisch: erste 4 Buchstaben, groß (bei Gleichstand
@@ -2639,6 +2642,7 @@ function parsePlayId(id) {
   return m ? { team: m[1], formation: m[2], ez: !!m[3], number: parseInt(m[4], 10) } : null;
 }
 
+// @ts-check
 // Export-Format und Migration (Backlog P48, spec §7n): eine Kopfangabe für alle Play-Exporte (Export all, Auswahl,
 // Back up now, Ordnerdatei des Flag Scout Tools, Export aus der Offline-Datei, Coverage-Datei) und EINE Migration, die
 // Import, Restore from backup, Restore from folder und die Freigabe von Drafts durchlaufen.
@@ -2785,6 +2789,7 @@ function hinweisText(gelesen, unbekannt = []) {
   return parts.join(" ");
 }
 
+// @ts-check
 // Entwürfe (Backlog „Entwürfe-Reiter“, 12.10.2026): erkannte Plays liegen zuerst in der Collection `entwuerfe`
 // (Dokument-ID = geplante Play-ID) und werden auf der Playbook-Seite geprüft, korrigiert und freigegeben.
 // Gemeinsamer Kern für erfassen.mjs (ablegen), die Playbook-Seite (Reiter „Drafts“) und scripts/entwurf-test.mjs –
@@ -2925,6 +2930,10 @@ function entwurfZuPlay(draft, now) {
 //   { typ: "weglassen", id }            → nur Entwurf löschen (identisch mit <id>)
 //   { fehler: "…" }                     → Freigabe nicht möglich (Text englisch für die Seite)
 // geaendert = Ziel-Play hat sich seit dem Ablegen geändert (Seite fragt dann noch einmal nach).
+/**
+ * @param {any} draft
+ * @param {{ target?: any, now?: string }} [o]
+ */
 function entwurfFreigabe(draft, { target = null, now } = {}) {
   const e = draft._entwurf || {}, aktion = e.aktion || "neu";
   if (aktion === "neu") {
@@ -3048,6 +3057,11 @@ function importPlay(raw, version = VOR_P48, migration = {}) {
 //             uebersprungen: [{ nr, orig, text }], fehler: [{ nr, orig, text }] }
 // version: Schema-Version der Datei (Standard raw.version aus importLesen, sonst „vor P48“); migration: { schritte } nur
 // für Tests (simulierte Umbenennung), sonst die Schritte aus exportformat.mjs
+/**
+ * @param {any} raw
+ * @param {any[]} [stock]
+ * @param {Record<string, any>} [o]
+ */
 function importPlanen(raw, stock = [], { teams = {}, overrides = {}, ziel = "entwuerfe", now, quelle = "Import", sheet = null, einsaetze = null, version = raw?.version || VOR_P48, migration = {} } = {}) {
   const fehler = [], uebersprungen = [], eintraege = [];
   const items = [];
@@ -3120,6 +3134,7 @@ return { entwurfHash, entwurfZielId, entwurfFeld, entwurfAllesOk, entwurfDistanz
 const FMT = ENTW.FMT;
 // Zeichen-Editor (scripts/lib/zeichnen.mjs) – gekapselt
 const Z = (() => {
+// @ts-check
 // Zeichen-Editor (Backlog P19, Reiter „Draw“ der Playbook-Seite): Plays direkt am Tablet/PC zeichnen.
 // Gemeinsamer Kern für die Playbook-Seite und scripts/zeichnen-test.mjs – reine Funktionen, kein DOM, kein Dateizugriff,
 // keine Imports (die Seite enthält derive/renderer schon; der Build setzt diese Datei an der Marke ZEICHNEN in die Seite ein).
@@ -3882,6 +3897,10 @@ function ballHolders(play) {
 }
 
 // Fertiges Play für die Ablage: Center-Route null statt fehlend, QB-Route nur wenn vorhanden, Rundung
+/**
+ * @param {any} play
+ * @param {{ concept?: string|null, comment?: string|null, situation?: string|null, source?: string }} [o]
+ */
 function finishDrawPlay(play, { concept = null, comment = null, situation, source = "Draw" } = {}) {
   const p = dClone(play);
   if (concept) p.play_concept = { value: concept, confidence: "high" };
@@ -3944,6 +3963,7 @@ return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, drawLimitsFor, DRAW_P
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
+// @ts-check
 // Einsätze und Targets (Backlog P16b, spec §7e) – gemeinsamer Kern für Playbook-Seite und Tests.
 // Ohne Imports (die Seite setzt die Datei als `LOG` ein); reine Funktionen, kein Dateizugriff.
 //
@@ -4304,6 +4324,7 @@ return { LOG_QB, LOG_NONE, LOG_UNKNOWN, NO_OPPONENT, DOWNS, DOWN_VALUES, PAT_DOW
 })();
 // Play-Auswahl (scripts/lib/auswahl.mjs) – gekapselt
 const SEL = (() => {
+// @ts-check
 // Play-Auswahl im Katalog (Backlog P27, spec §7f): temporäre Auswahl einzelner Plays, z. B. für ein Trainings-PDF.
 // Reine Funktionen ohne Imports und ohne Dateizugriff – die Playbook-Seite setzt die Datei als `SEL` ein,
 // Test: npm run auswahl-test. Eine Auswahl ist ein Array von Play-IDs in Klickreihenfolge (ohne Doppelte).
@@ -4386,6 +4407,11 @@ function marksToRestore(marks, list) {
 // stock = alle Play-IDs, die belegt sind (Katalog + Entwürfe); plays = alle Katalog-Plays (für Team-Kürzel).
 // Rückgabe: Liste { id, newId (= id, wenn gleich), play (neu, vollständig), changes: [Text] } – nur Plays mit Änderung.
 // overrides = Teamkürzel aus „Manage teams“ (settings/team-codes) – gehen vor die Kürzel der gespeicherten Plays.
+/**
+ * @param {any[]} selPlays
+ * @param {any} edit
+ * @param {Record<string, any>} [o] Werkzeuge und Bestand (Typprüfung, P50 Schritt 4)
+ */
 function bulkPlan(selPlays, edit, { tools, stock = [], plays = [], teams = {}, overrides = {}, now = null } = {}) {
   const { normOpponents, makePlayId, parsePlayId, teamCodes } = tools || {};
   const team = typeof edit?.team === "string" ? edit.team.trim().replace(/\s+/g, " ") : "";
@@ -4452,6 +4478,7 @@ function normTeamCode(v) { return String(v ?? "").trim().toUpperCase().replace(/
 // Welche Kürzel sind von welchem Team belegt? Aus Teamliste (teams), gespeicherten Kürzeln (stored) und den Play-IDs
 // von Katalog und Entwürfen (ein Team kann nach „nur Kürzel ändern“ zwei Kürzel in seinen IDs haben).
 // Rückgabe Map Kürzel → Set(Teamnamen).
+/** @param {Record<string, any>} [o] Optionen (Typprüfung P50 Schritt 4) */
 function teamCodeUse({ teams = {}, stored = {}, plays = [], drafts = [], parsePlayId } = {}) {
   const use = new Map(), add = (code, team) => { if (!code || !team) return; if (!use.has(code)) use.set(code, new Set()); use.get(code).add(team); };
   for (const [t, c] of Object.entries(teams || {})) add(c, t);
@@ -4483,6 +4510,7 @@ function checkTeamName(name, names) {
 // umbenanntes Katalog-Play zeigen, bekommen das neue Ziel. collisions = neue IDs, die es schon gibt (dann abbrechen).
 // Rückgabe { plays: [{ id, newId }], drafts: [{ id, newId }], ziele: [{ id (Entwurf), ziel, newZiel }], collisions: [IDs] }
 // from darf auch eine Liste sein (ein Team kann nach „nur Kürzel ändern“ IDs mit mehreren Kürzeln haben).
+/** @param {Record<string, any>} [o] Optionen (Typprüfung P50 Schritt 4) */
 function teamCodeRenamePlan({ team, from, to, plays = [], drafts = [] } = {}) {
   const froms = [].concat(from || []).map(String).filter((f) => f && f !== String(to));
   const pre = (id) => froms.find((f) => id.startsWith(f + "_"));
@@ -4503,6 +4531,7 @@ return { toggle, isSelected, addAll, removeAll, range, prune, ordered, toggleMar
 })();
 // Katalog-Regeln: Filter, Sortierung, Facetten (scripts/lib/katalog.mjs) – gekapselt
 const KAT = (() => {
+// @ts-check
 // Katalog-Regeln (Backlog P49, spec §7): Filter-Bedingung, Sortierung, Facetten – gemeinsamer Kern für die Seite und den Test.
 // Ohne Imports (die Seite setzt die Datei als `KAT` ein); reine Funktionen, kein DOM, kein Dateizugriff.
 // Was vom Zustand der Seite abhängt (Game log, Must-know, Tiefe S-I-D, Formations-Reihenfolge, LOS aus Text), kommt als
@@ -4560,7 +4589,7 @@ const ezGroupsOn = (how) => how !== "freq";
 function sortPlays(list, how, t) {
   const byForm = how === "formation", byDate = how === "new" ? -1 : how === "old" ? 1 : 0;
   const freq = how === "freq" ? new Map(list.map((p) => [p, t.uses(p)])) : null;
-  return [...list].sort((a, b) => (isEZ(a) - isEZ(b)) || (freq ? 0 : t.ezGroup(a) - t.ezGroup(b)) || (byForm ? t.formRank(a) - t.formRank(b) : 0) ||
+  return [...list].sort((a, b) => (+isEZ(a) - +isEZ(b)) || (freq ? 0 : t.ezGroup(a) - t.ezGroup(b)) || (byForm ? t.formRank(a) - t.formRank(b) : 0) ||
     (byDate ? byDate * (savedStamp(a) - savedStamp(b)) : 0) || (freq ? freq.get(b) - freq.get(a) : 0) || nameCmp(a.play_id || "", b.play_id || ""));
 }
 
@@ -4584,6 +4613,7 @@ return { nameCmp, isEZ, EZ_GROUPS, ezDist, ezGroup, FILTER_KEYS, matchFilter, fi
 })();
 // Heatmap-Regeln: Zonen, Seiten, Gewichte, Matrix (scripts/lib/heatmap.mjs) – gekapselt
 const HM = (() => {
+// @ts-check
 // Heatmap-Regeln (Reiter „Analysis“, Backlog P50 Schritt 2; spec: claude/makroanalyse-zielzonen.md, §7e, P16b, P40, P45):
 // Zonenzuordnung der Routenenden, Seiten (real/strong), Gewichte („Every play once“, „By frequency“, „Targets only“),
 // Receiver-Filter, Matrix und Balken-Anteile der Auswertung „Concepts & depth“ – gemeinsamer Kern für Seite und Test.
@@ -4657,7 +4687,7 @@ const nameCmp = new Intl.Collator("de", { numeric: true, sensitivity: "base" }).
 function shareRows(list, keyOf, unknownLast, wOf) {
   const m = new Map();
   list.forEach((p) => { const k = keyOf(p) ?? "Unknown", w = wOf ? wOf(p) : 1; if (w > 0) m.set(k, (m.get(k) || 0) + w); });
-  return [...m.entries()].sort((a, b) => (unknownLast ? (a[0] === "Unknown") - (b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
+  return [...m.entries()].sort((a, b) => (unknownLast ? +(a[0] === "Unknown") - +(b[0] === "Unknown") : 0) || b[1] - a[1] || nameCmp(String(a[0]), String(b[0])));
 }
 // Balken „Target“: Einsätze je angeworfener Position (ohne „nur gespielt“); Receiver zuerst, dann QB, dann No target
 function targetRows(plays, opt, T) {
@@ -4724,6 +4754,7 @@ function scopeBanner(nSel, nShown, crossOn){
 // Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
 const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
+// @ts-check – Typprüfung mit npm run typecheck (P50 Schritt 4); Typen in types/zustand.d.ts, types/play.d.ts, app/kern.d.ts
 // Grundgerüst der Seite (Modul core, P25c Schritt 2): gemeinsamer Zustand S, Hilfen ($, esc, val), Play-Hilfen (Saison,
 // Tiefe S-I-D, Namensvergleich, Chip, Grafik), Klappbereiche der Detailansicht (P32), Reiter mit render() und setTab(). Alle anderen Teile
 // importieren das hier.
@@ -4737,8 +4768,14 @@ const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
 
 // ---------- Zustand ----------
-const S = { plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", zRecv: [], logs: new Map(),
-  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 }; // P37 Analysis-Scope, P38 Archiv
+/** @typedef {import("../../../types/zustand.js").Zustand} Zustand */
+/** @typedef {import("../../../types/zustand.js").Reiter} Reiter */
+/** @typedef {import("../../../types/zustand.js").DbDoc} DbDoc */
+/** @typedef {import("../../../types/play.js").Play} Play */
+// Alle Felder: types/zustand.d.ts (npm run typecheck prüft, dass jedes benutzte Feld dort steht); hier nur die Startwerte
+/** @type {Zustand} */
+const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", zSide: "real", zCount: "plays", zRecv: [], logs: new Map(),
+  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 })); // P37 Analysis-Scope, P38 Archiv
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const val = (p, k) => (p[k] && typeof p[k] === "object") ? p[k].value : p[k];
@@ -4834,6 +4871,10 @@ const ui = {
   },
   muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){},
 };
+/**
+ * Funktionen eines Moduls bei core eintragen (nur Namen aus UI_NAMEN).
+ * @param {Partial<typeof ui>} fns
+ */
 function registerUi(fns){
   for (const [k, f] of Object.entries(fns)) {
     if (!UI_NAMEN.includes(k) || typeof f !== "function") throw new Error(`registerUi: ${k} ist keine erwartete Funktion`);
@@ -4852,12 +4893,23 @@ function registerUi(fns){
 //               (Target, Coverage) kein zweites Neuzeichnen aus (P50 Schritt 3).
 //   "owner"     h()    – nach der Prüfung, ob der Besitzer angemeldet ist (S.owner)
 //   "downloads" h(dl)  – Downloads der Laufzeit (null = in dieser Ansicht nicht verfügbar)
+/**
+ * @typedef {{ data?: (docs: DbDoc[]) => boolean | void, detail?: () => void, error?: () => void }} SettingsHook
+ * @typedef {{ db: Array<(db: any) => void>, settings: SettingsHook[], owner: Array<() => void>, downloads: Array<(dl: any) => void> }} DbHooks
+ */
+/** @type {DbHooks} */
 const dbHooks = { db: [], settings: [], owner: [], downloads: [] };
 // Gleicher Inhalt zweier Maps (Zustand eines Moduls vor/nach einer settings-Meldung; Werte als JSON verglichen)
+/** @type {(a: Map<any, any> | null | undefined, b: Map<any, any> | null | undefined) => boolean} */
 const gleicheMap = (a, b) => !!a && !!b && a.size === b.size && [...a].every(([k, v]) => b.has(k) && JSON.stringify(b.get(k)) === JSON.stringify(v));
+/**
+ * @template {keyof DbHooks} A
+ * @param {A} art
+ * @param {DbHooks[A][number]} h
+ */
 function onDb(art, h){
   if (!dbHooks[art]) throw new Error(`onDb: unbekannte Art ${art}`);
-  dbHooks[art].push(h);
+  /** @type {any[]} */ (dbHooks[art]).push(h);
 }
 
 // Einstellungen je Play (settings/<Dokument>), die beim Löschen und beim Teamwechsel (neue ID) eines Plays mitgehen: jedes
@@ -4884,7 +4936,7 @@ function migrateMode(){
 const secKey = (el) => "playbook-sec-" + el.dataset.sec;
 function initAnsicht(){
   migrateMode();
-  document.querySelectorAll("details.dsec[data-sec]").forEach(el => {
+  /** @type {NodeListOf<HTMLDetailsElement>} */ (document.querySelectorAll("details.dsec[data-sec]")).forEach(el => {
     el.open = lsGet(secKey(el)) === "1";
     el.addEventListener("toggle", () => {
       if (!(el.dataset.sec === "cov" && S.rev)) lsSet(secKey(el), el.open ? "1" : "0"); // Review öffnet „Defense“ nur vorübergehend
@@ -4893,7 +4945,7 @@ function initAnsicht(){
       else if (el.dataset.sec === "cov") ui.covDetailRender();
     });
     // ohne Inhalt (innerer Bereich hidden) ganz ausblenden – auch in Browsern ohne CSS :has()
-    const inner = el.querySelector(".dcov");
+    const inner = /** @type {HTMLElement | null} */ (el.querySelector(".dcov"));
     if (inner) new MutationObserver(() => { el.hidden = inner.hidden; }).observe(inner, { attributes: true, attributeFilter: ["hidden"] });
   });
 }
@@ -4903,8 +4955,15 @@ function initAnsicht(){
 // für welchen Reiter zeichnet (wie onDb). render() ruft nur die Anmeldungen des offenen Reiters auf: zuerst alle mit
 // { vorab: true } (Häkchen, Filterzeile), dann die übrigen, jeweils in der Reihenfolge der Anmeldung (init… in app/main.js:
 // Analysis = Heatmap, PDF-Knopf, Matchups). Reiter "*" = jeder Reiter. Reiter: katalog, zonen (Analysis), drafts, draw, cov.
+/** @type {Reiter[]} */
 const REITER = ["katalog", "zonen", "drafts", "draw", "cov"];
+/** @type {Array<{ liste: Array<Reiter | "*">, fn: () => void, vorab: boolean }>} */
 const renderHooks = [];
+/**
+ * @param {Reiter | "*" | Array<Reiter | "*">} reiter
+ * @param {() => void} fn
+ * @param {{ vorab?: boolean }} [o]
+ */
 function onRender(reiter, fn, { vorab = false } = {}){
   const liste = [].concat(reiter);
   if (typeof fn !== "function" || !liste.length || liste.some(r => r !== "*" && !REITER.includes(r))) throw new Error(`onRender: unbekannter Reiter ${liste.join(", ")}`);
@@ -4922,7 +4981,7 @@ function setTab(t){
   if (!$("view-" + t) && t !== "mu") t = "katalog"; // Reiter eines ausgeschalteten Moduls (Coverages)
   if (t === "mu") t = "zonen"; // P28.3: Analysis = Heatmap, darunter Matchups (kein eigener Zustand mehr)
   S.tab = t;
-  ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", t === x); });
+  ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", String(t === x)); });
   if ($("view-mu")) $("view-mu").hidden = t !== "zonen";
   $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || (S.plays.length === 0 && !S.nArch); // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
   $("fFieldCtl").hidden = t === "zonen"; // in Analysis steuert der Feldtyp-Schalter der Heatmap (gilt auch für Matchups)
@@ -4951,8 +5010,8 @@ function toggleTip(t){
   t.after(b); t.setAttribute("aria-expanded", "true");
 }
 function initTipps(){
-  document.addEventListener("click", (e) => { const t = e.target.closest?.(".tip"); if (!t) return; e.preventDefault(); e.stopPropagation(); toggleTip(t); }, true);
-  document.addEventListener("keydown", (e) => { const t = e.target.closest?.(".tip"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); toggleTip(t); } });
+  document.addEventListener("click", (e) => { const t = /** @type {Element} */ (e.target).closest?.(".tip"); if (!t) return; e.preventDefault(); e.stopPropagation(); toggleTip(t); }, true);
+  document.addEventListener("keydown", (e) => { const t = /** @type {Element} */ (e.target).closest?.(".tip"); if (t && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); toggleTip(t); } });
 }
 // iPhone (Nutzer 20.10.2026): Beim Zoomen mit zwei Fingern kommt beim Loslassen ein „Klick“ an – der öffnete ein Play bzw.
 // setzte im gerade geöffneten Play das Häkchen „Show coverages“. Klicks kurz nach einer Mehrfinger-Geste und kurz nach
@@ -5074,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "5e89a9418ccf";
+const SEITEN_VERSION = "69f54da7437d";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
