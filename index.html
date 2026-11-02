@@ -5133,7 +5133,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "3054ac2e07bc";
+const SEITEN_VERSION = "250b2b5aa54c";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -8220,7 +8220,7 @@ function clearCross(k){ if (selScopeOn()) S.aCross[k] = ""; else $(CROSS_IDS[k])
 // Gegner und Down der Gewichtung: im Scope „Selection“ alle Einsätze (Katalogfilter gelten dort nicht)
 const analysisOpp = () => selScopeOn() ? "" : $("fOpp").value;
 const analysisDown = () => selScopeOn() ? "" : $("fDown").value;
-function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.hm.depthMore = false; S.mSel = null; render(); }
+function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.hm.depthMore = false; if (S.mx) S.mx.mSel = null; render(); } // S.mx nur mit dem Modul matchups
 // Rückfall auf „Filtered“, sobald die Auswahl leer ist
 function scopeSync(){ if (S.aScope !== "filtered" && !S.sel.length){ S.aScope = "filtered"; S.aCross = emptyCross(); } }
 // Schalter „Filtered / Selection (n)“ und Banner oben im Reiter Analysis (nur mit Auswahl); im Scope „Selection“ ist die
