@@ -105,7 +105,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Cards and sorting {#cards}
 - Each card shows the play's graphic, its ID and the ★ for [must-know](#must-know). Formation, concept, depth and comment are in the [play details](#play).
 - The play ID is built from team, formation, Endzone and a number, e.g. `TIGE_Spread_03` or `TIGE_Pro_EZ_01` (team “Tigers”). It changes when the formation or the field changes.
-- **Sort:** by name, by formation, by date (newest or oldest saved first) or by **Frequency** (most uses in the [game log](#game-log) first – the Opponent and Down filters count; same number → by ID). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT.
+- **Sort:** by name, by formation, by date (newest or oldest saved first) or by **Frequency** (most uses in the [game log](#game-log) first – the Opponent and Down filters count; same number → by ID). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT. With Frequency there are no distance groups – all Endzone plays are sorted by uses.
 - PDF and ‹ › in the play details follow the same order.
 - **Show targets/frequency** shows the targets on every card and the number of uses from the [game log](#game-log) next to the ★, e.g. “×7”. Off by default.
 
