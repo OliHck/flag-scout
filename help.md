@@ -39,8 +39,9 @@ More: [Draw](#draw) · [Tools](#draw-tools)
 2. On a new device: **Backup & restore → Restore** brings everything back with the same IDs. **Import** is for plays someone sent you.
 3. **Save offline version (HTML)** makes one file to open anywhere without internet.
 4. Add the tool to your **home screen** – it works like an app and starts offline. iPhone/iPad: the app has its own storage, so back up in Safari and restore in the app.
+5. Keep teams or seasons apart in **catalogs**: **Catalog: … ▾** at the top. Backups always cover the open catalog.
 
-More: [Export and import](#export) · [Backup and restore](#backup) · [Your data](#storage) · [Use it as an app](#app)
+More: [Export and import](#export) · [Backup and restore](#backup) · [Your data](#storage) · [Catalogs](#catalogs) · [Use it as an app](#app)
 
 ## Getting started {#start}
 
@@ -69,6 +70,24 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### iPhone and iPad: separate storage {#iphone}
 - On iPhone and iPad the app on the Home Screen has **its own storage**, separate from Safari – plays you saved in Safari are not in the app.
 - Before you switch: in Safari choose Export ▾ → **Backup & restore → Back up now**, open the app and choose **Backup & restore → Restore from backup** with that file. Plays keep their IDs, game log and must-know marks. From then on use only the app.
+
+### Catalogs {#catalogs}
+- A **catalog** is a separate collection of plays, e.g. one for your club and one for a national team. Each catalog has its own plays, drafts, game log, must-know marks and backups.
+- The open catalog is shown at the top: **Catalog: <name> ▾**. Pick another one in this menu – the page reloads with it. Unsaved work (a drawing in Draw, an open edit) asks first. Next time the tool opens the catalog you used last.
+- **New catalog…** starts an empty catalog and switches to it. **Rename…** renames the open catalog. A name must not be empty or the same as another catalog (upper and lower case count as the same).
+- **Delete…** deletes the open catalog with all its plays, drafts and game log. It shows how many there are and asks you to type the name. The last catalog cannot be deleted. Back up first if you might need the plays again.
+- Your plays from before there were catalogs are in **My plays**.
+- **Backups per catalog:** Back up now, Restore from backup, the offline version and [Save to folder](#folder) always work on the open catalog. File names start with the catalog name (e.g. *playbook-club-export-….json*), and the file notes the catalog. Restore and Import put the plays into the open catalog – switch first.
+
+### Move plays to another catalog {#catalog-move}
+- Only shown when there are at least two catalogs.
+- **A whole team:** Manage teams → Teams → **Move to… ▾** next to the team → choose the catalog.
+- **Any plays, also from several teams:** **Select**, pick the plays → **Move to catalog (n)** → choose the catalog.
+- It asks first, e.g. “Move 22 plays (Team A) to “Club”? 3 get new IDs.”
+- Game log and must-know marks move along. Drafts stay in this catalog, and so do the opponents named in other plays.
+- If a play ID is already taken in the other catalog, the play gets the next free number of its team. The old ID is noted in the play (JSON → *_meta*).
+- Moving is safe: the plays are first copied and checked, then removed here. If it stops halfway, nothing is lost – some plays may then be in both catalogs; delete the extra ones.
+- **Open “…”** in the dialog switches to the other catalog.
 
 ### Updates {#updates}
 - When a newer version of the page is out, a bar at the top says **Update available – tap to reload**. Tap it to load the new version, or tap **✕** to hide it until the next start.
@@ -342,7 +361,8 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 
 ### Save to folder {#folder}
 - **Computer with Chrome or Edge only** – other browsers, iPhone and Android do not show it; there use **Back up now**.
-- Export ▾ → **Backup & restore** → **Save to folder…** → choose a folder, e.g. one your cloud syncs. The tool saves all plays with game log and must-know marks as **flag-scout-plays.json** – the same file as Back up now.
+- Export ▾ → **Backup & restore** → **Save to folder…** → choose a folder, e.g. one your cloud syncs. The tool saves all plays of the open [catalog](#catalogs) with game log and must-know marks as **flag-scout-<catalog name>.json** (e.g. *flag-scout-my-plays.json*) – the same file as Back up now. Each catalog has its own file and remembers its own folder.
+- After renaming a catalog the file gets the new name once the page reloads; the old file stays in the folder.
 - The file is updated a few seconds after every change. While it runs, the backup bar stays away.
 - After the browser restarts it asks for permission again: a bar at the top says **Saving to folder paused** – click **Allow**. Nothing is saved until you do, and changes wait.
 - If the folder already has a file with plays, nothing is overwritten: choose **Restore from folder** to add what is missing here, or **Replace file**.
