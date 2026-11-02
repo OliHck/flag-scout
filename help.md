@@ -55,7 +55,9 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Your data stays in this browser {#storage}
 - Your plays are saved **only in this browser on this device**. Nothing is uploaded, there is no account.
 - Another browser, another device or a private window does not see them. Clearing the browser data deletes them.
-- So **back up regularly**: Export ▾ → Backup & restore → Back up now – see [Backup and restore](#backup).
+- So **back up regularly**: Export ▾ → Backup & restore → Back up now – see [Backup and restore](#backup). On a computer with Chrome or Edge the tool can also [save to a folder](#folder) by itself.
+- At the start the tool asks the browser for **persistent storage**. Backup & restore shows the answer: *persistent* means the browser does not clear your plays on its own; otherwise it may clear them when space runs low.
+- iPhone and iPad keep data most reliably in the [app on the Home Screen](#app).
 - The backup is how you [move your plays to another device](#move); to share plays with others use [JSON](#json).
 
 ### Use it as an app {#app}
@@ -332,6 +334,13 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - **Restore from backup**: choose a backup file. Only what is missing is restored, with the old IDs, game log and must-know marks – existing plays, game log entries and marks are never overwritten.
 - Restore is for your own backups; plays from others come in with [Import](#import).
 
+### Save to folder {#folder}
+- **Computer with Chrome or Edge only** – other browsers, iPhone and Android do not show it; there use **Back up now**.
+- Export ▾ → **Backup & restore** → **Save to folder…** → choose a folder, e.g. one your cloud syncs. The tool saves all plays with game log and must-know marks as **flag-scout-plays.json** – the same file as Back up now.
+- The file is updated a few seconds after every change. While it runs, the backup bar stays away.
+- After the browser restarts it asks for permission again: a bar at the top says **Saving to folder paused** – click **Allow**. Nothing is saved until you do, and changes wait.
+- If the folder already has a file with plays, nothing is overwritten: choose **Restore from folder** to add what is missing here, or **Replace file**.
+- **Restore from folder** works like [Restore from backup](#backup): only what is missing comes back. **Stop saving to folder** ends it; the file stays.
 ### Move to another device {#move}
 1. On the old device: Export ▾ → **Backup & restore** → **Back up now**.
 2. Send the file to the new device (mail, cloud, messenger).
