@@ -327,6 +327,12 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - Variants of catalog plays always go to Drafts, to merge them there.
 - To bring back your own backup with the same IDs use [Restore](#backup), not Import.
 
+### Older and newer files {#file-versions}
+- Every JSON file (export, selection, backup, folder file) starts with a short note on the version of the play format it was saved with.
+- **Older files** stay readable: Import and Restore bring their plays up to date first, so nothing is lost when the format changes. Files from before this note count as the oldest version.
+- **File from a newer version**: the dialog says so – reload the page to get the update, then import or restore again. The plays are read anyway.
+- **Unknown fields**: if a file has fields this version does not know, the dialog lists them (“unknown fields (kept)”). They stay in the play and are not dropped.
+
 ### Backup and restore {#backup}
 - **Export ▾ → Backup & restore** has everything in one place: when you last backed up, **Back up now** and **Restore from backup**. Manage teams links there, too.
 - **Back up now** (or **Export now** in the backup bar) saves all plays with their game log and must-know marks in one JSON file. Keep it outside this browser, e.g. in your mail or cloud.
