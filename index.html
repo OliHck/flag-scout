@@ -4700,60 +4700,6 @@ function targetRows(plays, opt, T) {
 return { ZONES, COLS, column, flipSide, mirrored, freqSides, targetLegs, routeEnds, heatMatrix, playWeight, shareRows, targetRows };
 })();
 
-// Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
-// npm run tool-test sie prüfen kann. Die Seite (modules/catalog/index.js) setzt sie mit ihrem Zustand ein.
-//
-// Archiv: pro Play archived: true + archived_at (ISO-Datum); fehlt das Feld, ist das Play nicht archiviert. Archivierte
-// Plays stehen nur in der Liste der sichtbaren Plays, wenn der Besitzer „Show archived“ eingeschaltet hat (Betrachter nie),
-// und zählen nirgends in der Analyse, nicht in „Select all“ und nicht im PDF. JSON-Export/Backup und Import behalten sie.
-//
-// Analyse: eine Funktion bündelt Archiv-Ausschluss, Scope und Cross-Filter. Scope „filtered“ = Katalogfilter wie bisher
-// (filtered(skip) der Seite); Scope „selection“ = die Play-Auswahl (P27) in Klickreihenfolge, Katalogfilter ignoriert,
-// nur die Cross-Filter-Klicks der Analysis (Concept, Depth S-I-D, Target, Formation in der Matrix) grenzen weiter ein.
-// Ohne Auswahl gilt immer „filtered“ (Rückfall beim Leeren der Auswahl).
-
-const isArchived = (p) => p?.archived === true;
-
-// Archivieren / reaktivieren: neues Objekt; „Unarchive“ entfernt beide Felder (ältere Plays ohne Feld = nicht archiviert)
-function archivedPlay(p, now){ return { ...p, archived: true, archived_at: now }; }
-function unarchivedPlay(p){ const q = { ...p }; delete q.archived; delete q.archived_at; return q; }
-
-// Sichtbare Plays: ohne versteckte Teams (außer der Besitzer blendet sie ein) und ohne archivierte (außer der Besitzer
-// hat „Show archived“ an). Betrachter sehen beides nie.
-function visiblePlays(all, { hidden = [], owner = false, showHidden = false, showArchived = false } = {}){
-  return (all || []).filter(p => (!hidden.includes(p.team) || (owner && showHidden)) && (!isArchived(p) || (owner && showArchived)));
-}
-const withoutArchived = (list) => (list || []).filter(p => !isArchived(p));
-
-// Sammelaktion der Auswahl-Leiste: sind alle gewählten Plays archiviert → „Unarchive“, sonst „Archive“ (nur die noch nicht
-// archivierten ändern sich)
-function archiveAction(list){
-  const on = (list || []).filter(p => !isArchived(p));
-  return on.length || !(list || []).length ? { mode: "archive", plays: on } : { mode: "unarchive", plays: list.filter(isArchived) };
-}
-
-const SCOPES = ["filtered", "selection"];
-const CROSS = ["concept", "depth", "target", "formation"];
-const emptyCross = () => ({ concept: "", depth: "", target: "", formation: "" });
-const analysisScope = (scope, sel) => (scope === "selection" && (sel || []).length ? "selection" : "filtered");
-
-// Plays für die Analyse. skip = ein Cross-Filter, der für diese Liste nicht gilt (die angeklickte Balken-Liste bleibt
-// vollständig). filtered(skip) = Katalogfilter der Seite; match(kind, play, value) prüft einen Cross-Filter.
-function analysisList({ scope, sel = [], plays = [], filtered, cross = {}, skip, match }){
-  if (analysisScope(scope, sel) === "filtered") return withoutArchived(filtered(skip));
-  const byId = new Map(plays.map(p => [p.play_id, p]));
-  return sel.map(id => byId.get(id)).filter(p => p && !isArchived(p))
-    .filter(p => CROSS.every(k => k === skip || !cross[k] || match(k, p, cross[k])));
-}
-
-// Banner im Scope „selection“: „Analyzing 8 selected plays“ bzw. mit aktivem Cross-Filter „8 selected · 3 shown“
-function scopeBanner(nSel, nShown, crossOn){
-  return crossOn ? `${nSel} selected · ${nShown} shown` : `Analyzing ${nSel} selected ${nSel === 1 ? "play" : "plays"}`;
-}
-
-// Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
-const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
-
 // @ts-check – Typprüfung mit npm run typecheck (P50 Schritt 4); Typen in types/zustand.d.ts, types/play.d.ts, app/kern.d.ts
 // Grundgerüst der Seite (Modul core, P25c Schritt 2): gemeinsamer Zustand S, Hilfen ($, esc, val), Play-Hilfen (Saison,
 // Tiefe S-I-D, Namensvergleich, Chip, Grafik), Klappbereiche der Detailansicht (P32), Reiter mit render() und setTab(). Alle anderen Teile
@@ -4774,8 +4720,8 @@ const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 /** @typedef {import("../../../types/play.js").Play} Play */
 // Alle Felder: types/zustand.d.ts (npm run typecheck prüft, dass jedes benutzte Feld dort steht); hier nur die Startwerte
 /** @type {Zustand} */
-const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], selMode: false, selOnly: false, selAnchor: null, tab: "katalog", zField: "Open Field", logs: new Map(),
-  aScope: "filtered", aCross: emptyCross(), showArchived: false, nArch: 0 })); // P37 Analysis-Scope, P38 Archiv
+const S = /** @type {Zustand} */ (/** @type {unknown} */ ({ plays: [], docIds: new Map(), sel: [], tab: "katalog", zField: "Open Field", logs: new Map(), nArch: 0 })); // P38 Archiv
+// Unterobjekte der Module (S.kat, S.hm, …) legt jedes Modul in seinem init…() an (P50 Schritt 5)
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const val = (p, k) => (p[k] && typeof p[k] === "object") ? p[k].value : p[k];
@@ -5133,7 +5079,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "f1b2894f3149";
+const SEITEN_VERSION = "021bd8f47fd3";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -6181,6 +6127,60 @@ const liveVersion = async () => {
   const r = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
   return r.ok ? r.json() : null;
 };
+
+// Archiv (Backlog P38, spec §7j) und Plays für die Analyse (Backlog P37, spec §7k) – reine Regeln ohne DOM, damit
+// npm run tool-test sie prüfen kann. Die Seite (modules/catalog/index.js) setzt sie mit ihrem Zustand ein.
+//
+// Archiv: pro Play archived: true + archived_at (ISO-Datum); fehlt das Feld, ist das Play nicht archiviert. Archivierte
+// Plays stehen nur in der Liste der sichtbaren Plays, wenn der Besitzer „Show archived“ eingeschaltet hat (Betrachter nie),
+// und zählen nirgends in der Analyse, nicht in „Select all“ und nicht im PDF. JSON-Export/Backup und Import behalten sie.
+//
+// Analyse: eine Funktion bündelt Archiv-Ausschluss, Scope und Cross-Filter. Scope „filtered“ = Katalogfilter wie bisher
+// (filtered(skip) der Seite); Scope „selection“ = die Play-Auswahl (P27) in Klickreihenfolge, Katalogfilter ignoriert,
+// nur die Cross-Filter-Klicks der Analysis (Concept, Depth S-I-D, Target, Formation in der Matrix) grenzen weiter ein.
+// Ohne Auswahl gilt immer „filtered“ (Rückfall beim Leeren der Auswahl).
+
+const isArchived = (p) => p?.archived === true;
+
+// Archivieren / reaktivieren: neues Objekt; „Unarchive“ entfernt beide Felder (ältere Plays ohne Feld = nicht archiviert)
+function archivedPlay(p, now){ return { ...p, archived: true, archived_at: now }; }
+function unarchivedPlay(p){ const q = { ...p }; delete q.archived; delete q.archived_at; return q; }
+
+// Sichtbare Plays: ohne versteckte Teams (außer der Besitzer blendet sie ein) und ohne archivierte (außer der Besitzer
+// hat „Show archived“ an). Betrachter sehen beides nie.
+function visiblePlays(all, { hidden = [], owner = false, showHidden = false, showArchived = false } = {}){
+  return (all || []).filter(p => (!hidden.includes(p.team) || (owner && showHidden)) && (!isArchived(p) || (owner && showArchived)));
+}
+const withoutArchived = (list) => (list || []).filter(p => !isArchived(p));
+
+// Sammelaktion der Auswahl-Leiste: sind alle gewählten Plays archiviert → „Unarchive“, sonst „Archive“ (nur die noch nicht
+// archivierten ändern sich)
+function archiveAction(list){
+  const on = (list || []).filter(p => !isArchived(p));
+  return on.length || !(list || []).length ? { mode: "archive", plays: on } : { mode: "unarchive", plays: list.filter(isArchived) };
+}
+
+const SCOPES = ["filtered", "selection"];
+const CROSS = ["concept", "depth", "target", "formation"];
+const emptyCross = () => ({ concept: "", depth: "", target: "", formation: "" });
+const analysisScope = (scope, sel) => (scope === "selection" && (sel || []).length ? "selection" : "filtered");
+
+// Plays für die Analyse. skip = ein Cross-Filter, der für diese Liste nicht gilt (die angeklickte Balken-Liste bleibt
+// vollständig). filtered(skip) = Katalogfilter der Seite; match(kind, play, value) prüft einen Cross-Filter.
+function analysisList({ scope, sel = [], plays = [], filtered, cross = {}, skip, match }){
+  if (analysisScope(scope, sel) === "filtered") return withoutArchived(filtered(skip));
+  const byId = new Map(plays.map(p => [p.play_id, p]));
+  return sel.map(id => byId.get(id)).filter(p => p && !isArchived(p))
+    .filter(p => CROSS.every(k => k === skip || !cross[k] || match(k, p, cross[k])));
+}
+
+// Banner im Scope „selection“: „Analyzing 8 selected plays“ bzw. mit aktivem Cross-Filter „8 selected · 3 shown“
+function scopeBanner(nSel, nShown, crossOn){
+  return crossOn ? `${nSel} selected · ${nShown} shown` : `Analyzing ${nSel} selected ${nSel === 1 ? "play" : "plays"}`;
+}
+
+// Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
+const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
 // Modul gamelog (P25c Teil 2a, docs/p25-plan.md): Gegner, Einsätze und Targets (Backlog P16, spec §7e) – Einsätze je Play
 // (settings/play-log-<Play-ID>, S.logs), Gegner-, Target- und Down-Filter, Anzeige „5×“ auf der Karte, Zahlen an den
@@ -8171,7 +8171,7 @@ function refreshFilters(){
   FACETS.forEach(([key, id, get]) => {
     const counts = KAT.facetCount(facetBase(key), get);
     fillSelect($(id), KAT.facetValues(key, counts, facetOrder), "all", counts);
-    if (key === "team" && (S.hidden || []).length) [...$(id).options].forEach(o => { if (S.hidden.includes(o.value)) o.textContent += " · hidden"; });
+    if (key === "team" && (S.kat.hidden || []).length) [...$(id).options].forEach(o => { if (S.kat.hidden.includes(o.value)) o.textContent += " · hidden"; });
   });
 }
 
@@ -8196,38 +8196,38 @@ const ezGroupsOn = () => KAT.ezGroupsOn($("fSort").value); // auch für die Zwis
 const sortTools = { ezGroup, formRank, uses: (p) => playEntries(p).length };
 function sortPlays(list){ return KAT.sortPlays(list, $("fSort").value, sortTools); }
 // P27: „Only selection“ zeigt nur die Auswahl in Klickreihenfolge (Filter bleiben gesetzt und wirken beim Ausschalten wieder)
-const selOnlyOn = () => S.selMode && S.selOnly;
+const selOnlyOn = () => S.kat.selMode && S.kat.selOnly;
 const catalogList = () => selOnlyOn() ? SEL.ordered(S.sel, S.plays) : sortPlays(filtered());
 
 // ---------- Plays für die Analyse (P37, spec §7k) ----------
 // Eine Stelle für Heatmap, Concepts & depth, Matrix und Review: Archiv-Ausschluss (P38), Scope „Filtered“ (Katalogfilter)
 // oder „Selection“ (die Auswahl, Katalogfilter ignoriert) und Cross-Filter. Im Scope „Selection“ liegen die Cross-Filter in
-// S.aCross, damit die Katalogfilter unberührt bleiben und „Filtered“ wieder die normale Ansicht liefert. Regeln: analyse.js.
+// S.kat.aCross, damit die Katalogfilter unberührt bleiben und „Filtered“ wieder die normale Ansicht liefert. Regeln: analyse.js.
 const CROSS_IDS = { concept: "fConc", depth: "fDepth", target: "fTarget", formation: "fForm" };
-const selScopeOn = () => analysisScope(S.aScope, S.sel) === "selection";
+const selScopeOn = () => analysisScope(S.kat.aScope, S.sel) === "selection";
 const crossMatch = (k, p, v) => k === "concept" ? val(p, "play_concept") === v : k === "depth" ? depthOf(p) === v : k === "formation" ? val(p, "formation") === v
   : LOG.entriesFor(logOf(p), "", "").some(e => LOG.targetKey(e) === v);
 function analysisPlays(skip){
-  return analysisList({ scope: S.aScope, sel: S.sel, plays: S.plays, filtered: (k) => filtered(true, k), cross: S.aCross, skip, match: crossMatch });
+  return analysisList({ scope: S.kat.aScope, sel: S.sel, plays: S.plays, filtered: (k) => filtered(true, k), cross: S.kat.aCross, skip, match: crossMatch });
 }
 // Reihenfolge für „Review matchups“: Auswahl in Klickreihenfolge, sonst Katalog-Sortierung
 const analysisOrdered = () => selScopeOn() ? analysisPlays() : sortPlays(analysisPlays());
-const crossValue = (k) => selScopeOn() ? S.aCross[k] || "" : $(CROSS_IDS[k]).value;
+const crossValue = (k) => selScopeOn() ? S.kat.aCross[k] || "" : $(CROSS_IDS[k]).value;
 // Klick auf einen Balken/eine Formation: setzen, zweiter Klick hebt auf
 function setCross(k, v){
-  if (selScopeOn()){ S.aCross[k] = S.aCross[k] === v ? "" : v; render(); return; }
+  if (selScopeOn()){ S.kat.aCross[k] = S.kat.aCross[k] === v ? "" : v; render(); return; }
   const sel = $(CROSS_IDS[k]), next = sel.value === v ? "" : v;
   sel.value = next;
   if (sel.value !== next) sel.value = ""; // Wert nicht im Filter-Dropdown → aufheben statt falsch filtern
   render();
 }
-function clearCross(k){ if (selScopeOn()) S.aCross[k] = ""; else $(CROSS_IDS[k]).value = ""; }
+function clearCross(k){ if (selScopeOn()) S.kat.aCross[k] = ""; else $(CROSS_IDS[k]).value = ""; }
 // Gegner und Down der Gewichtung: im Scope „Selection“ alle Einsätze (Katalogfilter gelten dort nicht)
 const analysisOpp = () => selScopeOn() ? "" : $("fOpp").value;
 const analysisDown = () => selScopeOn() ? "" : $("fDown").value;
-function setScope(s){ S.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.aCross = emptyCross(); S.hm.depthMore = false; if (S.mx) S.mx.mSel = null; render(); } // S.mx nur mit dem Modul matchups
+function setScope(s){ S.kat.aScope = s === "selection" && S.sel.length ? "selection" : "filtered"; S.kat.aCross = emptyCross(); S.hm.depthMore = false; if (S.mx) S.mx.mSel = null; render(); } // S.mx nur mit dem Modul matchups
 // Rückfall auf „Filtered“, sobald die Auswahl leer ist
-function scopeSync(){ if (S.aScope !== "filtered" && !S.sel.length){ S.aScope = "filtered"; S.aCross = emptyCross(); } }
+function scopeSync(){ if (S.kat.aScope !== "filtered" && !S.sel.length){ S.kat.aScope = "filtered"; S.kat.aCross = emptyCross(); } }
 // Schalter „Filtered / Selection (n)“ und Banner oben im Reiter Analysis (nur mit Auswahl); im Scope „Selection“ ist die
 // Filterzeile ausgeblendet – sie gilt dort nicht
 function scopeUpdate(){
@@ -8240,7 +8240,7 @@ function scopeUpdate(){
   $("aScopeSel").textContent = `Selection (${nSel})`;
   $("aBanner").hidden = !on;
   if (on){
-    const crossOn = Object.values(S.aCross).some(Boolean);
+    const crossOn = Object.values(S.kat.aCross).some(Boolean);
     $("aBannerText").textContent = scopeBanner(nSel, analysisPlays().length, crossOn);
   }
   if (S.tab === "zonen"){
@@ -8293,7 +8293,7 @@ function renderGrid(){
   const html = list.map((p, i) => (i === sepAt ? `<div class="ezsep" role="separator" aria-label="Endzone plays"></div>` : "") + `
     <button class="card${isArchived(p) ? " archived" : ""}" type="button" data-id="${esc(p.play_id)}">
       <div class="field">${cardSVG(p, used)}</div>
-      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${isArchived(p) ? `<span class="hidtag archtag" title="Not in the analysis, Select all and PDF">Archived</span>` : ""}${starEnd(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
+      <div class="pidrow"><div class="pid">${esc(p.play_id)}</div>${(S.kat.hidden || []).includes(p.team) ? `<span class="hidtag" title="This team is hidden for viewers">hidden</span>` : ""}${isArchived(p) ? `<span class="hidtag archtag" title="Not in the analysis, Select all and PDF">Archived</span>` : ""}${starEnd(p)}</div>${ui.covActive() ? `<div class="covn">${esc(ui.covLabelFor(p))}</div>` : ""}
     </button>`).join("");
   svgMemo = used; // nur die Grafiken des aktuellen Rasters behalten
   if (html !== gridHTML){ $("grid").innerHTML = html; gridHTML = html; }
@@ -8304,7 +8304,7 @@ function renderGrid(){
 // Auswahl an den Karten anzeigen (P27): im Auswahlmodus Kästchen (✓ bei gewählten) und Nummer der Klickreihenfolge, Klasse
 // „sel“ und aria-pressed. Ändert nur, was abweicht – ein Klick kostet damit keinen Neuaufbau des Rasters (P49).
 function selApply(){
-  const sm = S.selMode, pos = new Map(S.sel.map((id, i) => [id, i + 1])), grid = $("grid");
+  const sm = S.kat.selMode, pos = new Map(S.sel.map((id, i) => [id, i + 1])), grid = $("grid");
   grid.classList.toggle("selmode", sm);
   for (const c of grid.children){
     if (!c.classList.contains("card")) continue;
@@ -8335,12 +8335,12 @@ function openDetail(id){
   $("dField").innerHTML = svgFor(p);
   $("dTitle").textContent = p.play_id;
   S.detailId = id; S.editing = false; $("dToast").textContent = "";
-  S.chipEdit = null; renderInfo(p);
+  S.kat.chipEdit = null; renderInfo(p);
   $("dPre").textContent = JSON.stringify(p, null, 2);
   $("dStar").hidden = !(S.owner && S.db); $("dStar").textContent = isMarked(p) ? "★ Must-know" : "☆ Must-know"; $("dStar").setAttribute("aria-pressed", isMarked(p));
   $("dEdit").hidden = !S.db; $("dSave").hidden = true; $("dCancel").hidden = true; $("dJsonSec").hidden = false;
   $("dDraw").hidden = !(S.owner && S.db); $("dDup").hidden = !(S.owner && S.db); $("dUndo").hidden = true;
-  $("dArch").hidden = !archCanOwn(); $("dArch").textContent = isArchived(p) ? "Unarchive" : "Archive"; $("dArch").disabled = !!S.archBusy;
+  $("dArch").hidden = !archCanOwn(); $("dArch").textContent = isArchived(p) ? "Unarchive" : "Archive"; $("dArch").disabled = !!S.kat.archBusy;
   if (S.owner && S.db) wUndoInfo(p).then(u => { if (S.detailId === id && !S.editing && u) { $("dUndo").hidden = false; $("dUndo").title = `Restore the version from ${new Date(u.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`; } }).catch(() => {});
   S.gl.lg = { id, confirm: null, msg: "" }; logDetailRender(); // Einsätze/Targets (P16b, Bereich „Game log“)
   ui.covDetailOpen(p); // Defense-Ebene (P22): Grafik mit Defense + Bereich „Defense“
@@ -8378,7 +8378,7 @@ const fmtTime = (t) => new Date(t).toLocaleString("en-GB", { dateStyle: "medium"
 const CHIP_KEYS = ["formation", "qb_alignment", "direction", "play_concept"];
 function infoChip(p, k, text, title, cls){
   const f = EDIT_FIELDS.find(([x]) => x === k), ed = !!(S.owner && S.db && !S.offline && f);
-  if (ed && S.chipEdit === k){
+  if (ed && S.kat.chipEdit === k){
     const cur = val(p, k) ?? "Unknown", opts = f[2].includes(cur) ? f[2] : [cur, ...f[2]];
     return `<select class="dchipsel" data-dk="${k}" aria-label="${esc(f[1])}">${opts.map(v => `<option${v === cur ? " selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
   }
@@ -8406,7 +8406,7 @@ function renderInfo(p){
 async function saveChip(k, v){
   const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !S.db) return;
   const cur = val(p, k) ?? "Unknown";
-  S.chipEdit = null;
+  S.kat.chipEdit = null;
   if (v === cur){ renderInfo(p); return; }
   const patch = { [k]: { value: v, confidence: "high" }, unresolved_fields: (p.unresolved_fields || []).filter(f => f !== k) };
   if (k === "field_type") patch.depth_distribution = depthDistribution({ ...p, ...patch });
@@ -8485,18 +8485,18 @@ const HIDDEN_FILTERS = [["fDir", "Direction"], ["fConc", "Concept"], ["fDepth", 
 // P28.1: Zusatzfilter einklappbar, Standard eingeklappt; der Zustand gilt für Plays und Analysis
 // (gemeinsame Filterzeile) und bleibt bis zum Neuladen erhalten
 // P38: „Show archived“ (nur Besitzer) steht mit in „More filters“ – zugeklappt als Chip „Archived shown“
-const archShown = () => !!(S.owner && S.showArchived);
+const archShown = () => !!(S.owner && S.kat.showArchived);
 function updateFold(){
-  $("filters").classList.toggle("fold", !S.filtersOpen);
-  $("fMore").setAttribute("aria-expanded", S.filtersOpen);
-  $("fMore").lastChild.textContent = S.filtersOpen ? " ▾" : " ▸";
+  $("filters").classList.toggle("fold", !S.kat.filtersOpen);
+  $("fMore").setAttribute("aria-expanded", S.kat.filtersOpen);
+  $("fMore").lastChild.textContent = S.kat.filtersOpen ? " ▾" : " ▸";
   const n = HIDDEN_FILTERS.filter(([id]) => $(id).value.trim() !== "").length + (archShown() ? 1 : 0);
-  $("fMoreN").textContent = !S.filtersOpen && n ? `(${n})` : "";
+  $("fMoreN").textContent = !S.kat.filtersOpen && n ? `(${n})` : "";
 }
 function updateHiddenHint(){
   const box = $("hiddenF");
   updateFold();
-  if (S.filtersOpen) { box.hidden = true; return; }
+  if (S.kat.filtersOpen) { box.hidden = true; return; }
   // In der Heatmap zeigt die Auswertung Concept/Depth schon als Chips an
   const list = HIDDEN_FILTERS.filter(([id]) => !(S.tab === "zonen" && (id === "fConc" || id === "fDepth" || id === "fTarget")) && $(id).value.trim() !== "")
     .map(([id, name]) => [id, name, $(id).value.trim()]);
@@ -8514,16 +8514,16 @@ function updateReset(){ const n = activeFilters(); $("fReset").hidden = n === 0;
 
 // Wird im Datenbank-Teil gesetzt; offline (HTML-Export) nicht verfügbar
 async function toggleMark(id){
-  if (!S.owner || !S.db || S.markBusy) return;
+  if (!S.owner || !S.db || S.kat.markBusy) return;
   const set = new Set(S.marks || []);
   set.has(id) ? set.delete(id) : set.add(id);
-  S.markBusy = true;
+  S.kat.markBusy = true;
   try {
     await S.db.doc("settings/marks").set({ plays: [...set].sort(nameCmp), updated_at: new Date().toISOString() });
     S.marks = [...set]; render(); if (!$("overlay").hidden && S.detailId === id && !S.editing) openDetail(id);
   } catch (err) {
     $("toast").textContent = "Mark not saved: " + (err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can mark plays." : (err && err.message || err));
-  } finally { S.markBusy = false; }
+  } finally { S.kat.markBusy = false; }
 }
 
 // P39a: Markierungen ergänzen (Restore, Import, Freigabe eines Entwurfs mit must_know) – nie entfernen
@@ -8544,18 +8544,18 @@ function selPrune(){
   if (S.selBusy) return; // während Löschen/Bearbeiten nicht bereinigen: der Live-Abgleich zeigt Zwischenstände (alte ID weg, neue noch nicht übernommen)
   const ids = (S.allPlays || S.plays || []).map(p => p.play_id);
   if (S.playsLoaded || ids.length) S.sel = SEL.prune(S.sel, ids);
-  if (S.selAnchor && !S.sel.includes(S.selAnchor) && !ids.includes(S.selAnchor)) S.selAnchor = null;
+  if (S.kat.selAnchor && !S.sel.includes(S.kat.selAnchor) && !ids.includes(S.kat.selAnchor)) S.kat.selAnchor = null;
 }
 function selBarUpdate(){
   scopeSync(); // P37: leere Auswahl → Analysis wieder „Filtered“
   const has = S.plays.length > 0, n = S.sel.length;
   $("selBtn").hidden = !has;
-  $("selBtn").setAttribute("aria-pressed", String(S.selMode));
-  $("selBtn").textContent = !S.selMode && n ? `Select (${n})` : "Select";
-  $("selBar").hidden = !(S.selMode && has);
+  $("selBtn").setAttribute("aria-pressed", String(S.kat.selMode));
+  $("selBtn").textContent = !S.kat.selMode && n ? `Select (${n})` : "Select";
+  $("selBar").hidden = !(S.kat.selMode && has);
   if ($("selBar").hidden) return;
   $("selN").textContent = `${n} selected`;
-  $("selOnly").checked = S.selOnly;
+  $("selOnly").checked = S.kat.selOnly;
   const vis = selOnlyOn() ? [] : withoutArchived(catalogList()).map(p => p.play_id); // P38: archivierte nicht in „Select all“
   $("selAll").disabled = !vis.length || vis.every(id => S.sel.includes(id));
   $("selNone").disabled = !(selOnlyOn() ? [] : catalogList()).some(p => S.sel.includes(p.play_id));
@@ -8575,8 +8575,8 @@ function selBarUpdate(){
 }
 function selSetMode(on){
   const only = selOnlyOn();
-  S.selMode = !!on;
-  if (!on){ S.selOnly = false; $("selToast").textContent = ""; }
+  S.kat.selMode = !!on;
+  if (!on){ S.kat.selOnly = false; $("selToast").textContent = ""; }
   selRefresh(only);
 }
 // ---------- Archivieren (P38, spec §7j) ----------
@@ -8584,8 +8584,8 @@ function selSetMode(on){
 // (ganzes Dokument neu schreiben, ohne die zwei Felder). Nichts wird gelöscht; Game log, Coverage und Matchups bleiben.
 const archCanOwn = () => !!(S.owner && S.db && !S.offline);
 async function archivePlays(ids, on){
-  if (!archCanOwn() || S.archBusy) return 0;
-  S.archBusy = true;
+  if (!archCanOwn() || S.kat.archBusy) return 0;
+  S.kat.archBusy = true;
   const now = new Date().toISOString();
   let done = 0;
   try {
@@ -8602,7 +8602,7 @@ async function archivePlays(ids, on){
       done++;
     }
   } finally {
-    S.archBusy = false;
+    S.kat.archBusy = false;
     // ausgeblendete archivierte Plays fallen aus der Auswahl (sie zählen dort ohnehin nicht)
     if (on && !archShown()) S.sel = S.sel.filter(id => !ids.includes(id));
     applyHidden();
@@ -8611,7 +8611,7 @@ async function archivePlays(ids, on){
 }
 const archErr = (err) => err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can archive plays." : (err && err.message || err);
 async function detailArchive(){
-  const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !archCanOwn() || S.archBusy) return;
+  const p = S.plays.find(x => x.play_id === S.detailId); if (!p || !archCanOwn() || S.kat.archBusy) return;
   const on = !isArchived(p), id = p.play_id;
   $("dArch").disabled = true; $("dToast").textContent = on ? "Archiving …" : "Unarchiving …";
   try {
@@ -8623,11 +8623,11 @@ async function detailArchive(){
 
 function selClick(id, shift){
   const only = selOnlyOn();
-  if (!S.selMode){ S.selMode = true; }
+  if (!S.kat.selMode){ S.kat.selMode = true; }
   const vis = catalogList().map(p => p.play_id);
-  S.sel = shift && S.selAnchor ? SEL.range(S.sel, vis, S.selAnchor, id) : SEL.toggle(S.sel, id);
-  S.selAnchor = id;
-  if (selOnlyOn() && !S.sel.length) S.selOnly = false;
+  S.sel = shift && S.kat.selAnchor ? SEL.range(S.sel, vis, S.kat.selAnchor, id) : SEL.toggle(S.sel, id);
+  S.kat.selAnchor = id;
+  if (selOnlyOn() && !S.sel.length) S.kat.selOnly = false;
   selRefresh(only);
 }
 const selPlays = () => SEL.ordered(S.sel, S.plays);
@@ -8690,13 +8690,13 @@ function selEditPreview(){
   return plan;
 }
 // ---------- Play-ID ändern (Teamwechsel, Teamkürzel): schnell und abbruchsicher ----------
-// Die settings-Dokumente kennt die Seite schon aus dem gemeinsamen Listener (S.settingDocs) – umgezogen wird nur, was es gibt,
+// Die settings-Dokumente kennt die Seite schon aus dem gemeinsamen Listener (S.kat.settingDocs) – umgezogen wird nur, was es gibt,
 // ohne Nachsehen je Play. Mehrere Plays laufen gleichzeitig (PLAY_POOL); je Play bleibt die Reihenfolge: neues Play anlegen,
 // Einstellungen umziehen, altes löschen – ein Abbruch lässt nichts verwaisen.
 const PLAY_POOL = 5;
 const undoDocId = (docId) => "undo-" + String(docId).replace(/[^A-Za-z0-9_-]/g, "_"); // wie W_UNDO im Modul draw
 async function settingRead(id){
-  if (S.settingDocs) { const d = S.settingDocs.get(id); return d ? { exists: true, data: () => d.data() } : { exists: false }; }
+  if (S.kat.settingDocs) { const d = S.kat.settingDocs.get(id); return d ? { exists: true, data: () => d.data() } : { exists: false }; }
   return S.db.doc("settings/" + id).get(); // Listener noch nicht geladen
 }
 const playIdTaken = (id) => S.docIds.has(id) || [...S.docIds.values()].includes(id);
@@ -8750,7 +8750,7 @@ async function selEditSave(){
     if (Object.keys(renamed).length){
       await marksRename(renamed, now);
       S.sel = S.sel.map(id => renamed[id] || id);
-      if (S.selAnchor && renamed[S.selAnchor]) S.selAnchor = renamed[S.selAnchor];
+      if (S.kat.selAnchor && renamed[S.kat.selAnchor]) S.kat.selAnchor = renamed[S.kat.selAnchor];
     }
     // sofort anzeigen, der Live-Abgleich folgt
     const byOld = new Map(plan.map(r => [r.id, r]));
@@ -8769,10 +8769,10 @@ async function selEditSave(){
 // Sichtbare Plays = alle ohne versteckte Teams (außer der Besitzer blendet sie ein)
 function applyHidden(){
   if (!S.playsLoaded) return;
-  const hidden = S.hidden || [];
-  const showAll = S.owner && S.showHidden;
+  const hidden = S.kat.hidden || [];
+  const showAll = S.owner && S.kat.showHidden;
   // P38: archivierte Plays nur für den Besitzer mit „Show archived“, Betrachter sehen sie nie
-  S.plays = visiblePlays(S.allPlays, { hidden, owner: !!S.owner, showHidden: !!S.showHidden, showArchived: !!S.showArchived });
+  S.plays = visiblePlays(S.allPlays, { hidden, owner: !!S.owner, showHidden: !!S.kat.showHidden, showArchived: !!S.kat.showArchived });
   const active = withoutArchived(S.plays), teams = uniq(active.map(p => p.team));
   const nHidden = S.owner ? uniq((S.allPlays || []).map(p => p.team)).filter(t => hidden.includes(t)).length : 0;
   const nArch = S.owner ? (S.allPlays || []).filter(p => isArchived(p) && (showAll || !hidden.includes(p.team))).length : 0;
@@ -8792,12 +8792,12 @@ function applyHidden(){
 
 function openTeams(){
   if (!S.owner) return;
-  $("tShowHidden").checked = !!S.showHidden; $("tToast").textContent = ""; S.confirmTeam = null; S.oAsk = null; S.tCode = null; S.tNew = null;
-  teamsView(S.teamsView || "teams"); renderTeams(); $("teamsDlg").hidden = false; $("tClose").focus();
+  $("tShowHidden").checked = !!S.kat.showHidden; $("tToast").textContent = ""; S.kat.confirmTeam = null; S.kat.oAsk = null; S.kat.tCode = null; S.kat.tNew = null;
+  teamsView(S.kat.teamsView || "teams"); renderTeams(); $("teamsDlg").hidden = false; $("tClose").focus();
 }
 // Reiter „Teams“ | „Opponents“ (P40)
 function teamsView(v){
-  S.teamsView = v;
+  S.kat.teamsView = v;
   $("teamsDlg").querySelectorAll("[data-tview]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tview === v)));
   $("tTeamsView").hidden = v !== "teams"; $("tOppsView").hidden = v !== "opps";
   if (v === "opps") renderOpps();
@@ -8812,7 +8812,7 @@ const builtIn = (n) => Object.keys(ENTW.TEAMS || {}).some(t => lcName(t) === lcN
 const oppCount = (o) => `${o.plays} ${o.plays === 1 ? "play" : "plays"} · ${o.uses} ${o.uses === 1 ? "use" : "uses"}`;
 function renderOpps(){
   if ($("tOppsView").hidden) return;
-  const list = LOG.opponentStats(S.allPlays || [], S.logs || new Map()), a = S.oAsk;
+  const list = LOG.opponentStats(S.allPlays || [], S.logs || new Map()), a = S.kat.oAsk;
   $("oList").innerHTML = list.length ? list.map(o => {
     const en = esc(o.name), ask = a && lcName(a.name) === lcName(o.name) ? a : null;
     let more = "";
@@ -8864,14 +8864,14 @@ async function oppApply(name, to){
 async function onOppAction(e){
   const b = e.target.closest("button[data-oact]"); if (!b || !S.owner || !S.db) return;
   const name = b.dataset.opp, act = b.dataset.oact;
-  if (act === "del" || act === "ren"){ S.oAsk = { kind: act, name, to: name }; $("tToast").textContent = ""; renderOpps(); if (act === "ren") $("oList").querySelector("input[data-oren]")?.select(); return; }
-  if (act === "cancel"){ S.oAsk = null; renderOpps(); return; }
+  if (act === "del" || act === "ren"){ S.kat.oAsk = { kind: act, name, to: name }; $("tToast").textContent = ""; renderOpps(); if (act === "ren") $("oList").querySelector("input[data-oren]")?.select(); return; }
+  if (act === "cancel"){ S.kat.oAsk = null; renderOpps(); return; }
   const to = act === "ren-go" ? String($("oList").querySelector("input[data-oren]")?.value || "").trim() : null;
-  if (act === "ren-go" && (!to || to === name)){ S.oAsk = null; renderOpps(); return; }
+  if (act === "ren-go" && (!to || to === name)){ S.kat.oAsk = null; renderOpps(); return; }
   $("oList").querySelectorAll("button").forEach(x => x.disabled = true);
   try {
     const neu = await oppApply(name, to);
-    S.oAsk = null;
+    S.kat.oAsk = null;
     $("tToast").textContent = neu ? `${name} renamed to ${neu}.` : `${name} removed – its uses now have unknown opponent.`;
   } catch (err) {
     $("tToast").innerHTML = `<span class="err">Not possible: ${esc(err && (err.code === "permission_denied" || err.code === "not_granted") ? "only the owner can change opponents." : (err && err.message || err))}</span>`;
@@ -8895,11 +8895,11 @@ function renderTeams(){
   const counts = new Map();
   (S.allPlays || []).forEach(p => counts.set(p.team, (counts.get(p.team) || 0) + 1));
   Object.keys(teamOverrides()).forEach(t => { if (!counts.has(t)) counts.set(t, 0); }); // neue Teams ohne Plays
-  const hidden = S.hidden || [];
-  const teams = [...counts.keys()].sort(nameCmp), tc = S.tCode;
+  const hidden = S.kat.hidden || [];
+  const teams = [...counts.keys()].sort(nameCmp), tc = S.kat.tCode;
   $("tList").innerHTML = teams.length ? teams.map(t => {
     const isH = hidden.includes(t), n = counts.get(t), et = esc(t), code = teamCodeOf(t);
-    const confirm = S.confirmTeam === t ? `<div class="confirm">Delete team ${et} with ${n} ${n === 1 ? "play" : "plays"}? This cannot be undone. Type the team name to confirm:
+    const confirm = S.kat.confirmTeam === t ? `<div class="confirm">Delete team ${et} with ${n} ${n === 1 ? "play" : "plays"}? This cannot be undone. Type the team name to confirm:
         <input type="text" data-confirm="${et}" aria-label="Type ${et} to confirm" autocomplete="off">
         <button class="btn danger" type="button" data-act="del-go" data-team="${et}" disabled>Delete</button>
         <button class="btn" type="button" data-act="del-cancel" data-team="${et}">Cancel</button></div>` : "";
@@ -8926,11 +8926,11 @@ function renderTeams(){
   }).join("") : `<li>No teams yet.</li>`;
   kataloge.teams($("tList")); // je Team „Move to… ▾“
   renderNewTeam();
-  if (S.confirmTeam){ const i = $("tList").querySelector("input[data-confirm]"); if (i) i.focus(); }
+  if (S.kat.confirmTeam){ const i = $("tList").querySelector("input[data-confirm]"); if (i) i.focus(); }
 }
 // Neues Team: Name und Kürzel (Vorschlag aus dem Namen wie bei neuen Teams sonst auch)
 function newTeamCheck(){
-  const nt = S.tNew; if (!nt) return {};
+  const nt = S.kat.tNew; if (!nt) return {};
   const names = uniq([...(S.allPlays || []).map(p => p.team), ...(S.drafts || []).map(d => d.team), ...Object.keys(ENTW.TEAMS || {}), ...Object.keys(teamOverrides())].filter(Boolean));
   const name = String(nt.name || "").trim().replace(/\s+/g, " ");
   const code = SEL.normTeamCode(nt.code || "");
@@ -8939,7 +8939,7 @@ function newTeamCheck(){
 }
 function renderNewTeam(){
   const box = $("tNew"); if (!box) return;
-  const nt = S.tNew;
+  const nt = S.kat.tNew;
   if (!nt){ box.innerHTML = `<button class="btn" type="button" data-nact="open" title="Add a team with name and code">+ New team</button>`; return; }
   const c = newTeamCheck(), show = (nt.name || nt.code) && c.err;
   box.innerHTML = `<div class="confirm tcode">New team:
@@ -8958,13 +8958,13 @@ function keepFocus(sel, fn){
 async function onNewTeam(e){
   const b = e.target.closest("button[data-nact]"); if (!b || !S.owner || !S.db) return;
   const act = b.dataset.nact;
-  if (act === "open"){ S.tNew = { name: "", code: "" }; renderNewTeam(); $("tNew").querySelector('input[data-nt="name"]')?.focus(); return; }
-  if (act === "cancel"){ S.tNew = null; renderNewTeam(); return; }
+  if (act === "open"){ S.kat.tNew = { name: "", code: "" }; renderNewTeam(); $("tNew").querySelector('input[data-nt="name"]')?.focus(); return; }
+  if (act === "cancel"){ S.kat.tNew = null; renderNewTeam(); return; }
   const c = newTeamCheck(); if (c.err) return renderNewTeam();
   b.disabled = true;
   try {
     await saveTeamCodes({ ...teamOverrides(), [c.name]: c.code });
-    S.tNew = null;
+    S.kat.tNew = null;
     $("tToast").textContent = `Team ${c.name} (${c.code}) created – choose it in Draw or Import.`;
   } catch (err) {
     $("tToast").innerHTML = `<span class="err">Not possible: ${esc(errText(err))}</span>`;
@@ -9007,7 +9007,7 @@ async function applyTeamCode(t, to, ids){
     } else await S.db.doc("entwuerfe/" + oldDoc).set(nd);
   });
   S.sel = (S.sel || []).map(id => renamed[id] || id);
-  if (S.selAnchor && renamed[S.selAnchor]) S.selAnchor = renamed[S.selAnchor];
+  if (S.kat.selAnchor && renamed[S.kat.selAnchor]) S.kat.selAnchor = renamed[S.kat.selAnchor];
   if (S.detailId && renamed[S.detailId]) S.detailId = renamed[S.detailId];
   return plan.plays.length;
 }
@@ -9022,27 +9022,27 @@ async function marksRename(renamed, now){
 async function onTeamAction(e){
   const b = e.target.closest("button[data-act]"); if (!b || !S.owner || !S.db) return;
   const t = b.dataset.team, act = b.dataset.act;
-  if (act === "del"){ S.confirmTeam = t; S.tCode = null; $("tToast").textContent = ""; renderTeams(); return; }
-  if (act === "del-cancel"){ S.confirmTeam = null; renderTeams(); return; }
-  if (act === "code"){ S.tCode = { team: t, step: "edit", value: teamCodeOf(t) }; S.confirmTeam = null; $("tToast").textContent = ""; renderTeams(); $("tList").querySelector("input[data-tcode]")?.select(); return; }
-  if (act === "code-cancel"){ S.tCode = null; renderTeams(); return; }
+  if (act === "del"){ S.kat.confirmTeam = t; S.kat.tCode = null; $("tToast").textContent = ""; renderTeams(); return; }
+  if (act === "del-cancel"){ S.kat.confirmTeam = null; renderTeams(); return; }
+  if (act === "code"){ S.kat.tCode = { team: t, step: "edit", value: teamCodeOf(t) }; S.kat.confirmTeam = null; $("tToast").textContent = ""; renderTeams(); $("tList").querySelector("input[data-tcode]")?.select(); return; }
+  if (act === "code-cancel"){ S.kat.tCode = null; renderTeams(); return; }
   if (act === "code-go"){
-    const to = SEL.normTeamCode(S.tCode?.value), err = SEL.checkTeamCode(to, t, teamUse());
-    if (err){ S.tCode = { ...S.tCode, touched: true }; renderTeams(); return; }
+    const to = SEL.normTeamCode(S.kat.tCode?.value), err = SEL.checkTeamCode(to, t, teamUse());
+    if (err){ S.kat.tCode = { ...S.kat.tCode, touched: true }; renderTeams(); return; }
     const plan = codeRenamePlan(t, to);
-    if (plan.plays.length || plan.drafts.length){ S.tCode = { team: t, step: "ask", to, plan }; renderTeams(); return; }
+    if (plan.plays.length || plan.drafts.length){ S.kat.tCode = { team: t, step: "ask", to, plan }; renderTeams(); return; }
   }
   $("tList").querySelectorAll("button").forEach(x => x.disabled = true);
   try {
     if (act === "code-go" || act === "code-ids" || act === "code-only"){
-      const to = act === "code-go" ? SEL.normTeamCode(S.tCode?.value) : S.tCode?.to, from = teamCodeOf(t);
+      const to = act === "code-go" ? SEL.normTeamCode(S.kat.tCode?.value) : S.kat.tCode?.to, from = teamCodeOf(t);
       const err = SEL.checkTeamCode(to, t, teamUse()); if (err) throw new Error(err);
       const n = await quietly(() => applyTeamCode(t, to, act === "code-ids"));
-      S.tCode = null;
+      S.kat.tCode = null;
       $("tToast").textContent = act === "code-ids" ? `Code of ${t}: ${from} → ${to}, ${n} ${n === 1 ? "play" : "plays"} renamed.` : `Code of ${t}: ${from} → ${to}.${act === "code-only" ? " Existing play IDs stay, new plays get " + to + "." : ""}`;
       if (!$("overlay").hidden && S.detailId) openDetail(S.detailId);
     } else if (act === "hide" || act === "show"){
-      const set = new Set(S.hidden || []);
+      const set = new Set(S.kat.hidden || []);
       act === "hide" ? set.add(t) : set.delete(t);
       await S.db.doc("settings/teams").set({ hidden: [...set].sort(nameCmp), updated_at: new Date().toISOString() });
       $("tToast").textContent = act === "hide" ? `${t} is now hidden.` : `${t} is visible again.`;
@@ -9052,9 +9052,9 @@ async function onTeamAction(e){
       const ids = (S.allPlays || []).filter(p => p.team === t).map(p => S.docIds.get(p.play_id) || p.play_id);
       let done = 0;
       for (const id of ids){ await S.db.doc("plays/" + id).delete(); done++; $("tToast").textContent = `Deleting … ${done}/${ids.length}`; }
-      if ((S.hidden || []).includes(t)) await S.db.doc("settings/teams").set({ hidden: S.hidden.filter(x => x !== t), updated_at: new Date().toISOString() });
+      if ((S.kat.hidden || []).includes(t)) await S.db.doc("settings/teams").set({ hidden: S.kat.hidden.filter(x => x !== t), updated_at: new Date().toISOString() });
       if (t in teamOverrides()){ const c = { ...teamOverrides() }; delete c[t]; await saveTeamCodes(c); }
-      S.confirmTeam = null;
+      S.kat.confirmTeam = null;
       $("tToast").textContent = `Team ${t} with ${ids.length} ${ids.length === 1 ? "play" : "plays"} deleted.`;
     }
   } catch (err) {
@@ -9064,6 +9064,11 @@ async function onTeamAction(e){
 
 // Klick-Handler (Filterzeile, Raster, Auswahl, Detailansicht) – aufgerufen von app/main.js an der alten Stelle
 function initKatalog(){
+  // Zustand des Katalogs (P50 Schritt 5i: S.kat, Typ KatalogZustand in types/zustand.d.ts) – vor allen Zugriffen.
+  // settingDocs bleibt null, bis der settings-Listener die Dokumente kennt (bis dahin wird in der Datenbank nachgesehen).
+  S.kat = { selMode: false, selOnly: false, selAnchor: null, aScope: "filtered", aCross: emptyCross(), showArchived: false,
+    filtersOpen: false, hidden: [], showHidden: false, archBusy: false, markBusy: false, chipEdit: null, settingDocs: null,
+    teamsView: null, confirmTeam: null, oAsk: null, tCode: null, tNew: null };
   // Neu zeichnen (P50 Schritt 3): Filterzeile in Catalog und Analysis vorab, Raster nur im Catalog; in Drafts/Draw/Coverages
   // keine Katalog-Filter, also auch kein Hinweis auf ausgeblendete Teams
   onRender(["katalog", "zonen"], () => { refreshFilters(); updateReset(); updateHiddenHint(); }, { vorab: true });
@@ -9071,13 +9076,13 @@ function initKatalog(){
   onRender("katalog", renderGrid);
   onUngespeichert(() => S.editing ? "Edit" : null); // Update-Hinweis (P36): Felder in der Detailansicht offen
   // P32: Zustand pro Browser gemerkt (wer Expert hatte, startet offen – migrateMode in core)
-  S.filtersOpen = (() => { try { return localStorage.getItem("playbook-filters-open") === "1"; } catch (e) { return false; } })();
-  $("fMore").onclick = () => { S.filtersOpen = !S.filtersOpen; try { localStorage.setItem("playbook-filters-open", S.filtersOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } render(); };
+  S.kat.filtersOpen = (() => { try { return localStorage.getItem("playbook-filters-open") === "1"; } catch (e) { return false; } })();
+  $("fMore").onclick = () => { S.kat.filtersOpen = !S.kat.filtersOpen; try { localStorage.setItem("playbook-filters-open", S.kat.filtersOpen ? "1" : "0"); } catch (e) { /* nur Komfort */ } render(); };
   $("hiddenF").addEventListener("click", (e) => {
     const b = e.target.closest("[data-hclear]"); if (!b) return;
     const id = b.dataset.hclear;
     if (id === "fMarked") $("fMarked").checked = false;
-    else if (id === "fArch"){ S.showArchived = false; applyHidden(); return; }
+    else if (id === "fArch"){ S.kat.showArchived = false; applyHidden(); return; }
     else $(id).value = "";
     render();
   });
@@ -9087,14 +9092,14 @@ function initKatalog(){
   $("fSearch").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 150); };
   $("fReset").onclick = () => {
     FILTER_IDS.forEach(id => { $(id).value = ""; }); $("fMarked").checked = false; S.hm.depthMore = false;
-    if (S.showArchived && S.tab === "katalog"){ S.showArchived = false; applyHidden(); return; } // P38: Reset blendet das Archiv wieder aus
+    if (S.kat.showArchived && S.tab === "katalog"){ S.kat.showArchived = false; applyHidden(); return; } // P38: Reset blendet das Archiv wieder aus
     if (S.tab === "zonen") ui.fieldCouple(); // P39f: in Analysis bleibt das gezeigte Feld der Filter
     render();
   };
   // P38: „Show archived“ (More filters, nur Besitzer) – archivierte Plays ausgegraut im Katalog, zählen nie in der Analyse
   $("fArch").onchange = () => {
-    S.showArchived = $("fArch").checked && archCanOwn();
-    if (!S.showArchived){ const arch = new Set((S.allPlays || []).filter(isArchived).map(p => p.play_id)); S.sel = S.sel.filter(id => !arch.has(id)); }
+    S.kat.showArchived = $("fArch").checked && archCanOwn();
+    if (!S.kat.showArchived){ const arch = new Set((S.allPlays || []).filter(isArchived).map(p => p.play_id)); S.sel = S.sel.filter(id => !arch.has(id)); }
     applyHidden();
   };
   $("dArch").onclick = detailArchive;
@@ -9104,7 +9109,7 @@ function initKatalog(){
     const st = e.target.closest("[data-star]"); if (st){ e.stopPropagation(); toggleMark(st.dataset.star); return; }
     const c = e.target.closest(".card"); if (!c) return;
     // P27: im Auswahlmodus (oder mit Strg/Cmd/Shift am PC) wählt ein Klick aus, statt das Play zu öffnen
-    if (S.selMode || e.ctrlKey || e.metaKey || e.shiftKey){ e.preventDefault(); selClick(c.dataset.id, e.shiftKey); return; }
+    if (S.kat.selMode || e.ctrlKey || e.metaKey || e.shiftKey){ e.preventDefault(); selClick(c.dataset.id, e.shiftKey); return; }
     openDetail(c.dataset.id);
   });
   // Shift+Klick soll keinen Text markieren
@@ -9113,12 +9118,12 @@ function initKatalog(){
   $("fMarked").onchange = render;
   $("tgShow").onclick = () => { if (recentMultiTouch()) return; S.tgCat = !S.tgCat; $("tgShow").setAttribute("aria-pressed", String(S.tgCat)); render(); }; // P46, Standard aus
   $("dStar").onclick = () => { if (S.detailId) toggleMark(S.detailId); };
-  $("selBtn").onclick = () => selSetMode(!S.selMode);
+  $("selBtn").onclick = () => selSetMode(!S.kat.selMode);
   $("selDone").onclick = () => selSetMode(false);
   $("selAll").onclick = () => { const only = selOnlyOn(); S.sel = SEL.addAll(S.sel, withoutArchived(catalogList()).map(p => p.play_id)); selRefresh(only); };
   $("selNone").onclick = () => { const only = selOnlyOn(); S.sel = SEL.removeAll(S.sel, catalogList().map(p => p.play_id)); selRefresh(only); };
-  $("selClear").onclick = () => { const only = selOnlyOn(); S.sel = []; S.selAnchor = null; S.selOnly = false; selRefresh(only); };
-  $("selOnly").onchange = () => { S.selOnly = $("selOnly").checked && S.sel.length > 0; render(); };
+  $("selClear").onclick = () => { const only = selOnlyOn(); S.sel = []; S.kat.selAnchor = null; S.kat.selOnly = false; selRefresh(only); };
+  $("selOnly").onchange = () => { S.kat.selOnly = $("selOnly").checked && S.sel.length > 0; render(); };
   $("selPdf").onclick = async () => {
     const list = withoutArchived(selPlays()); if (!list.length || !$("pdfBtn").onclick) return;
     selMsg("");
@@ -9257,15 +9262,15 @@ function initKatalog(){
   // Play-Details als Chips (P32): Antippen (Besitzer) ändert nur den Eintrag, nie die Zeichnung
   $("overlay").addEventListener("click", (e) => {
     const b = e.target.closest("button.dchip[data-dk]"); if (!b || !$("dMeta").contains(b) || recentMultiTouch()) return;
-    S.chipEdit = b.dataset.dk; renderInfo(S.plays.find(x => x.play_id === S.detailId));
+    S.kat.chipEdit = b.dataset.dk; renderInfo(S.plays.find(x => x.play_id === S.detailId));
     const sel = $("dMeta").querySelector("select[data-dk]"); if (sel){ sel.focus(); try { sel.showPicker?.(); } catch (err) { /* Auswahl öffnet beim Antippen */ } }
   });
   $("overlay").addEventListener("change", (e) => { const sel = e.target.closest("select[data-dk]"); if (sel && $("dMeta").contains(sel)) saveChip(sel.dataset.dk, sel.value); });
   $("overlay").addEventListener("focusout", (e) => {
     const sel = e.target.closest?.("select[data-dk]"); if (!sel || !$("dMeta").contains(sel)) return;
-    setTimeout(() => { if (S.chipEdit === sel.dataset.dk && document.activeElement !== sel){ S.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, 150);
+    setTimeout(() => { if (S.kat.chipEdit === sel.dataset.dk && document.activeElement !== sel){ S.kat.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, 150);
   });
-  $("overlay").addEventListener("keydown", (e) => { if (e.key === "Escape" && e.target.matches?.("select[data-dk]")){ e.stopPropagation(); S.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, true);
+  $("overlay").addEventListener("keydown", (e) => { if (e.key === "Escape" && e.target.matches?.("select[data-dk]")){ e.stopPropagation(); S.kat.chipEdit = null; renderInfo(S.plays.find(x => x.play_id === S.detailId)); } }, true);
   // Kataloge (P53 Punkt 3): Menü „Catalog: … ▾“ und „Move to…“; nach dem Verschieben sofort anzeigen, der Live-Abgleich folgt
   const katFertig = (ids, text) => { const weg = new Set(ids); S.sel = S.sel.filter(id => !weg.has(id)); S.allPlays = (S.allPlays || []).filter(p => !weg.has(p.play_id)); applyHidden(); selMsg(text); $("tToast").textContent = text; };
   onDb("db", (db) => kataloge.init({ db, S, $, esc, playDocIds, SEL, ENTW, ungespeichert, selPlays, fertig: katFertig }));
@@ -9289,35 +9294,35 @@ function initKatalog(){
     // Seite – die Plays bleiben in der Datenbank für alle lesbar, die die Seite sehen dürfen.
     db.doc("settings/teams").onSnapshot((snap) => {
       const h = snap.exists ? snap.data()?.hidden : null;
-      S.hidden = Array.isArray(h) ? h.filter(t => typeof t === "string") : [];
+      S.kat.hidden = Array.isArray(h) ? h.filter(t => typeof t === "string") : [];
       applyHidden();
-    }, () => { S.hidden = S.hidden || []; applyHidden(); });
+    }, () => { S.kat.hidden = S.kat.hidden || []; applyHidden(); });
     $("teamAdminBtn").onclick = openTeams;
     $("tClose").onclick = () => { $("teamsDlg").hidden = true; };
     $("teamsDlg").addEventListener("click", (e) => { if (e.target === $("teamsDlg")) $("teamsDlg").hidden = true; });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("teamsDlg").hidden) $("teamsDlg").hidden = true; });
-    $("tShowHidden").onchange = () => { S.showHidden = $("tShowHidden").checked; applyHidden(); };
+    $("tShowHidden").onchange = () => { S.kat.showHidden = $("tShowHidden").checked; applyHidden(); };
     $("tList").addEventListener("click", onTeamAction);
-    $("teamsDlg").addEventListener("click", (e) => { const b = e.target.closest("[data-tview]"); if (b){ $("tToast").textContent = ""; S.oAsk = null; teamsView(b.dataset.tview); } });
+    $("teamsDlg").addEventListener("click", (e) => { const b = e.target.closest("[data-tview]"); if (b){ $("tToast").textContent = ""; S.kat.oAsk = null; teamsView(b.dataset.tview); } });
     $("oList").addEventListener("click", onOppAction);
     $("oList").addEventListener("focusin", (e) => { if (e.target.matches("input[data-oren]")) teamListFill(); });
     $("oList").addEventListener("input", (e) => {
-      const inp = e.target.closest("input[data-oren]"); if (!inp || !S.oAsk) return;
-      S.oAsk.to = inp.value; const pos = inp.selectionStart; renderOpps();
+      const inp = e.target.closest("input[data-oren]"); if (!inp || !S.kat.oAsk) return;
+      S.kat.oAsk.to = inp.value; const pos = inp.selectionStart; renderOpps();
       const i = $("oList").querySelector("input[data-oren]"); if (i){ i.focus(); try { i.setSelectionRange(pos, pos); } catch (err) { /* nicht überall */ } }
     });
     $("oList").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input[data-oren]")){ e.preventDefault(); $("oList").querySelector('[data-oact="ren-go"]')?.click(); } });
     $("tNew").addEventListener("click", onNewTeam);
     $("tNew").addEventListener("input", (e) => {
-      const inp = e.target.closest("input[data-nt]"); if (!inp || !S.tNew) return;
-      S.tNew[inp.dataset.nt] = inp.dataset.nt === "code" ? SEL.normTeamCode(inp.value) : inp.value;
+      const inp = e.target.closest("input[data-nt]"); if (!inp || !S.kat.tNew) return;
+      S.kat.tNew[inp.dataset.nt] = inp.dataset.nt === "code" ? SEL.normTeamCode(inp.value) : inp.value;
       keepFocus("#tNew input[data-nt]", renderNewTeam);
     });
     $("tNew").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input[data-nt]")){ e.preventDefault(); $("tNew").querySelector('[data-nact="go"]')?.click(); } });
     $("tList").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input[data-tcode]")){ e.preventDefault(); $("tList").querySelector('[data-act="code-go"]')?.click(); } });
     $("tList").addEventListener("input", (e) => {
       const ci = e.target.closest("input[data-tcode]");
-      if (ci && S.tCode){ S.tCode.value = SEL.normTeamCode(ci.value); keepFocus("#tList input[data-tcode]", renderTeams); return; }
+      if (ci && S.kat.tCode){ S.kat.tCode.value = SEL.normTeamCode(ci.value); keepFocus("#tList input[data-tcode]", renderTeams); return; }
       const inp = e.target.closest("input[data-confirm]"); if (!inp) return;
       const btn = $("tList").querySelector(`button[data-act="del-go"][data-team="${CSS.escape(inp.dataset.confirm)}"]`);
       if (btn) btn.disabled = inp.value.trim() !== inp.dataset.confirm;
@@ -9327,7 +9332,7 @@ function initKatalog(){
   onDb("settings", { detail: () => { if (!$("teamsDlg").hidden && !$("oList").contains(document.activeElement)) renderOpps(); } }); // P40: Einsätze geändert
   // Teamkürzel aus „Manage teams“ (settings/team-codes): { codes: { Team: Kürzel } }
   onDb("settings", { data: (docs) => {
-    S.settingDocs = new Map(docs.map(x => [x.id, x])); // für movePlay: umziehen ohne Nachsehen je Play
+    S.kat.settingDocs = new Map(docs.map(x => [x.id, x])); // für movePlay: umziehen ohne Nachsehen je Play
     const d = docs.find(x => x.id === "team-codes"), c = d ? d.data()?.codes : null, vorher = JSON.stringify(S.teamCodes);
     S.teamCodes = c && typeof c === "object" ? Object.fromEntries(Object.entries(c).filter(([k, v]) => k && typeof v === "string" && SEL.TEAM_CODE_RE.test(v))) : {};
     return JSON.stringify(S.teamCodes) !== vorher;
