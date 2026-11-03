@@ -234,7 +234,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up.
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
-- **Motion changes formation:** if a motion moves players into another formation (e.g. the QB runs up to the line next to the center → **Eagle**), a box appears under the tiles. Tick it to list the play under the formation **after** the motion; otherwise the formation before the motion counts. It is never ticked for you. Eagle has no tile – it only comes from a QB motion.
+- **Motion changes formation:** if a motion moves players into another formation (e.g. the QB runs up to the line next to the center → **Eagle**), a box appears under the tiles. Tick it to list the play under the formation **after** the motion; otherwise the formation before the motion counts. This also appears when the motion only moves the strong side to the other side (“Spread → Spread (other side)”) – the direction follows the box. It is never ticked for you. Eagle has no tile – it only comes from a QB motion.
 - Changing the formation after drawing asks: **Replace line-up** (players move to the new standard positions, routes move along) or **Keep line-up** (only the formation entry changes). Changing the direction mirrors the whole play.
 
 ### Tools {#draw-tools}
