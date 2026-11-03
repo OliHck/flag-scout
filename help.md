@@ -231,7 +231,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Line-up {#draw-setup}
 - Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Events** (optional – stays for **Save & next**, the first is preselected for the targets). Opponents and events are chips: **×** removes one, **+ add …** picks a known name, **+ new …** adds a new one (**Add**), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd). On a computer, Field, Direction and QB are in their own row.
-- **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up; the tiles are in the order of the number keys 1–7.
+- **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up; the tiles are in the order of the number keys 1–7. Tap the chosen formation again (or press its key again) to flip the direction.
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
 - **Motion changes formation:** if a motion moves players into another formation (e.g. the QB runs up to the line next to the center → **Eagle**), a box appears under the tiles. Tick it to list the play under the formation **after** the motion; otherwise the formation before the motion counts. This also appears when the motion only moves the strong side to the other side (“Spread → Spread (other side)”) – the direction follows the box. It is never ticked for you. Eagle has no tile – it only comes from a QB motion.
@@ -244,10 +244,11 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Motion:** pre-snap motion from a player; the route then starts where the motion ends.
 - **Ball:** from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch).
 - **Move:** drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.
+- **In Route mode with mouse or pen:** **Ctrl + drag** a player moves it like Move (Mac: Ctrl or Cmd), **Alt + drag** from a player draws its motion (Mac: Option) – always as a curve. After that you are back in Route with your line style.
 - **Line style** for the next lines: **Auto** (sharp bends become cuts), **Curve** (smooth, follows your stroke), **Straight** (straight pieces with clear cuts).
 - **Click points** (only with a mouse): instead of holding the button, each click sets a point and the line runs straight from point to point; **double-click** (or Enter) finishes it, Esc cancels. Works for Route, Option, Motion and Ball. Freehand stays the default; finger and pen always draw freehand.
-- **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again – receiver labels and colors stay; click **Clear** again to reset them to X/Y/Z too).
-- **Keyboard shortcuts**: **1** Spread · **2** Pro · **3** 3-Bunch · **4** 4-Bunch · **5** Wing · **6** Trips · **7** Offset Back; **Ctrl+S** (Mac: Cmd+S) saves. **Target:** hold **T**, press **1–4** for the down (optional), then click the receiver or the end of his route – the end of an option counts for that option. Shortcuts do nothing while you type in a field (Ctrl+S still saves).
+- **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again – receiver labels and colors, also the center's color, stay; click **Clear** again to reset them to X/Y/Z without colors too).
+- **Keyboard shortcuts**: **1** Spread · **2** Pro · **3** 3-Bunch · **4** 4-Bunch · **5** Wing · **6** Trips · **7** Offset Back (the same key again flips the direction); **Ctrl+S** (Mac: Cmd+S) saves. Tools: **X** Route · **C** Option · **V** Delay · **B** Ball · **N** Motion · **M** Move; line style: **,** Auto · **.** Curve · **-** Straight (the three keys right of M on a German keyboard); **Y** switches Click points on and off. The keys count by the letter you type, so they also fit a German keyboard. **Target:** hold **T**, press **1–4** for the down (optional), then click the receiver or the end of his route – the end of an option counts for that option. Shortcuts do nothing while you type in a field (Ctrl+S still saves).
 - Small wobbles are smoothed out – more with a finger (phone) than with a mouse or pen, where short stems and fake steps from about 1 yd stay.
 - A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, **Comeback ^** is set for you.
 
@@ -260,8 +261,8 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth S-I-D** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
-- **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors stay for the next play. The down for targets is cleared too – pick it again for the next play.
-- Targets: with **1PAT** or **2PAT** and a down 1st–4th selected, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
+- **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors (also the center's color) stay for the next play. The down for targets is cleared too – pick it again for the next play.
+- Targets: with **1PAT** or **2PAT** in the setup, the same PAT is preselected as the down for targets and is set for every target without a down (also after **Save & next**). With a down 1st–4th selected instead, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
 
