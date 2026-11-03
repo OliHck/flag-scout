@@ -5,7 +5,7 @@ Help for Flag Scout Tool (https://olihck.github.io/flag-scout/): draw, catalog a
 ## Quick start {#quick-start}
 
 ### Plays {#qs-plays}
-1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, target, down, search).
+1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, event, target, down, search).
 2. Tap a card to open the play; **‹ ›** or a swipe step to the next one.
 3. **Export as PDF** prints the filtered plays. For your own choice: **Select**, tap plays, then **PDF**.
 4. Tap ☆ to mark a must-know play. Old plays: **Archive** (play details or selection) – nothing is deleted.
@@ -111,12 +111,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Filters {#catalog-filters}
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
-- **More filters ▸**: Direction, Concept, Depth S-I-D, Season, Opponent, Target, Down and Search (play ID, comment, concept). Folded, the button shows how many of them are set.
+- **More filters ▸**: Direction, Concept, Depth S-I-D, Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
 - **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
-- Opponent, Target and Down come from the [game log](#game-log).
+- Opponent, Event, Target and Down come from the [game log](#game-log) and the play itself ([events](#events)).
 
 ### Must-know {#must-know}
 - Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.
@@ -137,6 +137,11 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Rename** fixes a name everywhere – in the plays, the [game log](#game-log) and the drafts. Renaming to a name that already exists (upper/lower case does not matter) merges both.
 - **Delete** removes the name from all plays and drafts. The uses stay in the game log, with unknown opponent.
 
+### Events {#events-manage}
+- **Manage teams → Events** lists every [event](#events) of plays and uses, with the number of plays and uses.
+- **Rename** fixes a name everywhere – in the plays, the [game log](#game-log) and the drafts. Renaming to a name that already exists (upper/lower case does not matter) merges both.
+- **Delete** removes the name from all plays and drafts. The uses stay in the game log, with unknown event.
+
 ### Select plays {#select}
 - **Select** turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.
 - The bar at the bottom: **Select all** (all filtered plays, never [archived](#archive) ones), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**.
@@ -146,7 +151,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The selection stays when you change filters or sorting, and is gone after reloading the page.
 
 ### Edit several plays {#bulk-edit}
-- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents**, or move the plays to another **team**. Empty fields change nothing.
+- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents** or **events**, or move the plays to another **team**. Empty fields change nothing.
 - A new team gives the plays new IDs; their game log and must-know marks move along.
 - **Delete** asks once with the number of plays. Their game log is deleted too.
 
@@ -161,12 +166,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### What you see {#play-info}
 - The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **S-I-D** (routes short-intermediate-deep), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
-- Below: team, season and opponents, the comment and when the play was saved or edited.
+- Below: team, season, opponents (“vs …”) and events (“@ …”), the comment and when the play was saved or edited.
 - Fold-out areas: [Game log](#game-log) and **JSON** (the play as data).
 
 ### Chips and editing {#play-edit}
 - Tap a chip (Formation, QB, Direction, Concept, Field) to change that entry. **Only the entry changes, never the drawing.**
-- **Edit** changes all entries at once, plus comment and opponents, and confirms unsure values.
+- **Edit** changes all entries at once, plus comment, opponents and events, and confirms unsure values.
 - A new formation or field changes the play ID.
 
 ### Previous, next, swipe {#play-nav}
@@ -176,7 +181,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Edit in Draw {#play-draw}
 - **Edit in Draw** opens the play in the [Draw](#draw) tab to change routes and line-up. “Save changes” saves it right back into the catalog with the same ID.
 - **Undo last edit** (tap twice) brings back the version before the last edit in Draw – one step.
-- **Duplicate & draw** opens a copy of the play in Draw. **Save copy** adds it to the catalog as a new play with the next free ID – without game log, targets, opponents and must-know. **Cancel editing** saves nothing.
+- **Duplicate & draw** opens a copy of the play in Draw. **Save copy** adds it to the catalog as a new play with the next free ID – without game log, targets, opponents, events and must-know. **Cancel editing** saves nothing.
 
 ## Game log {#game-log}
 
@@ -186,6 +191,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Choose the opponent under **vs**, then tap a target button. The list shows this play's opponents first (“This play”), then all other known teams (“Other teams”), or “+ new opponent …”. Choosing a team saves nothing yet – the first entry makes it an opponent of the play. **Undo last entry** removes the last one; the list below lets you delete single entries.
 - Rename, merge or delete opponents in [Manage teams → Opponents](#opponents).
 - Opponents of a play can also be set in Draw, Drafts and with [Edit several plays](#bulk-edit).
+
+### Events {#events}
+- An **event** says when in the season a play was used, e.g. “Worldcup” or “Gameday 02.05.”. Optional, a play can have several.
+- Choose the event under **at**, below **vs** – it works the same way: this play's events first (“This play”), then all other events (“Other events”), or “+ new event …” (also added to the play's events). Preselected: the Event filter, otherwise the last event you used.
+- Rename, merge or delete events in [Manage teams → Events](#events-manage).
+- Events of a play can also be set with **Edit** in the details, in Draw, Drafts and with [Edit several plays](#bulk-edit).
 
 ### Targets {#targets}
 - One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus **QB run** (QB or 2nd QB run), **No target** (incomplete without a clear receiver, throwaway or sack) and **Played** (target not known).
@@ -206,7 +217,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - In the [heatmap](#count) with Side “Real side” and Count “By frequency” or “Targets only”, flipped uses count on the mirrored side – in the routes view, too. “Strong side right”, the bars and the filters do not change.
 
 ### Where the game log counts {#game-log-use}
-- Filters **Opponent**, **Target** and **Down** (More filters). With an opponent filter only the uses against that opponent count everywhere.
+- Filters **Opponent**, **Event**, **Target** and **Down** (More filters). With an opponent or event filter only the uses against that opponent or at that event count everywhere; with both, only uses against that opponent at that event.
 - Heatmap: [Count](#count) “By frequency” and “Targets only”, the Target bars and “Group by Opponent”.
 
 ## Draw {#draw}
@@ -217,7 +228,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Good for video analysis: draw many plays in a row, check them later.
 
 ### Line-up {#draw-setup}
-- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
+- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Events** (optional, several with commas – stays for **Save & next**, the first is preselected for the targets), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
 - **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up.
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
@@ -268,7 +279,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Drafts are grouped by sheet or drawing session, in their original order. After 14 days the tab reminds you of old drafts.
 
 ### Check and approve {#drafts-check}
-- Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent and comment can be changed; every change is saved at once.
+- Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent, events and comment can be changed; every change is saved at once.
 - **Unsure** values are marked. Tap **OK** next to a value, or **All OK** for the whole play, once it is right.
 - Endzone plays with an **unclear distance** cannot be approved until you set it (“Set 7 yd”, the situation) or choose **Distance unknown**.
 - “Will be saved as …” shows the final play ID.
@@ -276,7 +287,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Edit in Draw** changes routes and line-up. **Discard** (tap twice) deletes the draft.
 
 ### Duplicates and variants {#duplicates}
-- **Same as …:** the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents or targets are added to the existing play.
+- **Same as …:** the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents, events or targets are added to the existing play.
 - **Variant of …:** same line-up, exactly one route different. “Approve merge” adds the different route as a dashed **option** to the existing play (a preview shows the result).
 - **Keep separate** turns it into a normal draft that is saved as its own play.
 - If the catalog play is [archived](#archive), the draft says “Matches archived play … – unarchive?”; **Unarchive** brings it back instead of saving the play again.
@@ -393,5 +404,6 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - **Side snap / pitch / handoff** – ball paths other than the direct snap to the QB.
 - **Must-know** – a play every player has to know (★).
 - **Draft** – a new play that waits for approval.
-- **Game log** – uses of a play: opponent, target, down.
+- **Game log** – uses of a play: opponent, event, target, down.
+- **Event** – when in the season a play was used, e.g. “Worldcup” or “Gameday 02.05.”.
 - **Target** – the player the ball was thrown to.
