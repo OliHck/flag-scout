@@ -151,7 +151,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The selection stays when you change filters or sorting, and is gone after reloading the page.
 
 ### Edit several plays {#bulk-edit}
-- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents** or **events**, or move the plays to another **team**. Empty fields change nothing.
+- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents** or **events** (pick them as chips with **+ add …** / **+ new …**), or move the plays to another **team**. Empty fields change nothing.
 - A new team gives the plays new IDs; their game log and must-know marks move along.
 - **Delete** asks once with the number of plays. Their game log is deleted too.
 
@@ -174,6 +174,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Edit** changes all entries at once, plus comment, opponents and events, and confirms unsure values.
 - Opponents and events in Edit: each one is a chip – **×** removes it. **+ add …** picks a known name, **+ new …** opens a field for a new one (**Add**). Nothing is saved until **Save**.
 - A new formation or field changes the play ID.
+- **Motion changes formation** (only for plays whose motion changes the formation): ticked, the play is listed under the formation after the motion – it gets a new ID with that formation; game log, must-know move along. Unticked, the formation before the motion counts. The search also finds the formation before the motion.
 
 ### Previous, next, swipe {#play-nav}
 - **‹ ›** at the top step through the plays in catalog order with the current filters, e.g. “3 / 41”.
@@ -229,10 +230,11 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Good for video analysis: draw many plays in a row, check them later.
 
 ### Line-up {#draw-setup}
-- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Events** (optional, several with commas – stays for **Save & next**, the first is preselected for the targets), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
+- Top: **Team** (or “+ New team …”), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Events** (optional – stays for **Save & next**, the first is preselected for the targets). Opponents and events are chips: **×** removes one, **+ add …** picks a known name, **+ new …** adds a new one (**Add**), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
 - **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up.
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
+- **Motion changes formation:** if a motion moves players into another formation (e.g. the QB runs up to the line next to the center → **Eagle**), a box appears under the tiles. Tick it to list the play under the formation **after** the motion; otherwise the formation before the motion counts. It is never ticked for you. Eagle has no tile – it only comes from a QB motion.
 - Changing the formation after drawing asks: **Replace line-up** (players move to the new standard positions, routes move along) or **Keep line-up** (only the formation entry changes). Changing the direction mirrors the whole play.
 
 ### Tools {#draw-tools}
@@ -245,6 +247,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Line style** for the next lines: **Auto** (sharp bends become cuts), **Curve** (smooth, follows your stroke), **Straight** (straight pieces with clear cuts).
 - **Click points** (only with a mouse): instead of holding the button, each click sets a point and the line runs straight from point to point; **double-click** (or Enter) finishes it, Esc cancels. Works for Route, Option, Motion and Ball. Freehand stays the default; finger and pen always draw freehand.
 - **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again).
+- **Keyboard shortcuts**: **1** Spread · **2** Pro · **3** 3-Bunch · **4** 4-Bunch · **5** Wing · **6** Trips · **7** Offset Back; **Ctrl+S** (Mac: Cmd+S) saves. **Target:** hold **T**, press **1–4** for the down (optional), then click the receiver or the end of his route – the end of an option counts for that option. Shortcuts do nothing while you type in a field (Ctrl+S still saves).
 - Small wobbles are smoothed out – more with a finger (phone) than with a mouse or pen, where short stems and fake steps from about 1 yd stay.
 - A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end points back toward the line, **Comeback ^** is set for you.
 
@@ -280,7 +283,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Drafts are grouped by sheet or drawing session, in their original order. After 14 days the tab reminds you of old drafts.
 
 ### Check and approve {#drafts-check}
-- Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent, events and comment can be changed; every change is saved at once.
+- Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent, events and comment can be changed; every change is saved at once. Opponents and events are chips like in Edit: **×**, **+ add …**, **+ new …**. If a motion changes the formation, tick **Motion changes formation** to list the play under the formation after the motion (the ID follows when you approve).
 - **Unsure** values are marked. Tap **OK** next to a value, or **All OK** for the whole play, once it is right.
 - Endzone plays with an **unclear distance** cannot be approved until you set it (“Set 7 yd”, the situation) or choose **Distance unknown**.
 - “Will be saved as …” shows the final play ID.
