@@ -1438,12 +1438,14 @@ function triangleSVG(xPx, yPx, fill, label, opts){
   // Beschriftung im breiten oberen Teil, mittig um den Schwerpunkt (Grundlinie ≈ Mitte + 0,35 × Schriftgröße)
   const fs = label.length > 1 ? 5.2 : 6.4, cy = yPx + (DB_APEX_PX - 2 * DB_TOP_PX) / 3 - 0.6;
   s += `<text x="${xPx.toFixed(1)}" y="${(cy + fs * 0.35).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-family="Inter, sans-serif" font-weight="700" fill="${opts.ink || "#ffffff"}">${label}</text>`;
-  // Leverage (P57): Tiefe +/− und Seite In/Head/Out rechts neben dem Dreieck, z. B. „+In“
-  const sd = { in: "In", head: "Head", out: "Out" }[opts.lside] || "", lv = (opts.lev === "+" ? "+" : opts.lev === "-" ? "−" : "") + sd;
-  if (lv) s += `<text x="${(xPx + DB_HALF_W_PX + 0.8).toFixed(1)}" y="${(yPx - 2.2).toFixed(1)}" font-size="${sd ? 5.6 : 7}" font-family="Inter, sans-serif" font-weight="700" fill="${fill}"${sd ? ` stroke="#ffffff" stroke-width="1.6" paint-order="stroke"` : ""}>${lv}</text>`;
-  // Job-Label (P57, Schalter „Jobs“ im Board): kurzer Text über dem Dreieck in DB-Farbe
-  if (opts.tag) s += `<text x="${xPx.toFixed(1)}" y="${(yPx - DB_TOP_PX - 2).toFixed(1)}" text-anchor="middle" font-size="5.4" font-family="Inter, sans-serif" font-weight="700" fill="${fill}" stroke="#ffffff" stroke-width="1.8" paint-order="stroke">${escTag(opts.tag)}</text>`;
-  return s;
+  // Leverage +/− und Job-Label (P57) in eine eigene Ebene über allen Dreiecken (opts.top), mit weißem Rand – so verdeckt
+  // in engen Formationen kein Nachbar-DB das Zeichen. Die Leverage-Seite (In/Head/Out) steht nicht im Bild (Oli 03.11.2026:
+  // sieht man an der Anordnung).
+  const top = opts.top || { s: "" };
+  if (opts.lev === "+" || opts.lev === "-") top.s += `<text x="${(xPx + DB_HALF_W_PX + 0.8).toFixed(1)}" y="${(yPx - 2.2).toFixed(1)}" font-size="7" font-family="Inter, sans-serif" font-weight="700" fill="${fill}" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" paint-order="stroke">${opts.lev === "+" ? "+" : "−"}</text>`;
+  // Job-Label (Schalter „Jobs“ im Board): kurzer Text über dem Dreieck in DB-Farbe
+  if (opts.tag) top.s += `<text x="${xPx.toFixed(1)}" y="${(yPx - DB_TOP_PX - 2).toFixed(1)}" text-anchor="middle" font-size="5.4" font-family="Inter, sans-serif" font-weight="700" fill="${fill}" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" paint-order="stroke">${escTag(opts.tag)}</text>`;
+  return opts.top ? s : s + top.s;
 }
 // Ziel-Icon eines Pfeils (Label → gezeichnete Position beim Snap): C, QB, Receiver
 function targetAnchor(play, anchors, label){
@@ -1508,6 +1510,7 @@ function defenseLayers(play, def, anchors){
   const los = losAbs(play);
   const P = (x, yRel) => [X(x), Y(los + yRel)];
   let zones = "", arrows = "", icons = "", drawings = "";
+  const labels = { s: "" }; // +/− und Job-Labels über allen Dreiecken (P57)
   if (def.showZones !== false){
     const clipId = `defclip-${arrowSeq}`;
     zones += `<clipPath id="${clipId}"><rect x="${X(0)}" y="${Y(30)}" width="${25 * PPY}" height="${30 * PPY}"/></clipPath><g clip-path="url(#${clipId})">`;
@@ -1549,7 +1552,7 @@ function defenseLayers(play, def, anchors){
       arrows += defenseArrow(from, [X(t.x), Y(t.absY)], DEF_RADIUS_PX, t.r, { color: b.color, width: 1.6 });
     }
     // Rolle an der Linie erkennbar: Man gestrichelt, Man (no switch) lang gestrichelt und dicker, Blitz als Pfeil, Zonen als Ellipse
-    icons += triangleSVG(from[0], from[1], b.color, b.label || b.kind || "", { lev: b.lev, lside: b.lside, tag: def.tags && def.tags[b.slot] });
+    icons += triangleSVG(from[0], from[1], b.color, b.label || b.kind || "", { lev: b.lev, tag: def.tags && def.tags[b.slot], top: labels });
   });
   if (def.rusher && !def.rusher.hidden){
     const r = def.rusher, from = P(r.x, r.y), t = targetAnchor(play, anchors, r.target);
@@ -1562,7 +1565,7 @@ function defenseLayers(play, def, anchors){
     const icon = dw.who ? inkIcon(play, anchors, dw.who, st) : null;
     routeParts(play, dw, icon, false, icon ? undefined : ptAbs(play, st)).forEach(p => { drawings += pathTag(p.d, { ...p.opts, dashed: !!dw.dashed || p.opts.dashed, ...(dw.nohead ? { noArrow: true } : {}), width: 1.8 }); });
   });
-  return { zones, top: arrows + icons + drawings };
+  return { zones, top: arrows + icons + labels.s + drawings };
 }
 
 // Markierungen der Coverage-Matchups (P23a, spec §7d): Naht, Rand einer Zone, leerer Raum, Overload, Rub, zu spät –
@@ -5312,7 +5315,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "ea904fffb5a8";
+const SEITEN_VERSION = "886a2e87a7dd";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
