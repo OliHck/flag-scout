@@ -172,6 +172,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Chips and editing {#play-edit}
 - Tap a chip (Formation, QB, Direction, Concept, Field) to change that entry. **Only the entry changes, never the drawing.**
 - **Edit** changes all entries at once, plus comment, opponents and events, and confirms unsure values.
+- Opponents and events in Edit: each one is a chip – **×** removes it. **+ add …** picks a known name, **+ new …** opens a field for a new one (**Add**). Nothing is saved until **Save**.
 - A new formation or field changes the play ID.
 
 ### Previous, next, swipe {#play-nav}
