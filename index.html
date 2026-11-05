@@ -5404,7 +5404,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "375070501ff1";
+const SEITEN_VERSION = "35be1f9205b6";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -8705,8 +8705,9 @@ function initExport(){
         // Besitzer: vollständige Sicherung inkl. versteckter Teams; Betrachter: nur sichtbare Plays
         const all = opt.list || (S.owner ? (S.allPlays || S.plays) : S.plays);
         const log = glInExport(opt), data = exportList(all, log, opt.kind || (opt.list ? "selection" : "all"));
+        if (opt.extra) data.push(opt.extra); // Back up now (Besitzer): Coverages & game log in derselben Datei (s. backupBtn)
         await dl.save({ filename: `playbook-${opt.name ? opt.name + "-" : "export-"}${day}.json`, data: JSON.stringify(data, null, 2) });
-        $("toast").textContent = `${all.length} plays exported${glNote(data)}.`;
+        $("toast").textContent = `${all.length} plays exported${glNote(data)}${opt.extra ? " + coverages & game log" : ""}.`;
         // P8: Zeitpunkt des letzten Backups merken (geteilt, damit Handy und PC gleich sind) – nur der Besitzer; mit der
         // Option Game log (P25d) nur, wenn es mitgeht (ohne Häkchen ist es eine Datei zum Teilen, kein Backup)
         if (S.owner && S.db && !opt.list && (!GL_EXPORT || log)){
@@ -8717,8 +8718,11 @@ function initExport(){
         $("toast").textContent = e.code === "declined" ? "Export cancelled." : "Export failed: " + e.message;
       }
     };
-    // Backup: Plays und (für den Besitzer) die Coverages als zweite Datei
-    $("backupBtn").onclick = async () => { await $("exportBtn").onclick(null, { gameLog: true, kind: "backup" }); if (S.owner && ui.covExportEntry(null)) await $("covExportBtn").onclick(); };
+    // Backup: Plays und (für den Besitzer) Coverages & game log in EINER Datei (05.11.2026) – im Artefakt kam ein zweiter
+    // Download direkt danach nicht an. Restore liest den Block { _playbook_settings } aus derselben Datei.
+    // Eigener Dateiname playbook-backup-<Tag>.json, sobald Coverages drin sind – nicht zu verwechseln mit dem Play-Export
+    // zum Teilen (playbook-export-…); ohne Coverages (Flag Scout Tool) bleibt der Name wie bisher
+    $("backupBtn").onclick = async () => { const extra = S.owner ? ui.covExportEntry(null) : null; await $("exportBtn").onclick(null, { gameLog: true, kind: "backup", extra, ...(extra ? { name: "backup" } : {}) }); };
   });
 }
 // JSON-Import: Zustand und Knöpfe – aufgerufen von app/main.js an der alten Stelle (hinter dem Datenbank-Block)
