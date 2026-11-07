@@ -5,7 +5,7 @@ Help for Flag Scout Tool (https://olihck.github.io/flag-scout/): draw, catalog a
 ## Quick start {#quick-start}
 
 ### Plays {#qs-plays}
-1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, event, target, down, search).
+1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, event, target, down, search). **Set as focus** saves them as the [start filters](#focus).
 2. Tap a card to open the play; **‹ ›** or a swipe step to the next one.
 3. **Export as PDF** prints the filtered plays. For your own choice: **Select**, tap plays, then **PDF**.
 4. Tap ☆ to mark a must-know play. Old plays: **Archive** (play details or selection) – nothing is deleted.
@@ -114,9 +114,16 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **More filters ▸**: Direction, Concept, Depth S-I-D, Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
-- **Clear filters** resets all filters, including Show archived. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
+- **Clear filters** resets all filters, including Show archived – with a [focus](#focus) back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
 - **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
 - Opponent, Event, Target and Down come from the [game log](#game-log) and the play itself ([events](#events)).
+
+### Focus {#focus}
+- A focus is a saved set of filters, e.g. the current season and tournament. The page always starts with it, in Plays and Analysis.
+- Set the filters and tap **Set as focus**. Search, must-know and Show archived are never part of it. **Remove focus** deletes it.
+- The chip **Focus: …** shows it. Tap it to turn the focus off and see all plays; tap again to turn it back on. Filters you set yourself stay. Off stays off on this device, even after reloading.
+- **Clear filters** goes back to the focus. The counts on Clear filters and More filters only count what differs from the focus.
+- Plays without the value (e.g. without a season) are left out, like with any filter.
 
 ### Must-know {#must-know}
 - Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.
