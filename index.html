@@ -5492,7 +5492,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "dd0df3585ff4";
+const SEITEN_VERSION = "542996facb37";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -5548,15 +5548,74 @@ function initUpdate(quelle){
   onDb("settings", { data: (docs) => { const d = docs.find(x => x.id === "seiten-version"); if (d) updLive(d.data()); return false; } }); // nur Hinweis, kein Neuzeichnen
 }
 
+// IndexedDB-Verbindung, die sich selbst erneuert (Backlog P65). Nur im Flag Scout Tool (über app/db/local.js und ordner.js).
+// Safari/WebKit (iPad, iPhone) schließt Verbindungen von sich aus – Tab im Hintergrund, längere Pause, Speicherdruck.
+// Eine gemerkte Verbindung wäre dann bis zum Neuladen kaputt („The database connection is closing“). Deshalb:
+//   - onclose/onversionchange vergessen die Verbindung, der nächste Zugriff öffnet neu;
+//   - scheitert ein Zugriff trotzdem (Transaktion lässt sich nicht öffnen, Request oder Transaktion bricht ab), wird die
+//     Verbindung verworfen, neu geöffnet und der Zugriff genau einmal wiederholt (alle Zugriffe sind wiederholbar:
+//     lesen, put, delete).
+// idb: Ersatz für window.indexedDB (Test).
+function idbVerbindung(name, storeName, { idb = () => globalThis.indexedDB, blockiertFehler = false } = {}) {
+  let dbp = null;
+  const vergessen = (p) => { if (dbp === p) dbp = null; };
+  const oeffnen = () => {
+    const p = new Promise((res, rej) => {
+      const r = idb().open(name, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(storeName);
+      r.onsuccess = () => {
+        const d = r.result;
+        d.onclose = () => vergessen(p);
+        d.onversionchange = () => { try { d.close(); } catch (e) { /* schon zu */ } vergessen(p); };
+        res(d);
+      };
+      r.onerror = () => rej(r.error || new Error("IndexedDB not available"));
+      if (blockiertFehler) r.onblocked = () => rej(new Error("IndexedDB blocked"));
+    });
+    p.catch(() => vergessen(p));
+    return p;
+  };
+  const db = () => (dbp ||= oeffnen());
+  // f(store) → Request oder Liste von Requests; Ergebnis nach Abschluss der Transaktion (bei readwrite erst, wenn sie
+  // wirklich geschrieben ist)
+  const einmal = async (mode, f) => {
+    const p = db(), d = await p;
+    return new Promise((res, rej) => {
+      let t, reqs;
+      try {
+        t = d.transaction(storeName, mode);
+        const r = f(t.objectStore(storeName));
+        reqs = Array.isArray(r) ? r : [r];
+      } catch (e) { rej(e); return; }
+      const fehler = () => rej(t.error || reqs.find((r) => r.error)?.error || new Error("IndexedDB transaction failed"));
+      t.oncomplete = () => res(reqs.map((r) => r.result));
+      t.onabort = fehler;
+      t.onerror = fehler;
+    }).catch((e) => { vergessen(p); try { d.close(); } catch (x) { /* schon zu */ } throw e; });
+  };
+  return {
+    // f(store) → ein Request (Ergebnis: sein result) oder Liste von Requests (Liste der results)
+    async run(mode, f) {
+      let einzeln = false;
+      const g = (s) => { const x = f(s); einzeln = !Array.isArray(x); return x; };
+      const r = await einmal(mode, g).catch(() => einmal(mode, g));
+      return einzeln ? r[0] : r;
+    },
+    close() { const p = dbp; dbp = null; if (p) p.then((d) => d.close(), () => {}); },
+  };
+}
+
 // „Save to folder“ des Flag Scout Tools (Backlog P52): Sicherung der Plays als JSON-Datei in einem Ordner auf dem PC
 // (File System Access API, nur Edge/Chrome am Computer). Nur im Browser-Speicher (app/db/local.js) – die Playbook-Seite
 // (app/db/artifact.js) enthält nichts davon (Build-Test lokalReste() in tools/playbook-seite/konfig.mjs).
-// Reine Logik ohne DOM und ohne Imports: npm run tool-test prüft sie in Node mit Ersatz für die Datei-API und den Speicher.
+// Reine Logik ohne DOM (einziger Import: die IndexedDB-Verbindung ./idb.js): npm run tool-test prüft sie in Node mit Ersatz
+// für die Datei-API und den Speicher.
 //   ordnerMoeglich(win)  – kann der Browser das? (sonst blendet die Seite den Bereich aus)
 //   idbHandleStore()     – gemerkter Ordner-Zugriff in IndexedDB (eigene kleine Datenbank, getrennt von den Plays)
 //   createOrdnerSync()   – Zustand, Ordner wählen, Berechtigung, gebündeltes Schreiben (2 s Ruhe), Lesen, Abwählen
 // Mehrere Kataloge (P53 Punkt 3): Dateiname und Schlüssel des gemerkten Ordners hängen am Katalog – app/db/local.js übergibt
 // den aktiven ({ id, name } → „flag-scout-<name>.json“, „folder:<id>“). KATALOG_STANDARD gilt nur ohne Angabe (Tests).
+
 
 const KATALOG_STANDARD = { id: "default", name: "plays" };
 const ORDNER_PAUSE_MS = 2000;
@@ -5572,19 +5631,9 @@ const ordnerMoeglich = (win) => !!win && typeof win.showDirectoryPicker === "fun
 function memoryHandleStore(map = new Map()) {
   return { map, get: async (k) => map.get(k), put: async (k, v) => { map.set(k, v); }, delete: async (k) => { map.delete(k); } };
 }
-function idbHandleStore(name = "flag-scout-files", storeName = "handles") {
-  let dbp = null;
-  const db = () => (dbp ||= new Promise((res, rej) => {
-    const r = indexedDB.open(name, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(storeName);
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error || new Error("IndexedDB not available"));
-  }));
-  const run = async (mode, f) => {
-    const s = (await db()).transaction(storeName, mode).objectStore(storeName);
-    return new Promise((res, rej) => { const r = f(s); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-  };
-  return { get: (k) => run("readonly", (s) => s.get(k)), put: (k, v) => run("readwrite", (s) => s.put(v, k)), delete: (k) => run("readwrite", (s) => s.delete(k)) };
+function idbHandleStore(name = "flag-scout-files", storeName = "handles", opt = {}) {
+  const v = idbVerbindung(name, storeName, opt); // erneuert sich selbst (P65, app/db/idb.js)
+  return { get: (k) => v.run("readonly", (s) => s.get(k)), put: (k, val) => v.run("readwrite", (s) => s.put(val, k)), delete: (k) => v.run("readwrite", (s) => s.delete(k)) };
 }
 
 // Zählt Plays in einer Sicherungsdatei (Format des JSON-Exports: Liste von Plays, ggf. mit Block _playbook_settings)
@@ -6270,31 +6319,18 @@ function memoryBackend(store = new Map()) {
   };
 }
 
-function idbBackend(name = "flag-scout", storeName = "docs") {
-  const open = () => new Promise((res, rej) => {
-    const r = indexedDB.open(name, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(storeName);
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error || new Error("IndexedDB not available"));
-    r.onblocked = () => rej(new Error("IndexedDB blocked"));
-  });
-  let dbp = null;
-  const db = () => (dbp ||= open());
-  const req = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-  const tx = async (mode) => (await db()).transaction(storeName, mode).objectStore(storeName);
+function idbBackend(name = "flag-scout", storeName = "docs", opt = {}) {
+  // Verbindung erneuert sich selbst, wenn Safari sie schließt (P65, app/db/idb.js)
+  const v = idbVerbindung(name, storeName, { blockiertFehler: true, ...opt });
   return {
     async loadAll() {
-      const s = await tx("readonly");
-      const [keys, vals] = await Promise.all([req(s.getAllKeys()), req(s.getAll())]);
+      const [keys, vals] = await v.run("readonly", (s) => [s.getAllKeys(), s.getAll()]);
       return keys.map((k, i) => ({ path: String(k), data: vals[i] }));
     },
-    async keys() { return (await req((await tx("readonly")).getAllKeys())).map(String); },
-    close() { if (dbp) dbp.then((d) => d.close(), () => {}); dbp = null; },
-    async get(path) { return req((await tx("readonly")).get(path)); },
-    async put(path, data) {
-      const s = await tx("readwrite");
-      await req(data === undefined ? s.delete(path) : s.put(data, path));
-    },
+    async keys() { return (await v.run("readonly", (s) => s.getAllKeys())).map(String); },
+    close() { v.close(); },
+    get: (path) => v.run("readonly", (s) => s.get(path)),
+    async put(path, data) { await v.run("readwrite", (s) => (data === undefined ? s.delete(path) : s.put(data, path))); },
   };
 }
 
