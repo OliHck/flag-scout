@@ -7,7 +7,7 @@ Help for Flag Scout Tool (https://olihck.github.io/flag-scout/): draw, catalog a
 ### Plays {#qs-plays}
 1. Narrow the plays with **Team**, **Field** and **Formation**; **More filters ▸** has the rest (concept, depth, opponent, event, target, down, search). **Set as focus** saves them as the [start filters](#focus).
 2. Tap a card to open the play; **‹ ›** or a swipe step to the next one.
-3. **Export as PDF** prints the filtered plays. For your own choice: **Select**, tap plays, then **PDF**.
+3. **PDF export** prints the filtered plays. For your own choice: **Select**, tap plays, then **PDF**.
 4. Tap ☆ to mark a must-know play. Old plays: **Archive** (play details or selection) – nothing is deleted.
 
 More: [Plays](#catalog) · [Play details](#play) · [Select](#select) · [Archive](#archive)
@@ -46,7 +46,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Getting started {#start}
 
 ### The page at a glance {#tabs}
-- **Header:** the number of plays and teams, **Export as PDF**, the menu **Export ▾** (with [Backup & restore](#backup)), **Import** and **?** (this help).
+- **Header:** the number of plays and teams, **PDF export**, the menu **Export ▾** (with [Backup & restore](#backup)), **Import** and **?** (this help).
 - **Plays:** all plays as cards, with filters. Tap a card to open the [play details](#play).
 - **Analysis:** the [heatmap](#heatmap) of route ends for the filtered plays.
 - **Drafts:** new plays wait here until you approve them – see [Drafts](#drafts).
@@ -107,7 +107,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The play ID is built from team, formation, Endzone and a number, e.g. `TIGE_Spread_03` or `TIGE_Pro_EZ_01` (team “Tigers”). It changes when the formation or the field changes.
 - **Sort:** by name, by formation, by date (newest or oldest saved first) or by **Frequency** (most uses in the [game log](#game-log) first – the Opponent and Down filters count; same number → by ID). Open Field plays always come first, then Endzone plays, grouped by distance: 10 yd / 2PAT, 5–10 yd, 5 yd / 1PAT. With Frequency there are no distance groups – all Endzone plays are sorted by uses.
 - PDF and ‹ › in the play details follow the same order.
-- **Show targets/frequency** shows the targets on every card and the number of uses from the [game log](#game-log) next to the ★, e.g. “×7”. Off by default.
+- **Show targets** shows the targets on every card (off by default). The number of uses from the [game log](#game-log) always stands next to the ★, e.g. “×7”.
 
 ### Filters {#catalog-filters}
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
@@ -211,7 +211,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus **QB run** (QB or 2nd QB run), **No target** (incomplete without a clear receiver, throwaway or sack) and **Played** (target not known).
 - Faster: **double-click** (mouse, pen) or **long press** (finger) on a route or a player in the graphic adds it as target.
 - “Show targets on the graphic” puts small numbers at the targeted route ends.
-- In Plays, **Show targets/frequency** does this on every card and adds the number of uses next to the ★, e.g. “×7” (no number without uses). Off by default.
+- In Plays, **Show targets** does this on every card (off by default). The number of uses always stands next to the ★, e.g. “×7” (no number without uses).
 - Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.
 
 ### Downs {#downs}
@@ -350,7 +350,7 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 ## Export and import {#export}
 
 ### PDF {#pdf}
-- **Export as PDF** prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation. [Archived plays](#archive) are never printed.
+- **PDF export** prints the filtered plays in catalog order: A4, three plays per row, only the graphics with play ID and situation. [Archived plays](#archive) are never printed.
 - First you get a **PDF title** with a suggestion from teams, field and formation; Enter or “Create PDF” makes the file.
 - Under the title a grey line lists field, formations, active filters, number of plays and date. Endzone plays start on a new page, grouped by distance.
 - To print your own choice in your own order use [Select](#select) → PDF.
