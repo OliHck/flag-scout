@@ -5212,7 +5212,7 @@ const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRende
   "covPdfAllSync", "covPdfAll", "covOfflineBoot", "covTabUpdate",
   "svgCat", "covLabelFor", "covDetailOpen", "revBtnUpdate", "revRender",
   // Matchups im Bereich „Defense“ (vom Modul coverages aufgerufen)
-  "muList", "muPanelHTML", "muClick", "muNoteChange"];
+  "muList", "muPanelHTML", "muClick", "muNoteChange", "muBlind"];
 // Ersatz, wenn coverages bzw. matchups ausgeschaltet sind (P25d, Flag Scout Tool): verhält sich wie „Show coverages“ aus –
 // keine Defense, kein Coverage-Name, keine Matchups; die Detailansicht zeigt die Grafik wie ohne Coverages (mit Game-log-Zahlen).
 // Ihr HTML fehlt dann in der Seite (@modul-Blöcke in app/seite.html) – core greift nur geprüft darauf zu.
@@ -5228,7 +5228,7 @@ const ui = {
     if ($("dCov")) $("dCov").hidden = true;
     $("dField").innerHTML = S.editing ? svgFor(p) : ui.svgDetail(p);
   },
-  muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){},
+  muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){}, muBlind: () => false,
 };
 /**
  * Funktionen eines Moduls bei core eintragen (nur Namen aus UI_NAMEN).
@@ -5492,7 +5492,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "d03f03cd83f1";
+const SEITEN_VERSION = "dd0df3585ff4";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
