@@ -5277,6 +5277,12 @@ const playDocIds = [];
 // Teamkürzel aus „Manage teams“ (settings/team-codes, Modul catalog) – gehen vor die Kürzel der gespeicherten Plays
 const teamOverrides = () => S.teamCodes || {};
 function onPlayDoc(fn){ playDocIds.push(fn); }
+// Weitere Teile des Blocks { _playbook_settings } in „Back up now“ und „Export coverages & game log“ (P66): Board, AI-Urteile,
+// Seiten-Einstellungen. Jedes Modul meldet in seinem init…() einen Teil an: { key, export() → { Schlüssel: Dokument } | null,
+// path(Schlüssel) → Dokumentpfad, have() → Set vorhandener Schlüssel, clean(Dokument, Schlüssel) → Dokument }. Gelesen vom Modul
+// coverages (covExportEntry, Restore); Regeln in app/modules/export/backup.js (teileExport, teileFehlend). Restore schreibt nur Fehlendes.
+const backupTeile = [];
+function onBackup(teil){ backupTeile.push(teil); }
 
 // ---------- Ohne Simple/Expert (P32) ----------
 // Den globalen Schalter gibt es nicht mehr: erweiterte Funktionen sind dort ausklappbar, wo sie gebraucht werden (More filters,
@@ -5492,7 +5498,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "542996facb37";
+const SEITEN_VERSION = "661c9a8e2976";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -8243,7 +8249,8 @@ const CONFIG = {"app":"flag-scout","optionen":{"gameLogImPlayExport":true}};
 // nie ins Play zurück.
 // Restore: nur Fehlendes – fehlende Plays mit ihrer alten ID, fehlende Game logs (aus game_log der Plays oder aus dem Block
 // { _playbook_settings } der Datei „Coverages & game log“), fehlende Must-know-Markierungen (auch für Plays, die schon da
-// sind). Vorhandene Plays, Einträge und Markierungen werden nie überschrieben oder entfernt.
+// sind). Vorhandene Plays, Einträge und Markierungen werden nie überschrieben oder entfernt. Seit P66 enthält der Block auch
+// Board, AI-Urteile und Seiten-Einstellungen (teileExport/teileFehlend unten) – ebenfalls nur Fehlendes.
 
 // Liste für „Export all plays as JSON“ (auch Auswahl, Backup-Leiste, Offline-Datei)
 // kopf: { app, kind, exportedAt, catalog } für den Kopf (P48); kopf: false = reine Liste (nur intern)
@@ -8276,6 +8283,31 @@ function restorePlan(data, { have = [], logIds = [], marks = [] } = {}, { LOG, S
   const logs = Object.fromEntries(Object.entries({ ...playLogs, ...(settings?.play_logs || {}) }).filter(([id, e]) => Array.isArray(e) && e.length && !hasLog.has(id)));
   return { plays: list.length, missing, differ, same, settings, hasSettings: !!settings, logs, marks: SEL.marksToRestore(marks, list),
     version: g?.version || null, neuer: !!g?.neuer, unbekannt, hinweis: FMT.hinweisText(g, unbekannt) };
+}
+
+// Weitere Teile des Blocks { _playbook_settings } (P66): Board-Dokumente (boards), AI-Urteile (ai_matchups), Seiten-
+// Einstellungen (page_settings: settings/teams, team-codes, focus). Die Module melden je Teil an (core: onBackup):
+// { key, export() → { Schlüssel: Dokument } | null, path(Schlüssel) → Dokumentpfad | null (unbekannt = überspringen),
+//   have() → Set vorhandener Schlüssel, clean(Dokument, Schlüssel) → Dokument zum Schreiben }.
+// Export: nur Teile mit Inhalt → { key: { Schlüssel: Dokument } }
+function teileExport(teile) {
+  const out = {};
+  for (const t of teile || []) { const e = t.export(); if (e && typeof e === "object" && Object.keys(e).length) out[t.key] = e; }
+  return out;
+}
+// Restore: fehlende Dokumente aller Teile aus dem Block → [{ key, k, path, data }]; vorhandene (have) nie, Unlesbares nie
+function teileFehlend(block, teile) {
+  const out = [];
+  for (const t of teile || []) {
+    const e = block && block[t.key];
+    if (!e || typeof e !== "object" || Array.isArray(e)) continue;
+    const have = t.have();
+    for (const [k, v] of Object.entries(e)) {
+      const path = k && v && typeof v === "object" && !Array.isArray(v) && !have.has(k) ? t.path(k) : null;
+      if (path) out.push({ key: t.key, k, path, data: t.clean(v, k) });
+    }
+  }
+  return out;
 }
 
 // Dokumente, die der Restore schreibt (ohne Coverages und Markierungen – die schreibt die Seite über eigene Wege):
@@ -8846,7 +8878,7 @@ function initExport(){
     // Download direkt danach nicht an. Restore liest den Block { _playbook_settings } aus derselben Datei.
     // Eigener Dateiname playbook-backup-<Tag>.json, sobald Coverages drin sind – nicht zu verwechseln mit dem Play-Export
     // zum Teilen (playbook-export-…); ohne Coverages (Flag Scout Tool) bleibt der Name wie bisher
-    $("backupBtn").onclick = async () => { const extra = S.owner ? ui.covExportEntry(null) : null; await $("exportBtn").onclick(null, { gameLog: true, kind: "backup", extra, ...(extra ? { name: "backup" } : {}) }); };
+    $("backupBtn").onclick = async () => { const extra = S.owner ? ui.covExportEntry(null, true) : null; await $("exportBtn").onclick(null, { gameLog: true, kind: "backup", extra, ...(extra ? { name: "backup" } : {}) }); };
   });
 }
 // JSON-Import: Zustand und Knöpfe – aufgerufen von app/main.js an der alten Stelle (hinter dem Datenbank-Block)
@@ -10383,6 +10415,16 @@ function initKatalog(){
     });
   });
   onDb("owner", () => { $("teamAdminCtl").hidden = !S.owner; applyHidden(); });
+  // Backup (P66): Seiten-Einstellungen im Block _playbook_settings.page_settings – versteckte Teams (settings/teams),
+  // Teamkürzel (team-codes), Focus (focus); Restore nur fehlende Dokumente. Gelesen nur von der Sicherung der Playbook-Seite.
+  const PAGE_DOCS = { teams: (d) => ({ hidden: Array.isArray(d.hidden) ? d.hidden.filter(t => typeof t === "string") : [] }),
+    "team-codes": (d) => ({ codes: d.codes && typeof d.codes === "object" ? Object.fromEntries(Object.entries(d.codes).filter(([k, v]) => k && typeof v === "string" && SEL.TEAM_CODE_RE.test(v))) : {} }),
+    focus: (d) => ({ filters: KAT.cleanFocus(d) || {} }) };
+  onBackup({ key: "page_settings",
+    export: () => Object.fromEntries(Object.keys(PAGE_DOCS).map(k => [k, S.kat.settingDocs?.get(k)?.data()]).filter(([, d]) => d && typeof d === "object")),
+    path: (k) => Object.hasOwn(PAGE_DOCS, k) ? "settings/" + k : null,
+    have: () => new Set(Object.keys(PAGE_DOCS).filter(k => S.kat.settingDocs?.has(k))),
+    clean: (d, k) => ({ ...PAGE_DOCS[k](d), updated_at: typeof d.updated_at === "string" ? d.updated_at : new Date().toISOString() }) });
   onDb("settings", { detail: () => { if (!$("teamsDlg").hidden && !$("oList").contains(document.activeElement)) renderOpps(); if (!$("teamsDlg").hidden && !$("eList").contains(document.activeElement)) renderEvs(); } }); // P40/P56: Einsätze geändert
   // Teamkürzel aus „Manage teams“ (settings/team-codes): { codes: { Team: Kürzel } }
   onDb("settings", { data: (docs) => {
