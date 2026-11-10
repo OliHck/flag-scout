@@ -31,8 +31,9 @@ More: [Drafts](#drafts) · [Duplicates and variants](#duplicates)
 1. Set team, season, field, direction and **formation** at the top.
 2. Tool **Route**: draw from a player. **Option**, **Delay**, **Motion** and **Ball** for the rest; tap a player to change label or colour.
 3. Pick the concept, then **Save & next** – the play goes to Drafts, the field is ready for the next one.
+4. Drawing from a game video: **▶ Video** shows a YouTube video above the field.
 
-More: [Draw](#draw) · [Tools](#draw-tools)
+More: [Draw](#draw) · [Tools](#draw-tools) · [Video](#draw-video)
 
 ### Export, import, backup {#qs-export}
 1. **Back up regularly:** Export ▾ → **Backup & restore** → **Back up now** (all plays with game log and must-know marks). Your plays exist only in this browser.
@@ -281,6 +282,17 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Change a saved play {#draw-edit}
 - **Edit in Draw** (play details or a draft) loads the play with line-up and routes; **Duplicate & draw** (play details) loads a copy that is saved as a new play ([more](#play-draw)). A bar shows what you are editing; **Cancel editing** leaves without saving.
 - **Save changes** saves a catalog play right away (same ID; “Undo last edit” in the play details brings the old version back) or a draft back to Drafts. Your setup and a play you had started stay untouched.
+
+### Draw from a YouTube video {#draw-video}
+- **▶ Video** (next to Clear) asks for a YouTube link. Normal links, short links (youtu.be), live streams and Shorts work. A time in the link (`t=1h2m5s`, `t=3725`) starts the video there – handy for long live streams.
+- **Phone upright:** the video stays at the top while you scroll and draw below it; the field shrinks so that it fits under the video. **Phone sideways, tablet sideways and computer:** video on the left, Draw on the right.
+- **First start:** tap the play button of the video itself. After that the gestures work.
+- **Gestures on the video:** tap = pause / play · double-tap on the right or left = jump forward or back (tap again to add another jump) · two fingers = zoom, one finger moves the zoomed picture · double-tap in the middle = whole picture again. With a mouse: click, double-click, Ctrl + wheel to zoom, drag to move.
+- **Bar under the video:** slider and time, **▶** play / pause, **1×** speed (tap to switch 1× · 0.5× · 0.25×), **± 5 s** jump per double-tap (tap to switch 5 · 10 · 2 s), **Fit** ends the zoom, **☝** switches the gestures off so that you can touch the YouTube player itself (for example to close something YouTube shows over the picture), **Link** opens another video, **✕** closes the video.
+- **Size:** drag the short line under the video (sideways: next to it). The size is remembered.
+- **Save & next** leaves the video where it is. In another tab the video pauses.
+- The tool remembers the last video and where you stopped in this browser – **Resume at …** in the link field opens it there again. Nothing about the video is saved with the play.
+- **Limits:** the video needs an internet connection. If the channel does not allow its video on other sites, you get a note with **Open in YouTube**. In a stream that is still live you can only jump within the part YouTube keeps. How sharp the zoomed picture is depends on the quality YouTube delivers.
 
 ## Drafts {#drafts}
 
