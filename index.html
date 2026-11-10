@@ -1786,7 +1786,7 @@ function fieldSVG(play, opts){
 // ---------------------------------------------------------------------
 // @ts-check
 // Felder, die sich zuverlässiger per Regel berechnen lassen, als von der KI geschätzt.
-// Wird nach jeder Erkennung angewendet (Skill-Werkzeug erfassen.mjs; früher auch scripts/extract.mjs, außer Betrieb).
+// Wird nach jeder Erkennung angewendet (Skill-Werkzeug erfassen.mjs).
 
 const CONF = ["formation", "qb_alignment", "direction", "play_concept", "field_type"];
 
@@ -5594,7 +5594,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "9c6262c4f63f";
+const SEITEN_VERSION = "3543eb7be4a7";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
