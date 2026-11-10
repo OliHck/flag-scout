@@ -199,6 +199,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The **Game log** area in the play details records each time a play was used: against whom, who was targeted and on which down. There is no result (complete, yards).
 - Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).
 - Choose the opponent under **vs**, then tap a target button. The list shows this play's opponents first (“This play”), then all other known teams (“Other teams”), or “+ new opponent …”. Choosing a team saves nothing yet – the first entry makes it an opponent of the play. **Undo last entry** removes the last one; the list below lets you delete single entries.
+- **▶ 1:02:05** at an entry: this use was drawn from a YouTube video – the link opens YouTube a few seconds before that moment.
 - Rename, merge or delete opponents in [Manage teams → Opponents](#opponents).
 - Opponents of a play can also be set in Draw, Drafts and with [Edit several plays](#bulk-edit).
 
@@ -277,6 +278,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Duplicate hint while drawing {#draw-duplicates}
 - From **3 routes** on, the Save box checks your drawing against the plays and open drafts of the same team – e.g. “Looks identical to …”, “Variant of … (Z route differs)”, “Mirrored version of …”, “Played in 2025 too (…)”. It uses the same rules as **Save & next** ([Duplicates and variants](#duplicates)) and never blocks saving.
 - Tap the play ID to open that play over the Draw tab – e.g. to add a target in its game log if the play came up again. Close it (×) and you are back at your drawing. For an open draft, Drafts opens; **Back to Draw** brings you back. Your drawing stays in both cases.
+- **Add use to …** (only for “Looks identical to …” / “Mirrored version of …” with a play in the catalog): the play came up again – instead of saving it a second time, only the use goes into the game log of that play (your targets, otherwise one entry “Played”). The field is then ready for the next play.
 - The hint disappears with fewer than 3 routes and while you edit a saved play.
 
 ### Change a saved play {#draw-edit}
@@ -288,10 +290,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Phone upright:** the video stays at the top while you scroll and draw below it; the field shrinks so that it fits under the video. **Phone sideways, tablet sideways and computer:** video on the left, Draw on the right.
 - **First start:** tap the play button of the video itself. After that the gestures work.
 - **Gestures on the video:** tap = pause / play · double-tap on the right or left = jump forward or back (tap again to add another jump) · two fingers = zoom, one finger moves the zoomed picture · double-tap in the middle = whole picture again. With a mouse: click, double-click, Ctrl + wheel to zoom, drag to move.
-- **Bar under the video:** slider and time, **▶** play / pause, **1×** speed (tap to switch 1× · 0.5× · 0.25×), **± 5 s** jump per double-tap (tap to switch 5 · 10 · 2 s), **Fit** ends the zoom, **☝** switches the gestures off so that you can touch the YouTube player itself (for example to close something YouTube shows over the picture), **Link** opens another video, **✕** closes the video.
+- **Bar under the video:** slider and time, **▶** play / pause, **1×** speed (tap to switch 1× · 0.5× · 0.25×), **± 5 s** jump per double-tap (tap to switch 5 · 10 · 2 s), **Fit** ends the zoom, **Link** opens another video, **✕** closes the video.
 - **Size:** drag the short line under the video (sideways: next to it). The size is remembered.
 - **Save & next** leaves the video where it is. In another tab the video pauses.
-- The tool remembers the last video and where you stopped in this browser – **Resume at …** in the link field opens it there again. Nothing about the video is saved with the play.
+- **Video time of the play:** with your first stroke – or when you set the formation – the tool notes where the video is. Under the targets you see **Video 1:02:05**; **⏱ now** takes the current moment instead, **✕** saves the play without a time. The time is saved with the play's uses: with your targets, or as one entry “Played” if you record no target. Later **▶ 1:02:05** in the [game log](#uses) and in Drafts opens YouTube a few seconds before that moment.
+- **The play came up again?** From 3 routes on the hint shows **Add use to …** ([more](#draw-duplicates)) – the new video time goes to the play you already have.
+- The tool remembers the last video and where you stopped in this browser – **Resume at …** in the link field opens it there again.
 - **Limits:** the video needs an internet connection. If the channel does not allow its video on other sites, you get a note with **Open in YouTube**. In a stream that is still live you can only jump within the part YouTube keeps. How sharp the zoomed picture is depends on the quality YouTube delivers.
 
 ## Drafts {#drafts}
