@@ -942,7 +942,7 @@ const PAGE_SRC = {
   css: [...document.querySelectorAll("style")].map(s => s.textContent).find(t => t.includes(".wrap{")) || ""
 };
 
-// Kern-Dateien der Seite (P25c Teil 2a, docs/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
+// Kern-Dateien der Seite (P25c Teil 2a, docs/archiv/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
 // (ENTW, Z, COV, MU, LOG, SEL, KAT, HM, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
 // Seite und Module importieren die Namen von hier – ein globaler Name, den nur dieses Modul anlegt, würde Rollup umbenennen.
@@ -1017,9 +1017,6 @@ function centerBackEdgeAbsY(play){
 // --- Kanonische Ankerpunkte (Yard, absolute 0-30 Skala), VOR Kollisions-Korrektur ---
 // Werden sowohl für die Icon-Position als auch für den jeweils ersten Routenpunkt
 // verwendet, damit Icon und Routenstart nie auseinanderlaufen (keine Lücke zur LOS).
-function centerAnchorAbs(play){
-  return [12.5, centerCenterAbsY(play)];
-}
 function receiverAnchorAbs(play, r){
   return [r.x, capFront(play, abs(play, r.y), RECEIVER_RADIUS_PX)];
 }
@@ -1819,6 +1816,8 @@ const FLIST = {"_hinweis":"Feste Liste, vom Nutzer gepflegt. Die Reihenfolge ist
 const CLIST = {"_hinweis":"Feste Liste, vom Nutzer gepflegt (Stand 06.10.2026, Definitionen geschärft 09.10.2026). Neue Concepts hier ergänzen UND im Schema-enum (schema/play.schema.json); npm run validate meldet Abweichungen. Definitionen und Aliase gehen mit in den Erkennungs-Prompt; derive prüft das Concept damit gegen (docs/spec.md, Abschnitt 4).","concepts":["Hitches","Hitches + Shot","Mesh/Crosses","Flood","Follow","Run/2nd QB","Basic","Special"],"definitions":{"Hitches":"Mindestens drei Spieler (inkl. Center) laufen kurze Hitches/Comebacks, die übrige Route ist ebenfalls kurz (z. B. der Center kurz ohne Comeback).","Hitches + Shot":"Drei Hitches/Comebacks und eine tiefe Route.","Mesh/Crosses":"Routen kreuzen gegenläufig (in entgegengesetzte Richtungen) über die Mitte: flache Crosser (klassisches Mesh mit Sit darüber), Drive, Slant-Flat und Varianten mit einer tiefen Route über den Crossern. Brechen beide in dieselbe Richtung → Follow.","Flood":"Drei Routen enden auf einer Seite, gestaffelt auf verschiedenen Tiefen (Flat, mittel, tief), oder In-Routes auf verschiedenen Tiefen (früher Levels).","Follow":"Zwei Routen brechen in dieselbe Richtung auf ähnlicher Tiefe (höchstens ca. 3 Yards Unterschied), die eine läuft der anderen auf derselben Bahn hinterher, z. B. Center 5&Out nach links und rechter WR 5&In hinterher nach links. Kreuzen sie gegenläufig → Mesh/Crosses.","Run/2nd QB":"Übergabe oder Pitch im Backfield, danach läuft der neue Ballträger oder wirft selbst (früher Draw). Ebenso: ein Receiver oder der Center läuft ins Backfield (zum QB hin oder hinter ihm entlang), auch ohne eingezeichneten Ballweg und auch bei Fake/Reverse; Side Snap nur, wenn danach zwei mögliche Werfer im Backfield stehen und bleiben. Nicht: ein Spieler, der nur an der Sideline zurückläuft.","Basic":"Bewusst kein besonderes Concept: Routen einfach auf kurz und tief verteilt (früher z. B. „2-2“, „3 short“, „3 deep“). Nicht verwechseln mit Unknown (= nicht erkannt).","Special":"Besondere Plays – nur vom Nutzer manuell getaggt, die KI schlägt es nie vor."},"aliases":{"_hinweis":"Begriffe im Play-Namen → Concept (Nutzer 09.10.2026). Leerzeichen, _ und - zählen nicht; Ziffern nur als ganze Zahl („2-2“, nicht „12-2“). „hitches“ → Hitches bzw. Hitches + Shot, je nach Routen.","3short":"Basic","3-1":"Basic","2-2":"Basic","3deep":"Basic","follow":"Follow","2nd QB":"Run/2nd QB","handoff":"Run/2nd QB","running":"Run/2nd QB","QBRun":"Run/2nd QB","fake":"Run/2nd QB","reverse":"Run/2nd QB","hitches":"Hitches"},"entfernt":{"_hinweis":"Frühere Werte → neuer Wert (für alte Daten).","Mesh":"Mesh/Crosses","Levels":"Flood","Draw":"Run/2nd QB","Spot":null,"Smash":null,"Bolt":null,"Sight-Adjust":null,"Screen":null,"All Go":null}};
 
 const FORMATIONS = Object.keys(FLIST.formations);
+// Concepts in der Reihenfolge von lists/concepts.json (Auswahlfeld beim Bearbeiten, Drafts, Draw – P67)
+const CONCEPTS = [...CLIST.concepts];
 const ALIASES = Object.fromEntries(Object.entries(FLIST.aliases || {}).filter(([k]) => !k.startsWith("_")));
 
 // Formation aus der Bezeichnung auf dem Blatt (z. B. "EZ_Spread1", "2PAT_Wing", "1PAT_Nasty", "EZ_AllTight_10y")
@@ -2267,11 +2266,6 @@ function losFromText(text) {
     out.push((a + b) / 2);
   }
   return [...new Set(out)];
-}
-// Endzone-Play ohne Distanz (weder LOS noch 1PAT/2PAT/„10y“ in Situation oder Name) → der Skill fragt
-// einmal für das ganze Sheet nach (Backlog E13); die Prüfseite sammelt diese Plays in einer Zeile.
-function missingDistance(play) {
-  return play.field_type?.value === "Endzone" && play.los_yard_line == null && !losFromText(play.situation).length && !losFromText(play.source_label).length;
 }
 // Distanz ausdrücklich im Original (Situation oder Name: 1PAT/2PAT/„10y“) – dann gilt sie als gesetzt
 function explicitDistance(play) {
@@ -4208,12 +4202,6 @@ function toggleComeback(rt) {
 }
 function setStemShape(rt, shape) { rt.stem.shape = shape; return rt; }
 
-// Wer hat beim Zeichnen den Ball nach dem Snap? (für Ballweg-Strich ab einem Receiver)
-function ballHolders(play) {
-  const t = play.snap?.target_receiver_label;
-  return t && play.snap.type !== "Direct" ? [t, "QB"] : ["QB"];
-}
-
 // Fertiges Play für die Ablage: Center-Route null statt fehlend, QB-Route nur wenn vorhanden, Rundung
 /**
  * @param {any} play
@@ -4308,7 +4296,7 @@ function keyAction(ev, ctx = {}) {
   return null;
 }
 
-return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, PAT_DOWN_WARNING, patDownWarning, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, receiverLook, withReceiverLook, isStandardLook, thinPoints, rdp, strokeLength, trimTail, reversals, corners, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, lineClickRule, drawTeams, hiddenTeamMatch, setRoute, getRoute, toggleComeback, setStemShape, ballHolders, finishDrawPlay, DUP_MIN_ROUTES, routeCount, dupStock, dupCheck, KEY_FORMATIONS, KEY_TOOLS, KEY_LINES, keyAction };
+return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, PAT_DOWN_WARNING, patDownWarning, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, receiverLook, withReceiverLook, isStandardLook, thinPoints, rdp, strokeLength, trimTail, reversals, corners, simplifyStroke, suggestsComeback, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, lineClickRule, drawTeams, hiddenTeamMatch, setRoute, getRoute, toggleComeback, setStemShape, finishDrawPlay, DUP_MIN_ROUTES, routeCount, dupStock, dupCheck, KEY_FORMATIONS, KEY_TOOLS, KEY_LINES, keyAction };
 })();
 // Einsätze und Targets (scripts/lib/einsatz.mjs) – gekapselt
 const LOG = (() => {
@@ -4695,7 +4683,6 @@ function renameEntriesOpponent(entries, name, to = null, team = null) {
   });
   return { entries: list, changed };
 }
-const removeEntriesOpponent = (entries, name) => renameEntriesOpponent(entries, name, null);
 
 // ---------- Events verwalten (Backlog P56, Reiter „Events“ in Manage teams) ----------
 // Alle Events (play.events oder Einsätze), Vergleich ohne Groß/Klein; Rückgabe alphabetisch [{ name, plays, uses }].
@@ -4720,7 +4707,6 @@ function renameEntriesEvent(entries, name, to = null) {
   });
   return { entries: list, changed };
 }
-const removeEntriesEvent = (entries, name) => renameEntriesEvent(entries, name, null);
 
 // ---------- Heatmap pro Receiver (Backlog P45) ----------
 // Auswahl nach Label (C = Center, sonst Receiver-Label wie X/Y/Z oder T/S aus dem Original) – dieselben Namen wie die
@@ -4758,7 +4744,7 @@ function toggleRecv(recv, target) {
   return next.sort(recvCmp); // feste Reihenfolge C, X, Y, Z, dann alphabetisch (Chip „Receivers: X, Z“)
 }
 
-return { LOG_QB, LOG_NONE, LOG_UNKNOWN, NO_OPPONENT, NO_EVENT, DOWNS, DOWN_VALUES, PAT_DOWNS, NO_DOWN, normDown, isPatDown, downName, downKey, situationPat, patEntries, logDocId, cleanVideo, videoTime, videoUrl, withVideo, setFlipped, flippedCount, freqSplit, setDown, cleanLog, isEmptyLog, addEntry, removeEntry, entriesFor, playOpponents, playEvents, targetOptions, targetName, summary, downSummary, targetKey, freqWeight, targetPicks, routeOfTarget, targetEnd, targetAt, cleanEntries, withGameLog, gameLogOf, withoutGameLog, mapEntries, opponentStats, renameEntriesOpponent, removeEntriesOpponent, eventStats, renameEntriesEvent, removeEntriesEvent, RECV_ORDER, recvActive, recvHas, labeledRoutes, receiverKeys, toggleRecv };
+return { LOG_QB, LOG_NONE, LOG_UNKNOWN, NO_OPPONENT, NO_EVENT, DOWNS, DOWN_VALUES, PAT_DOWNS, NO_DOWN, normDown, isPatDown, downName, downKey, situationPat, patEntries, logDocId, cleanVideo, videoTime, videoUrl, withVideo, setFlipped, flippedCount, freqSplit, setDown, cleanLog, isEmptyLog, addEntry, removeEntry, entriesFor, playOpponents, playEvents, targetOptions, targetName, summary, downSummary, targetKey, freqWeight, targetPicks, routeOfTarget, targetEnd, targetAt, cleanEntries, withGameLog, gameLogOf, withoutGameLog, mapEntries, opponentStats, renameEntriesOpponent, eventStats, renameEntriesEvent, RECV_ORDER, recvActive, recvHas, labeledRoutes, receiverKeys, toggleRecv };
 })();
 // Play-Auswahl (scripts/lib/auswahl.mjs) – gekapselt
 const SEL = (() => {
@@ -5295,26 +5281,26 @@ const formRank = (p) => { const i = FORMATIONS.indexOf(val(p, "formation")); ret
 const isEZ = KAT.isEZ;
 // Endzone-Distanz-Gruppen (Backlog P17, Regel in scripts/lib/katalog.mjs): 10 yd / 2PAT · 5–10 yd · 5 yd / 1PAT
 const EZ_GROUPS = KAT.EZ_GROUPS;
-const ezDist = (p) => KAT.ezDist(p, losFromText);
 const ezGroup = (p) => KAT.ezGroup(p, losFromText);
 
-// Feste Schema-Werte der Auswahlfelder (Bearbeiten in der Detailansicht, Drafts, Draw; Stand play.schema.json v3.19)
+// Feste Werte der Auswahlfelder (Bearbeiten in der Detailansicht, Drafts, Draw): Formationen und Concepts aus lists/
+// (formations.json, concepts.json – dieselben Werte wie das Schema-enum, npm run validate), sonst wie play.schema.json
 const EDIT_FIELDS = [
   ["field_type", "Field", ["Open Field", "Endzone"]],
   ["formation", "Formation", [...FORMATIONS, "Unknown"]],
   ["qb_alignment", "QB", ["Gun", "Under Center", "Unknown"]],
   ["direction", "Direction", ["Left", "Right", "Unknown"]],
-  ["play_concept", "Concept", ["Hitches", "Hitches + Shot", "Mesh/Crosses", "Flood", "Follow", "Run/2nd QB", "Basic", "Special", "Unknown"]]
+  ["play_concept", "Concept", [...CONCEPTS, "Unknown"]]
 ];
 
 function svgFor(p, opts){ try { return fieldSVG(p, opts); } catch(e){ return `<div class="note" style="padding:20px;line-height:1.4">Graphic not available: ${esc(e.message)}</div>`; } }
 
 // Funktionen der übrigen Teile, die core aufruft (tragen die Module selbst ein)
 // (Neuzeichnen je Reiter seit P50 Schritt 3 nicht mehr hier, sondern über onRender)
-const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRender", "detailNavUpdate",
+const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRender",
   "svgDetail",
   // Coverages und Matchups (abschaltbar): Name auf Karte und im PDF, Defense, Offline-Datei, Restore, Review
-  "covName", "covActive", "covPlaySetting", "covVariantCount", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
+  "covName", "covActive", "covPlaySetting", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
   "covPdfAllSync", "covPdfAll", "covOfflineBoot", "covTabUpdate",
   "svgCat", "covLabelFor", "covDetailOpen", "revBtnUpdate", "revRender",
   // Matchups im Bereich „Defense“ (vom Modul coverages aufgerufen)
@@ -5327,7 +5313,7 @@ const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRende
 // Geladene Module überschreiben die Einträge mit registerUi().
 const ui = {
   revBtnUpdate(){}, revRender(){},
-  covActive: () => false, covName: () => "", covVariantCount: () => 1, covDefense: () => null, covExportEntry: () => null,
+  covActive: () => false, covName: () => "", covDefense: () => null, covExportEntry: () => null,
   covPlaySetting: () => ({ variants: [null] }), covRestorePlan: () => ({ n: 0 }), covRestoreWrite: async () => 0, svgCat: (p, extra) => svgFor(p, extra), covLabelFor: () => "",
   covPdfAllSync(){}, covPdfAll: () => false, covOfflineBoot(){}, covTabUpdate(){},
   covDetailOpen(){ ui.covDetailRender(); },
@@ -5498,7 +5484,7 @@ function initMehrfinger(){
   ["touchstart", "touchmove", "touchend"].forEach(t => document.addEventListener(t, mtNote, { passive: true, capture: true }));
 }
 
-// Hilfe-Dialog (Backlog P29, docs/p29-plan.md): Knopf „?“ rechts neben Export/Import öffnet #helpDlg beim Quick start des
+// Hilfe-Dialog (Backlog P29, docs/archiv/p29-plan.md): Knopf „?“ rechts neben Export/Import öffnet #helpDlg beim Quick start des
 // aktuellen Reiters. Inhalt setzt der Build aus app/hilfe/ ein (tools/playbook-seite/hilfe.mjs, je Fassung gefiltert):
 // <section class="hsec" id="h-…"> je Kapitel, darin <div class="hsub"> je Abschnitt. Links springen innerhalb des Dialogs
 // (kein Wechsel der Adresse – im Artefakt gehen externe Links nicht). Suche: zeigt nur Abschnitte mit allen Suchwörtern
@@ -5608,7 +5594,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "90457479364c";
+const SEITEN_VERSION = "9c6262c4f63f";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -6725,7 +6711,6 @@ function archiveAction(list){
   return on.length || !(list || []).length ? { mode: "archive", plays: on } : { mode: "unarchive", plays: list.filter(isArchived) };
 }
 
-const SCOPES = ["filtered", "selection"];
 const CROSS = ["concept", "depth", "target", "formation"];
 const emptyCross = () => ({ concept: "", depth: "", target: "", formation: "" });
 const analysisScope = (scope, sel) => (scope === "selection" && (sel || []).length ? "selection" : "filtered");
@@ -6747,7 +6732,7 @@ function scopeBanner(nSel, nShown, crossOn){
 // Dublette gegen ein archiviertes Play (Drafts, Import, Draw): Hinweis zum Reaktivieren
 const archivedMatchText = (id) => `matches archived play ${id} – unarchive?`;
 
-// Modul gamelog (P25c Teil 2a, docs/p25-plan.md): Gegner, Einsätze und Targets (Backlog P16, spec §7e) – Einsätze je Play
+// Modul gamelog (P25c Teil 2a, docs/archiv/p25-plan.md): Gegner, Einsätze und Targets (Backlog P16, spec §7e) – Einsätze je Play
 // (settings/play-log-<Play-ID>, S.logs), Gegner-, Target- und Down-Filter, Anzeige „5×“ auf der Karte, Zahlen an den
 // Routenenden, Bereich „Game log“ in der Detailansicht, Targets in Draw und Drafts (Knöpfe, Route antippen).
 // Meldet logDetailRender bei core an. Die Defense in der Detailansicht (Coverages) wird über core (ui) neu gezeichnet.
@@ -7170,7 +7155,7 @@ function initGamelog(){
 
 registerUi({ logDetailRender, svgDetail });
 
-// Modul drafts (P25c Teil 2a, docs/p25-plan.md): Reiter „Drafts“ – nur Besitzer; Backlog „Entwürfe-Reiter“ 12.10.2026.
+// Modul drafts (P25c Teil 2a, docs/archiv/p25-plan.md): Reiter „Drafts“ – nur Besitzer; Backlog „Entwürfe-Reiter“ 12.10.2026.
 // Erkannte Plays liegen in der Collection `entwuerfe` (Dokument-ID = geplante Play-ID, nur der Besitzer kann sie lesen).
 // Hier: Felder korrigieren (jede Änderung wird sofort im Entwurf gespeichert), Unsicheres bestätigen, freigeben
 // (→ Katalog `plays`, Entwurf wird gelöscht) oder verwerfen. Logik in scripts/lib/entwurf.mjs (ENTW).
@@ -7436,7 +7421,7 @@ function initDrafts(){
   onDb("downloads", (dl) => { if (dl) updateDraftTab(); });
 }
 
-// Modul draw (P25c Teil 2b, docs/p25-plan.md): Zeichen-Editor im Reiter „Draw“ (nur Besitzer, Backlog P19) und
+// Modul draw (P25c Teil 2b, docs/archiv/p25-plan.md): Zeichen-Editor im Reiter „Draw“ (nur Besitzer, Backlog P19) und
 // „Edit in Draw“ für Katalog-Plays und Entwürfe (P19b, „Undo last edit“ in der Detailansicht). Kern: scripts/lib/zeichnen.mjs (Z).
 // Meldet wInit/wRender bei core an (render() im Reiter Draw); Katalog, Drafts und Import importieren die übrigen Funktionen
 // direkt. Klick-Handler und Start-Zustand stehen in initDraw() – aufgerufen von app/main.js an der alten Stelle.
@@ -7808,7 +7793,7 @@ function wApplyStroke(st){
     let err = null;
     wChange(pl => { const r = Z.setBallPath(pl, from, raw, { snapType: S.w.snapType, handoffType: S.w.handoffType }); err = r.error; });
     if (err) wMsg(err, true);
-    wRender(); return;
+    wRender();
   }
 }
 // ---------- Seitenleiste: ausgewählter Spieler ----------
@@ -7853,7 +7838,6 @@ function wLabelCommit(end){
   wRender();
 }
 // ---------- Speichern ----------
-const W_FIELDS_NOTE = { "Run/2nd QB": "handoff, pitch or a 2nd thrower" };
 function wFinal(){
   const concept = $("wConc").value || "Basic";
   return Z.finishDrawPlay(S.w.play, { concept, comment: $("wCom").value, situation: $("wSit").value });
@@ -8488,7 +8472,7 @@ function restoreDocs(plan, now, { LOG, SEL }) {
   return docs;
 }
 
-// Modul export (P25c Teil 2a, docs/p25-plan.md): PDF (Titel-Abfrage, Knopf, PDF-Schreiber), Offline-HTML (Datei bauen,
+// Modul export (P25c Teil 2a, docs/archiv/p25-plan.md): PDF (Titel-Abfrage, Knopf, PDF-Schreiber), Offline-HTML (Datei bauen,
 // Start in der Datei), Backup-Hinweis, Wiederherstellen aus einem Backup (Restore) und JSON-Import. Die Download-Knöpfe
 // selbst (pdfBtn, exportBtn, offlineBtn, backupBtn) setzt das Modul, sobald Downloads verfügbar sind (onDb „downloads“),
 // bzw. offlineBoot(); covExportBtn setzt das Modul coverages.
@@ -9195,10 +9179,10 @@ function focusBarUpdate(hide){
   $("fFocusDel").disabled = !!S.kat.focusBusy;
 }
 
-// Modul catalog (P25c Teil 2a, docs/p25-plan.md): Katalog – Filterzeile (Facetten, Filter, „Also filtered“, Filter löschen),
+// Modul catalog (P25c Teil 2a, docs/archiv/p25-plan.md): Katalog – Filterzeile (Facetten, Filter, „Also filtered“, Filter löschen),
 // Sortierung, Karten im Raster, Must-know, Play-Auswahl (P27: Klick/Bereich, PDF/JSON der Auswahl, Must-know, Sammel-
 // Bearbeiten, Löschen), Detailansicht (Wechsel ‹ ›, Wischen, Pfeiltasten, Bearbeiten), sichtbare Plays (versteckte Teams)
-// und „Manage teams“. Meldet renderGrid, refreshFilters, updateReset, updateHiddenHint und detailNavUpdate bei core an.
+// und „Manage teams“. Zeichnet über onRender (Raster, Filterzeile, Hinweise).
 // Coverages und Matchups (Name auf der Karte, Defense in der Detailansicht, Review) über core (ui), damit sie später
 // abschaltbar sind; „Undo last edit“ (wUndoInfo) kommt aus dem Modul draw.
 // Gegner-, Event- (P56), Target- und Down-Filter und der Bereich „Game log“ kommen aus dem Modul gamelog.
@@ -9501,7 +9485,7 @@ async function saveChip(k, v){
   }
 }
 
-// ---------- Bearbeiten (nur feste Schema-Werte, Stand play.schema.json v3.19) ----------
+// ---------- Bearbeiten (nur feste Werte aus EDIT_FIELDS in core) ----------
 function startEdit(){
   const p = S.plays.find(x => x.play_id === S.detailId); if (!p) return;
   S.editing = true;
@@ -10603,9 +10587,7 @@ function initKatalog(){
   } });
 }
 
-registerUi({ detailNavUpdate });
-
-// Modul heatmap (P25c Teil 2a, docs/p25-plan.md): Reiter „Analysis“ – Heatmap der Routenenden je Zone, Routen-Feld
+// Modul heatmap (P25c Teil 2a, docs/archiv/p25-plan.md): Reiter „Analysis“ – Heatmap der Routenenden je Zone, Routen-Feld
 // („Show routes“), Beispiel-Plays, Auswertung „Concepts & depth“ mit Cross-Filter, Schalter Open Field/Endzone, Side,
 // Count und Group by. Meldet renderZones und setZField bei core an (render, setTab). Die Plays kommen aus dem Modul catalog
 // (analysisPlays: ohne Archiv, Scope Filtered/Selection, Cross-Filter – P37/P38), Einsätze und Gegner aus gamelog.
@@ -11385,7 +11367,7 @@ function initVideo(){
   onRender("*", () => { if (!S.vid.id) return; if (S.tab !== "draw"){ if (S.vid.spielt) vidRuf("pauseVideo"); } else vidLayoutSetzen(); });
 }
 
-// Seiten-Skript (Einstieg des Vite-Builds, docs/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
+// Seiten-Skript (Einstieg des Vite-Builds, docs/archiv/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
 // Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
 
 initGamelog(); // Game log: Zustand, Bereich in der Detailansicht, Targets antippen (modules/gamelog/)
