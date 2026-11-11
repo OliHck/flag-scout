@@ -3483,7 +3483,7 @@ const DRAW_PRESETS = {
   "Wing-Pro":    [["X", 7, 0], ["Y", 14, 0], ["Z", 22, 0]],
   "Pro":         [["X", 3, 0], ["Y", 14, 0], ["Z", 22, 0]],
   "3-Bunch":     [["X", 11, 0], ["Y", 14, 0], ["Z", 22, 0]],
-  "Trips":       [["X", 14, 0], ["Y", 18, 0], ["Z", 22, 0]],
+  "Trips":       [["X", 14.5, 0], ["Y", 18.5, 0], ["Z", 22, 0]], // P77: Slot mit ca. 2 yd Abstand zum Center (Oli 11.11.2026)
   "4-Bunch":     [["X", 11, 0], ["Y", 14, 0], ["Z", 15.5, 0]],
   "Offset Back": [["X", 3, 0], ["Y", 15, -4.5], ["Z", 22, 0]],
   "Eagle":       [["X", 3, 0], ["Y", 16, 0], ["Z", 22, 0]],
@@ -5325,7 +5325,7 @@ function svgFor(p, opts){ try { return fieldSVG(p, opts); } catch(e){ return `<d
 const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRender",
   "svgDetail",
   // Coverages und Matchups (abschaltbar): Name auf Karte und im PDF, Defense, Offline-Datei, Restore, Review
-  "covName", "covActive", "covPlaySetting", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
+  "covName", "covCallName", "covActive", "covPlaySetting", "covDefense", "covExportEntry", "covRestorePlan", "covRestoreWrite",
   "covPdfAllSync", "covPdfAll", "covOfflineBoot", "covTabUpdate",
   "svgCat", "covLabelFor", "covDetailOpen", "revBtnUpdate", "revRender",
   // Matchups im Bereich „Defense“ (vom Modul coverages aufgerufen)
@@ -5342,7 +5342,7 @@ const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRende
 // Geladene Module überschreiben die Einträge mit registerUi().
 const ui = {
   revBtnUpdate(){}, revRender(){},
-  covActive: () => false, covName: () => "", covDefense: () => null, covExportEntry: () => null,
+  covActive: () => false, covName: () => "", covCallName: () => "", covDefense: () => null, covExportEntry: () => null,
   covPlaySetting: () => ({ variants: [null] }), covRestorePlan: () => ({ n: 0 }), covRestoreWrite: async () => 0, svgCat: (p, extra) => svgFor(p, extra), covLabelFor: () => "",
   covPdfAllSync(){}, covPdfAll: () => false, covOfflineBoot(){}, covTabUpdate(){},
   covDetailOpen(){ ui.covDetailRender(); },
@@ -5623,7 +5623,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "19139b5493dd";
+const SEITEN_VERSION = "74d55033bda8";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -10681,7 +10681,7 @@ async function buildPdf(list, title, opt = {}){
     center(lab, x + cw / 2, y + 3, 7.5, { bold: true });
     let D = null;
     if (cov){ try { D = ui.covDefense(p, items[i].s); } catch (e) { D = null; } }
-    if (D){ let cn = (items[i].k ? `${items[i].k}: ` : "") + ui.covName(D.def); while (cn.length > 4 && textW(cn, 6, false) > cw - 2) cn = cn.slice(0, -1); center(cn, x + cw / 2, y + 5.7, 6, { color: GREY }); }
+    if (D){ let cn = (items[i].k ? `${items[i].k}: ` : "") + ui.covCallName(D); while (cn.length > 4 && textW(cn, 6, false) > cw - 2) cn = cn.slice(0, -1); center(cn, x + cw / 2, y + 5.7, 6, { color: GREY }); }
     try { const im = await svgToJpeg(D ? fieldSVG(p, { defense: D }) : fieldSVG(p), 4); doc.image(im.bytes, im.w, im.h, x, y + capH, cw, ih); }
     catch (e) { doc.rect(x, y + capH, cw, ih); doc.text("Graphic not available", x + 3, y + capH + 6, 7.5, { color: GREY }); }
     col++;
