@@ -1667,9 +1667,9 @@ function defenseLayers(play, def, anchors){
   return { zones, top: arrows + icons + labels.s + drawings };
 }
 
-// Markierungen der Coverage-Matchups (P23a, spec §7d): Naht, Rand einer Zone, leerer Raum, Overload, Rub, zu spät –
+// Markierungen der Coverage-Matchups (P23a, spec §7d): Naht, Rand einer Zone, leerer Raum, Overload, Rub, zu spät, 2nd QB und geräumte Zone (P75) –
 // in Play-Koordinaten (y relativ zur LOS), über den Routen
-const MU_MARK = { seam: "#d9480f", edge: "#e8a200", open: "#c92a2a", overload: "#c92a2a", rub: "#c92a2a", late: "#7a7a7a" };
+const MU_MARK = { seam: "#d9480f", edge: "#e8a200", open: "#c92a2a", overload: "#c92a2a", rub: "#c92a2a", late: "#7a7a7a", qb2: "#c92a2a" };
 function matchupMarksSVG(play, marks){
   const los = losAbs(play), f = (v) => v.toFixed(1);
   const P = (x, y) => [X(x), Y(los + y)];
@@ -1677,7 +1677,15 @@ function matchupMarksSVG(play, marks){
   for (const m of marks || []){
     if (!Number.isFinite(m.x) || !Number.isFinite(m.y)) continue;
     const [x, y] = P(m.x, m.y), c = MU_MARK[m.type] || "#c92a2a";
-    if (m.type === "overload" && Number.isFinite(m.x2)){
+    if (m.type === "vacated"){
+      // P75: geräumte Zone des DBs, der auf den 2nd QB herausrückt – rot, wenn eine Route sie angreift, sonst grau
+      const vc = m.hot ? "#c92a2a" : "#7a7a7a";
+      h += `<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(Math.max(1, m.w || 0) / 2 * PPY)}" ry="${f(Math.max(1, m.h || 0) / 2 * PPY)}" fill="${vc}" fill-opacity="${m.hot ? ".12" : ".06"}" stroke="${vc}" stroke-width="2" stroke-dasharray="5 3" opacity=".95"/>`;
+    } else if (m.type === "qb2"){
+      // P75: Position des 2nd QB beim Wurf
+      h += `<circle cx="${f(x)}" cy="${f(y)}" r="12" fill="none" stroke="${c}" stroke-width="2.2" opacity=".95"/>` +
+        `<text x="${f(x)}" y="${f(y - 15)}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="9" font-weight="700" fill="${c}" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">2nd QB</text>`;
+    } else if (m.type === "overload" && Number.isFinite(m.x2)){
       const [x2, y2] = P(m.x2, m.y2);
       h += `<line x1="${f(x)}" y1="${f(y)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${c}" stroke-width="2" stroke-dasharray="2 3" stroke-linecap="round" opacity=".85"/>`;
       for (const [a, b] of [[x, y], [x2, y2]]) h += `<circle cx="${f(a)}" cy="${f(b)}" r="6.5" fill="none" stroke="${c}" stroke-width="1.8" opacity=".9"/>`;
@@ -5624,7 +5632,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "2db323649af3";
+const SEITEN_VERSION = "a4a66d351964";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
