@@ -5338,6 +5338,8 @@ const UI_NAMEN = ["setZField", "fieldCouple", "logDetailRender", "covDetailRende
   "svgCat", "covLabelFor", "covDetailOpen", "revBtnUpdate", "revRender",
   // Matchups im Bereich „Defense“ (vom Modul coverages aufgerufen)
   "muList", "muPanelHTML", "muClick", "muNoteChange", "muBlind",
+  // P79: beste Coverage für Plays ohne gespeicherte Coverage (Modul matchups, gerufen vom Modul coverages)
+  "muAuto",
   // Video im Draw (P71b, Modul video – nur Flag Scout Tool): offenes Video und Stelle für die Einsätze
   "videoNow",
   // Aufrufe gegen die feste Richtung der Module (P69: core ← gamelog ← catalog ← drafts/export/…, draw ← drafts) – die Module
@@ -5360,6 +5362,8 @@ const ui = {
     $("dField").innerHTML = S.editing ? svgFor(p) : ui.svgDetail(p);
   },
   muList: () => [], muPanelHTML: () => "", muClick: () => false, muNoteChange(){}, muBlind: () => false,
+  /** @type {(p: any) => ({ id: string|null, side: string, src: string, mark: string } | null)} */
+  muAuto: () => null, // ohne matchups: Default wie bisher
   // ohne das Modul video: kein Video offen → Draw merkt keine Stelle
   videoNow: () => null,
 };
@@ -5632,7 +5636,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "a4a66d351964";
+const SEITEN_VERSION = "e816ef646e0a";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
