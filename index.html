@@ -3483,7 +3483,7 @@ const DRAW_PRESETS = {
   "Wing-Pro":    [["X", 7, 0], ["Y", 14, 0], ["Z", 22, 0]],
   "Pro":         [["X", 3, 0], ["Y", 14, 0], ["Z", 22, 0]],
   "3-Bunch":     [["X", 11, 0], ["Y", 14, 0], ["Z", 22, 0]],
-  "Trips":       [["X", 14.5, 0], ["Y", 18.5, 0], ["Z", 22, 0]], // P77: Slot mit ca. 2 yd Abstand zum Center (Oli 11.11.2026)
+  "Trips":       [["X", 15.6, 0], ["Y", 18.5, 0], ["Z", 22, 0]], // P77: Slot etwa mittig zwischen Center und Y (Oli 11.11.2026; 15,5 wäre schon Bunch-Grenze 3 yd)
   "4-Bunch":     [["X", 11, 0], ["Y", 14, 0], ["Z", 15.5, 0]],
   "Offset Back": [["X", 3, 0], ["Y", 15, -4.5], ["Z", 22, 0]],
   "Eagle":       [["X", 3, 0], ["Y", 16, 0], ["Z", 22, 0]],
@@ -5623,7 +5623,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "74d55033bda8";
+const SEITEN_VERSION = "2dda157fb190";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
