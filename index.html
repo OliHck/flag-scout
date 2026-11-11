@@ -945,7 +945,7 @@ const PAGE_SRC = {
 };
 
 // Kern-Dateien der Seite (P25c Teil 2a, docs/archiv/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
-// (ENTW, Z, COV, MU, LOG, SEL, KAT, HM, PR). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
+// (ENTW, Z, COV, MU, LOG, SEL, KAT, HM, PR, BOARD, REP). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
 // Seite und Module importieren die Namen von hier – ein globaler Name, den nur dieses Modul anlegt, würde Rollup umbenennen.
 // Coverages, Matchups und Präsentieren (COV, MU, PR) braucht nur das Modul coverages (mit matchups): Zeilen mit
@@ -5444,9 +5444,9 @@ function initAnsicht(){
 // Neu zeichnen (P50 Schritt 3): core kennt die Reiter nicht – jedes Modul meldet in seinem init…() mit onRender an, was es
 // für welchen Reiter zeichnet (wie onDb). render() ruft nur die Anmeldungen des offenen Reiters auf: zuerst alle mit
 // { vorab: true } (Häkchen, Filterzeile), dann die übrigen, jeweils in der Reihenfolge der Anmeldung (init… in app/main.js:
-// Analysis = Heatmap, PDF-Knopf, Matchups). Reiter "*" = jeder Reiter. Reiter: katalog, zonen (Analysis), drafts, draw, cov.
+// Analysis = Heatmap, PDF-Knopf, Matchups). Reiter "*" = jeder Reiter. Reiter: katalog, zonen (Analysis), drafts, draw, cov, rep (Reports, P78).
 /** @type {Reiter[]} */
-const REITER = ["katalog", "zonen", "drafts", "draw", "cov"];
+const REITER = ["katalog", "zonen", "drafts", "draw", "cov", "rep"];
 /** @type {Array<{ liste: Array<Reiter | "*">, fn: () => void, vorab: boolean }>} */
 const renderHooks = [];
 /**
@@ -5467,13 +5467,13 @@ function render(){
 
 function setTab(t){
   if ((t === "drafts" || t === "draw") && !(S.owner && S.db)) t = "katalog";
-  if (t === "cov" && !S.db) t = "katalog"; // Coverages (P32): auch Betrachter, nur lesen
+  if ((t === "cov" || t === "rep") && !S.db) t = "katalog"; // Coverages (P32), Reports (P78): auch Betrachter, nur lesen
   if (!$("view-" + t) && t !== "mu") t = "katalog"; // Reiter eines ausgeschalteten Moduls (Coverages)
   if (t === "mu") t = "zonen"; // P28.3: Analysis = Heatmap, darunter Matchups (kein eigener Zustand mehr)
   S.tab = t;
-  ["katalog", "zonen", "drafts", "draw", "cov"].forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", String(t === x)); });
+  REITER.forEach(x => { if (!$("view-" + x)) return; $("view-" + x).hidden = t !== x; $("tab-" + x).setAttribute("aria-selected", String(t === x)); });
   if ($("view-mu")) $("view-mu").hidden = t !== "zonen";
-  $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || (S.plays.length === 0 && !S.nArch); // Entwürfe/Zeichnen/Coverages: keine Katalog-Filter
+  $("filters").hidden = t === "drafts" || t === "draw" || t === "cov" || t === "rep" || (S.plays.length === 0 && !S.nArch); // Entwürfe/Zeichnen/Coverages/Reports: keine Katalog-Filter
   $("fFieldCtl").hidden = t === "zonen"; // in Analysis steuert der Feldtyp-Schalter der Heatmap (gilt auch für Matchups)
   // Field an einer Stelle (P39f): Filter Field oben = Schalter in Analysis, „all“ wird zum gezeigten Feld. Scope
   // „Selection“ (P37): Katalogfilter gelten nicht – auch nicht der Feldtyp
@@ -5486,6 +5486,7 @@ function initReiter(){
   $("tab-drafts").onclick = () => setTab("drafts");
   $("tab-draw").onclick = () => setTab("draw");
   if ($("tab-cov")) $("tab-cov").onclick = () => setTab("cov");
+  if ($("tab-rep")) $("tab-rep").onclick = () => setTab("rep");
 }
 
 // ---------- ⓘ-Texte und Mehrfinger-Gesten ----------
@@ -5519,7 +5520,7 @@ function initMehrfinger(){
 // (kein Wechsel der Adresse – im Artefakt gehen externe Links nicht). Suche: zeigt nur Abschnitte mit allen Suchwörtern
 // und markiert sie. Elemente mit data-help (Anker) (z. B. in ⓘ-Texten) öffnen die Hilfe an dieser Stelle.
 
-const REITER_ANKER = { katalog: "qs-plays", zonen: "qs-analysis", drafts: "qs-drafts", draw: "qs-draw", cov: "qs-coverages" };
+const REITER_ANKER = { katalog: "qs-plays", zonen: "qs-analysis", drafts: "qs-drafts", draw: "qs-draw", cov: "qs-coverages", rep: "qs-reports" };
 const helpEl = (a) => a ? document.getElementById("h-" + a) : null;
 
 function openHelp(anker){
@@ -5623,7 +5624,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "2dda157fb190";
+const SEITEN_VERSION = "2db323649af3";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
