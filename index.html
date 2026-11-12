@@ -1664,7 +1664,14 @@ function defenseLayers(play, def, anchors){
     const icon = dw.who ? inkIcon(play, anchors, dw.who, st) : null;
     routeParts(play, dw, icon, false, icon ? undefined : ptAbs(play, st)).forEach(p => { drawings += pathTag(p.d, { ...p.opts, dashed: !!dw.dashed || p.opts.dashed, ...(dw.nohead ? { noArrow: true } : {}), width: 1.8 }); });
   });
-  return { zones, top: arrows + icons + labels.s + drawings };
+  // Cover 3 Read (P80): kleiner Ring „R“ am Auslöser des Reads (erster Quick Cut bzw. Drop) in der Farbe des tiefen Safety
+  let readRing = "";
+  if (def.read && Number.isFinite(def.read.x) && Number.isFinite(def.read.y)){
+    const [rx, ry] = P(def.read.x, def.read.y), c = def.read.color || "#555555";
+    readRing = `<g class="covread"><circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="6.5" fill="#ffffff" fill-opacity=".85" stroke="${c}" stroke-width="1.8"/>` +
+      `<text x="${rx.toFixed(1)}" y="${(ry + 2.6).toFixed(1)}" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" font-weight="700" fill="${c}">R</text></g>`;
+  }
+  return { zones, top: arrows + icons + labels.s + drawings + readRing };
 }
 
 // Markierungen der Coverage-Matchups (P23a, spec §7d): Naht, Rand einer Zone, leerer Raum, Overload, Rub, zu spät, 2nd QB und geräumte Zone (P75) –
@@ -5636,7 +5643,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "e816ef646e0a";
+const SEITEN_VERSION = "a8e059fcbde5";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
