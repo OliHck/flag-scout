@@ -287,7 +287,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Draw from a YouTube video {#draw-video}
 - **▶ Video** (next to Clear) asks for a YouTube link. Normal links, short links (youtu.be), live streams and Shorts work. A time in the link (`t=1h2m5s`, `t=3725`) starts the video there – handy for long live streams.
-- **Phone upright:** the video stays at the top while you scroll and draw below it; the field shrinks so that it fits under the video. **Phone sideways, tablet sideways and computer:** video on the left, Draw on the right.
+- **Phone upright:** the video stays at the top while you scroll and draw below it; the field shrinks so that it fits under the video. **Phone sideways, tablet sideways and computer:** video on the left, Draw on the right, using the full width of the window.
 - **First start:** tap the play button of the video itself. After that the gestures work.
 - **Gestures on the video:** tap = pause / play · double-tap on the right or left = jump forward or back (tap again to add another jump) · two fingers = zoom, one finger moves the zoomed picture · double-tap in the middle = whole picture again. With a mouse: click, double-click, Ctrl + wheel to zoom, drag to move.
 - **Bar under the video:** slider and time, **▶** play / pause, **1×** speed (tap to switch 1× · 0.5× · 0.25×), **± 5 s** jump per double-tap (tap to switch 5 · 10 · 2 s), **Fit** ends the zoom, **Link** opens another video, **✕** closes the video.
