@@ -159,7 +159,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - The selection stays when you change filters or sorting, and is gone after reloading the page.
 
 ### Edit several plays {#bulk-edit}
-- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents** or **events** (pick them as chips with **+ add …** / **+ new …**), or move the plays to another **team**. Empty fields change nothing.
+- **Edit** in the selection bar: set or clear the **season**, **add** or **replace opponents** or **events** (pick them as chips with **+ add …** / **+ new …**), or move the plays to another **team**. Empty fields change nothing. The same works for drafts – see [several drafts](#drafts-select).
 - A new team gives the plays new IDs; their game log and must-know marks move along.
 - **Delete** asks once with the number of plays. Their game log is deleted too.
 
@@ -313,6 +313,14 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - “Will be saved as …” shows the final play ID.
 - **Approve** moves the play into the catalog. **Approve all** approves every draft that has no open points and tells you what is left.
 - **Edit in Draw** changes routes and line-up. **Discard** (tap twice) deletes the draft.
+
+### Select and edit several drafts {#drafts-select}
+- **Select** turns on selection mode: each draft gets a box at the top. Tap it (or the draft's top line) to add or remove the draft; Shift + click adds the range from the last one.
+- The bar at the bottom: **Select all**, **Deselect all**, **Edit**, **Approve selected**, **Discard selected**, **Done**. The selection is separate from the one in Plays and is gone after reloading.
+- **Edit** opens the same window as [editing several plays](#bulk-edit): set or clear the **season**, add, replace or clear **opponents** and **events**, or move the drafts to another **team**. The preview shows every change before you save.
+- **Targets follow:** targets without opponent get the opponent you set, targets without event get the event – but only if the draft then has exactly one opponent (or event). Targets that already name one stay as they are, and **Clear** changes no targets.
+- A new team gives the drafts new IDs (next free number of the team); their targets move along. New team or season: the check for [duplicates](#duplicates) runs again, so a draft can become “Same as …” a play of the new team.
+- **Approve selected** works like Approve all, only for the selection. **Discard selected** asks once with the number.
 
 ### Duplicates and variants {#duplicates}
 - **Same as …:** the play is already in the catalog. “Approve (don't save)” only removes the draft – new opponents, events or targets are added to the existing play.
