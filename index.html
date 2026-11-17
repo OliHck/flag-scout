@@ -490,7 +490,7 @@ button.dchip:hover{border-color:var(--accent)}
 .dw-back{position:sticky;bottom:12px;float:right;margin-top:8px;z-index:5;box-shadow:0 2px 8px rgb(0 0 0 / .18)}
 .dcard.dw-flash{outline:3px solid var(--accent);outline-offset:2px;transition:outline-color .4s}
 .dw-clkbar{display:flex;flex-wrap:wrap;gap:8px}.dw-clkbar[hidden]{display:none}.dw-clkbar .btn{padding:9px 14px} /* P74 */
-#wClick[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)} /* P46 Klick-Modus */
+#wClick[aria-pressed="true"],#wStraight[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)} /* P46 Klick-Modus */
 .dw-mchk{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .dw-mchk input{width:18px;height:18px;margin:0}
 .dw-vt{margin:0;font-size:13px;color:var(--muted)}
@@ -3566,7 +3566,9 @@ const DRAW_LIMITS_CLICK = {
 };
 // Klick-Modus für Maus, Finger und Stift (P74, Oli 10.11.2026) – Regeln ohne DOM, die Seite (app/modules/draw) setzt sie um.
 const CLICK_TOOLS = ["route", "option", "motion", "ball"];
-const CLICK_NEAR = 0.6;     // yd: so nah am letzten Punkt = derselbe Punkt
+const CLICK_NEAR = 0.6;     // yd: so nah am letzten Punkt = derselbe Punkt (Maus)
+const CLICK_NEAR_TOUCH = 1; // yd: Finger/Stift (P87, Oli 17.11.2026: am iPhone sind 0,6 yd nur ca. 8 px – ein knapp daneben
+                                   //   gesetzter Doppeltipp setzte einen Mini-Punkt statt zu beenden)
 const CLICK_DOUBLE_MS = 450; // Maus: zweiter Klick an derselben Stelle innerhalb dieser Zeit = Doppelklick (beenden)
 /**
  * Wie wirkt ein Zeigerdruck auf dem Feld bei „Click points“? "point" = Punkt setzen (Maus beim Drücken, Finger/Stift beim
@@ -3584,7 +3586,7 @@ function clickInput({ click, tool, pointerType, penSeen, open }) {
  * Finger/Stift (P85, Oli 16.11.2026): ein Tipp so nah am letzten Punkt beendet die Linie immer – ohne Zeitfenster.
  */
 function clickTap(clk, p, now, pointerType) {
-  const last = clk.pts[clk.pts.length - 1], near = Math.hypot(p.x - last.x, p.y - last.y) <= CLICK_NEAR;
+  const last = clk.pts[clk.pts.length - 1], near = Math.hypot(p.x - last.x, p.y - last.y) <= (pointerType === "mouse" ? CLICK_NEAR : CLICK_NEAR_TOUCH);
   if (!near) return "add";
   if (pointerType !== "mouse") return "finish";
   return now - (clk.at || 0) < CLICK_DOUBLE_MS ? "finish" : "same";
@@ -4563,7 +4565,7 @@ function keyAction(ev, ctx = {}) {
   return null;
 }
 
-return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, CLICK_TOOLS, CLICK_NEAR, CLICK_DOUBLE_MS, clickInput, clickTap, LONG_PRESS_MS, LONG_PRESS_TOL, longPressAllowed, longPressState, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, PAT_DOWN_WARNING, patDownWarning, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, receiverLook, withReceiverLook, isStandardLook, thinPoints, rdp, strokeLength, trimTail, reversals, corners, simplifyStroke, suggestsComeback, HITCH_FORM, hitchForm, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, visibleShapes, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, lineClickRule, drawTeams, hiddenTeamMatch, setRoute, getRoute, toggleComeback, setStemShape, finishDrawPlay, DUP_MIN_ROUTES, routeCount, dupStock, dupCheck, KEY_FORMATIONS, KEY_TOOLS, KEY_LINES, keyAction };
+return { DRAW_LIMITS, DRAW_LIMITS_FINE, DRAW_LIMITS_CLICK, CLICK_TOOLS, CLICK_NEAR, CLICK_NEAR_TOUCH, CLICK_DOUBLE_MS, clickInput, clickTap, LONG_PRESS_MS, LONG_PRESS_TOL, longPressAllowed, longPressState, drawLimitsFor, DRAW_PRESETS, DRAW_DEFAULTS, DRAW_DISTANCES, drawBounds, clampPt, drawSituation, PAT_DOWN_WARNING, patDownWarning, presetPlayers, newDrawPlay, hasDrawing, applySetup, replaceLineup, clipToSidelines, mirrorPlay, playerRef, playerPos, playerKeys, nearestPlayer, movePlayer, renamePlayer, receiverLook, withReceiverLook, isStandardLook, thinPoints, rdp, strokeLength, trimTail, reversals, corners, simplifyStroke, suggestsComeback, HITCH_FORM, hitchForm, cleanLeadIn, arcAt, findZigzags, setDelays, toggleDelay, routeFromStroke, routeTip, visibleShapes, extendRoute, projectOnChain, routeAt, addOption, setMotion, setBallPath, clearBallPath, lineClickRule, drawTeams, hiddenTeamMatch, setRoute, getRoute, toggleComeback, setStemShape, finishDrawPlay, DUP_MIN_ROUTES, routeCount, dupStock, dupCheck, KEY_FORMATIONS, KEY_TOOLS, KEY_LINES, keyAction };
 })();
 // Routen standardisieren (scripts/lib/standardisieren.mjs) – gekapselt
 const STD = (() => {
@@ -6398,7 +6400,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "6362c55c1b91";
+const SEITEN_VERSION = "b7fa0e7afbd8";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
