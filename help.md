@@ -112,7 +112,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Filters {#catalog-filters}
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
-- **More filters ▸**: Direction, Concept, Depth S-I-D, Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
+- **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination S-I-D), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived – with a [focus](#focus) back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
@@ -173,7 +173,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Play details {#play}
 
 ### What you see {#play-info}
-- The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **S-I-D** (routes short-intermediate-deep), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
+- The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **Depth** ([profile](#depth-profile) and S-I-D, e.g. “Two deep · 2-1-1”), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
 - Below: team, season, opponents (“vs …”) and events (“@ …”), the comment and when the play was saved or edited.
 - Fold-out areas: [Game log](#game-log) and **JSON** (the play as data).
 
@@ -368,8 +368,23 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 “Every play once” – each play counts once. “By frequency” – plays count as often as they were used ([game log](#game-log)); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.
 
 ### Concepts & depth {#concepts}
-- Share of plays (or uses / targeted routes, depending on Count) per concept, per depth combination S-I-D and per target.
+- Share of plays (or uses / targeted routes, depending on Count) per concept, per [depth profile](#depth-profile) and per target.
 - Click a bar to filter heatmap and catalog by it, click again to clear. Active filters also show as chips above the heatmap.
+- Under each depth profile its combinations S-I-D stand small (e.g. “2-0-2 ×4”) – click one to filter by exactly this combination.
+
+### Depth profile {#depth-profile}
+How a play is built in depth – many short outlets or two, three players deep. Each play gets **one** profile from its [S-I-D](#glossary) numbers; the first that fits counts:
+- **Vertical** (Endzone: **Back line**) – 3 or more routes deep.
+- **Quick** (Endzone: **Underneath**) – 3 or more routes short (before the goal line).
+- **Two deep** – exactly 2 routes deep.
+- **Middle** (Endzone: **Goal line**) – 3 or more routes intermediate (between goal line and mid end zone).
+- **Mixed** – the routes are spread over the levels.
+
+Below the bars: **Shots/play** = deep routes per play; **Few outlets** = plays with at most one short route (Open Field only).
+
+With a **Team** filter, a thin line in each bar shows the other teams (all other plays on this field, same Count). **▲ / ▼** marks a profile that is clearly more or less frequent: at least 10 points and 1.5 times the other teams, at least 3 plays in the profile, at least 8 plays of the team and two other teams with 20 plays. In “Selection” there is no comparison.
+
+The **Depth** filter (More filters) lists the profiles (“Vertical (all)”) with their combinations below; the play view shows both, e.g. “Two deep · 2-1-1”.
 - Collapsed by default; click the heading to open it. **Show example plays** lists the plays behind the heatmap.
 
 ## Export and import {#export}
@@ -434,6 +449,7 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - **Formation** – Spread, Wing, Wing-Pro, Pro, 3-Bunch, Trips, 4-Bunch, Offset Back, Eagle.
 - **Concept** – Hitches, Hitches + Shot, Mesh/Crosses, Flood, Follow, Run/2nd QB, Basic (no special concept), Special.
 - **S-I-D** – how many routes (center and three receivers) end short, intermediate and deep, e.g. 2-1-1.
+- **Depth profile** – the S-I-D numbers in one word: Vertical, Quick, Two deep, Middle or Mixed (see [Depth profile](#depth-profile)).
 - **Option ending** – a dashed second ending of a route: the receiver reads and picks one.
 - **Comeback ^** – a route whose end points back toward the line (hitch, comeback).
 - **Delay** – a short zigzag on a route: stutter, hook & go.
