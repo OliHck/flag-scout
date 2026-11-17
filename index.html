@@ -4538,7 +4538,8 @@ const STD = (() => {
 // Reine Funktionen, kein DOM, kein Dateizugriff, keine Imports (die Seite setzt die Datei gekapselt als STD ein).
 //
 // Regeln (einzeln schaltbar, alles in Yards, Toleranzen in STD_LIMITS):
-//   positionen – Receiver an der Line (|y| ≤ 0,75) auf y = 0, x von Receivern und QB auf 0,5-yd-Raster. Die Route zieht
+//   positionen – Receiver an der Line (|y| ≤ 0,75) auf y = 0, x von Receivern und QB auf 0,5-yd-Raster (nie auf die Mitte
+//                12,5, wenn er neben ihr stand – sonst hätte er keine Seite mehr). Die Route zieht
 //                seitlich mit (Go bleibt senkrecht); in y wandert nur ihr Startpunkt – Knick- und Endtiefen sind ab der LOS
 //                gemessen und bleiben. Mit Motion ändert sich nur die Startposition (Motion und Route bleiben). Center-Route
 //                beginnt bei 12,5/0. Ballweg-/Weitergabe-Punkte auf der alten Position ziehen mit.
@@ -4720,7 +4721,9 @@ function feldPunkte(play, pts, L) {
 }
 
 // ---------- Aufstellung ----------
-const rasterX = (x, L) => r1(Math.round(x / L.raster) * L.raster);
+// Raster; ein Receiver nie AUF die Mitte – neben dem Center bliebe er sonst ohne Seite (Direction „Unknown“) → x bleibt.
+// Der QB darf auf die Mitte (frei = true).
+const rasterX = (x, L, frei = false) => { const g = r1(Math.round(x / L.raster) * L.raster); return !frei && g === CX && x !== CX ? x : g; };
 function verschiebeRoute(rt, dx) { if (rt && dx) for (const p of routePunkte(rt)) p.x = r1(p.x + dx); }
 // Ballweg/Weitergabe: Punkte auf der alten Position (bis 0,3 yd) ziehen mit
 function ballMit(play, alt, neu) {
@@ -4761,7 +4764,7 @@ function standardisieren(play, { regeln = STD_REGELN, nur = null, limits = STD_L
       if (setzePos(p, r, x, y)) add(r.label, "positionen", `Position (${zahl(a.x)}|${zahl(a.y)}) → (${zahl(x)}|${zahl(y)})`, "position on grid");
     }
     if (P.qb && darf("QB") && typeof P.qb.x === "number") {
-      const a = P.qb.x, x = rasterX(a, L);
+      const a = P.qb.x, x = rasterX(a, L, true);
       if (setzePos(p, P.qb, x, P.qb.y)) add("QB", "positionen", `x ${zahl(a)} → ${zahl(x)}`, "position on grid");
     }
     const cr = P.center?.route?.stem?.points?.[0];
@@ -6322,7 +6325,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "811be9c28ad8";
+const SEITEN_VERSION = "112521418cb4";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
