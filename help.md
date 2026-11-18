@@ -112,7 +112,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Filters {#catalog-filters}
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
-- **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination S-I-D), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
+- **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination, e.g. 2-1-1), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived – with a [focus](#focus) back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
@@ -173,7 +173,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Play details {#play}
 
 ### What you see {#play-info}
-- The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **Depth** ([profile](#depth-profile) and S-I-D, e.g. “Two deep · 2-1-1”), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
+- The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **Depth** ([profile](#depth-profile) and combination, e.g. “Two deep · 2-1-1”), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
 - Below: team, season, opponents (“vs …”) and events (“@ …”), the comment and when the play was saved or edited.
 - Fold-out areas: [Game log](#game-log) and **JSON** (the play as data).
 
@@ -271,7 +271,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - A clear zigzag you draw yourself (at least three sharp turns) also becomes a delay. Small wobbles of your finger do not.
 
 ### Save as draft {#draw-save}
-- Pick the **Concept** (a suggestion from the routes is preselected); **Depth S-I-D** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
+- Pick the **Concept** (a suggestion from the routes is preselected); **Depth** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
 - **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors (also the center's color) stay for the next play. The down for targets is cleared too – pick it again for the next play.
 - Targets: with **1PAT** or **2PAT** in the setup, the same PAT is preselected as the down for targets and is set for every target without a down (also after **Save & next**). With a down 1st–4th selected instead, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
@@ -334,9 +334,9 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Analysis: heatmap {#heatmap}
 
 ### Zones and depth {#zones}
-- Shows the **share of route ends per zone** for the filtered plays (or only the [selected plays](#analysis-scope)); [archived plays](#archive) never count. Zones are the same as in Depth S-I-D: Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd), Endzone depth from the goal line.
+- Shows the **share of route ends per zone** for the filtered plays (or only the [selected plays](#analysis-scope)); [archived plays](#archive) never count. Zones are the same as in [Depth](#glossary): Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd); Endzone depth from the goal line (short more than 1.5 yd before it incl. backfield, **goalline** from 1.5 yd before to 2.5 yd past it, deep more than 2.5 yd past it).
 - **Field:** Open Field or Endzone – the plays of the other field are not counted. It is the same filter as Field in the Plays tab (that one is hidden here): switching sets both, and “all” there becomes the field shown here. With [Selection](#analysis-scope) the switch only changes the analysis.
-- Players **without a route** are not shown in the heatmap (in Depth S-I-D they count as short).
+- Players **without a route** are not shown in the heatmap (in Depth they count as short).
 - A **route end is not the pass target** – for targets use [Count](#count) → “Targets only”.
 - Few plays give a “small sample” note: read the numbers with care.
 
@@ -371,14 +371,14 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 ### Concepts & depth {#concepts}
 - Share of plays (or uses / targeted routes, depending on Count) per concept, per [depth profile](#depth-profile) and per target.
 - Click a bar to filter heatmap and catalog by it, click again to clear. Active filters also show as chips above the heatmap.
-- Under each depth profile its combinations S-I-D stand small (e.g. “2-0-2 ×4”) – click one to filter by exactly this combination.
+- Under each depth profile its depth combinations stand small (e.g. “2-0-2 ×4”) – click one to filter by exactly this combination.
 
 ### Depth profile {#depth-profile}
-How a play is built in depth – many short outlets or two, three players deep. Each play gets **one** profile from its [S-I-D](#glossary) numbers; the first that fits counts:
+How a play is built in depth – many short outlets or two, three players deep. Each play gets **one** profile from its [depth](#glossary) numbers; the first that fits counts:
 - **Vertical** (Endzone: **Back line**) – 3 or more routes deep.
-- **Quick** (Endzone: **Underneath**) – 3 or more routes short (before the goal line).
+- **Quick** (Endzone: **Underneath**) – 3 or more routes short.
 - **Two deep** – exactly 2 routes deep.
-- **Middle** (Endzone: **Goal line**) – 3 or more routes intermediate (between goal line and mid end zone).
+- **Middle** (Endzone: **Goalline**) – 3 or more routes intermediate (Endzone: at the goalline, from 1.5 yd before to 2.5 yd past it).
 - **Mixed** – the routes are spread over the levels.
 
 Below the bars: **Shots/play** = deep routes per play; **Few outlets** = plays with at most one short route (Open Field only).
@@ -449,8 +449,8 @@ The **Depth** filter (More filters) lists the profiles (“Vertical (all)”) wi
 - **Strong side / weak side** – the side with more / fewer receivers next to the center.
 - **Formation** – Spread, Wing, Wing-Pro, Pro, 3-Bunch, Trips, 4-Bunch, Offset Back, Eagle.
 - **Concept** – Hitches, Hitches + Shot, Mesh/Crosses, Flood, Follow, Run/2nd QB, Basic (no special concept), Special.
-- **S-I-D** – how many routes (center and three receivers) end short, intermediate and deep, e.g. 2-1-1.
-- **Depth profile** – the S-I-D numbers in one word: Vertical, Quick, Two deep, Middle or Mixed (see [Depth profile](#depth-profile)).
+- **Depth** – how many routes (center and three receivers) end short, intermediate and deep, e.g. 2-1-1. In the Endzone the middle zone is called **Goalline**: short – goalline – deep.
+- **Depth profile** – the depth numbers in one word: Vertical, Quick, Two deep, Middle or Mixed (see [Depth profile](#depth-profile)).
 - **Option ending** – a dashed second ending of a route: the receiver reads and picks one.
 - **Comeback ^** – a route whose end points back toward the line (hitch, comeback).
 - **Delay** – a short zigzag on a route: stutter, hook & go.
