@@ -992,6 +992,32 @@ const PAGE_SRC = {
   css: [...document.querySelectorAll("style")].map(s => s.textContent).find(t => t.includes(".wrap{")) || ""
 };
 
+// Ersatz für zwei Befehle, die Safari erst ab 15.4 kennt (P73): .at() (Listen, Texte, Zahlenlisten) und Object.hasOwn.
+// Ohne sie brechen auf iPad/iPhone mit iOS 15.0–15.3 viele Funktionen ab. Wirkt nur, wenn der Browser den Befehl nicht hat.
+// Muss vor allem anderen laufen: zweiter Import in app/main.js, direkt nach der Seitenquelle (die braucht die Befehle nicht).
+// Keine Imports/Exporte; Build-Test in scripts/tool-test.mjs.
+(function () {
+  /** @this {ArrayLike<unknown>} @param {number} i */
+  function at(i) {
+    const n = this.length >>> 0;
+    let k = Math.trunc(Number(i)) || 0;
+    if (k < 0) k += n;
+    return k < 0 || k >= n ? undefined : this[k];
+  }
+  const ziele = [Array.prototype, String.prototype];
+  if (typeof Int8Array === "function") ziele.push(Object.getPrototypeOf(Int8Array.prototype));
+  for (const p of ziele) if (typeof p.at !== "function") Object.defineProperty(p, "at", { value: at, writable: true, configurable: true });
+  if (typeof Object.hasOwn !== "function") {
+    Object.defineProperty(Object, "hasOwn", {
+      value: (/** @type {object} */ o, /** @type {PropertyKey} */ k) => {
+        if (o == null) throw new TypeError("Object.hasOwn: object is null or undefined");
+        return Object.prototype.hasOwnProperty.call(o, k);
+      },
+      writable: true, configurable: true,
+    });
+  }
+})();
+
 // Kern-Dateien der Seite (P25c Teil 2a, docs/archiv/p25-plan.md): Renderer, Regeln (derive) und die gekapselten Kern-Bibliotheken
 // (ENTW, Z, STD, COV, MU, LOG, SEL, KAT, HM, PR, BOARD, REP). Der Vite-Build setzt sie an die Platzhalter (kernEinsetzen aus
 // tools/playbook-seite/seite-bauen.mjs, wie früher in app/main.js); Reihenfolge wie in der alten Seite.
@@ -2380,7 +2406,12 @@ function losFromText(text) {
   if (!text) return [];
   const out = [], t = String(text);
   for (const m of t.matchAll(/(?:^|[^0-9])([12])\s*pat/gi)) out.push(m[1] === "1" ? 5 : 10);
-  for (const m of t.matchAll(/(?<![\d.,])(\d+(?:[.,]\d+)?)(?:\s*-\s*(\d+(?:[.,]\d+)?))?\s*(?:yards?|yds|yd|y)(?![a-z])/gi)) {
+  // Zahl darf nicht direkt hinter Ziffer, Punkt oder Komma stehen. Bewusst ohne Lookbehind im Suchmuster geprüft – das kann
+  // Safari erst ab 16.4, und der Fehler stoppte schon beim Einlesen die ganze Seite (P73). Passt das Zeichen davor
+  // nicht, eine Stelle weiter neu suchen – ergibt dieselben Treffer wie das frühere Lookbehind.
+  const re = /(\d+(?:[.,]\d+)?)(?:\s*-\s*(\d+(?:[.,]\d+)?))?\s*(?:yards?|yds|yd|y)(?![a-z])/gi;
+  for (let m = re.exec(t); m; m = re.exec(t)) {
+    if (m.index > 0 && /[\d.,]/.test(t[m.index - 1])) { re.lastIndex = m.index + 1; continue; }
     const a = parseFloat(m[1].replace(",", ".")), b = m[2] ? parseFloat(m[2].replace(",", ".")) : a;
     out.push((a + b) / 2);
   }
@@ -6532,7 +6563,7 @@ function versionDoc(neu, alt, am){
 // Offline-HTML; die Leiste steht außerhalb von .wrap und kommt deshalb auch nicht in dessen Vorlage.
 
 // Build-Version dieser Seite – der Build setzt sie ein (tools/playbook-seite/version.mjs)
-const SEITEN_VERSION = "94a94f99d140";
+const SEITEN_VERSION = "0c298ceeaef5";
 const UPD_WEG = "playbook-update-weg", UPD_VERSUCH = "playbook-update-versuch", UPD_ABSTAND = 2000, UPD_NOCHMAL = 6000;
 const U = { quelle: null, live: null, weg: null, arm: 0, zuletzt: 0, timer: 0 };
 const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
@@ -12715,7 +12746,8 @@ function initVideo(){
 }
 
 // Seiten-Skript (Einstieg des Vite-Builds, docs/archiv/p25-plan.md). Die Seitenquelle muss als Erstes gelesen werden (vor jedem
-// Rendern), deshalb steht ihr Import ganz oben. Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
+// Rendern), deshalb steht ihr Import ganz oben; gleich danach der Ersatz für ältere Safari-Versionen (P73, vor allem anderen
+// Code). Grundgerüst (Zustand, Hilfen, Klappbereiche, Reiter): modules/core/.
 
 initGamelog(); // Game log: Zustand, Bereich in der Detailansicht, Targets antippen (modules/gamelog/)
 initTipps(); // ⓘ-Texte (modules/core/)
