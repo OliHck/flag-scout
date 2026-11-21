@@ -196,36 +196,29 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Game log {#game-log}
 
 ### Uses and opponents {#uses}
-- The **Game log** area in the play details records each time a play was used: against whom, who was targeted and on which down. There is no result (complete, yards).
+- The **Game log** in the play details records each use: opponent, event, down and target. No result (complete, yards).
 - Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).
-- Choose the opponent under **vs**, then tap a target button. The list shows this play's opponents first (“This play”), then all other known teams (“Other teams”), or “+ new opponent …”. Choosing a team saves nothing yet – the first entry makes it an opponent of the play. **Undo last entry** removes the last one; the list below lets you delete single entries.
-- **▶ 1:02:05** at an entry: this use was drawn from a YouTube video – the link opens YouTube a few seconds before that moment.
-- Rename, merge or delete opponents in [Manage teams → Opponents](#opponents).
-- Opponents of a play can also be set in Draw, Drafts and with [Edit several plays](#bulk-edit).
+- Layout (same in Draw and Drafts): opponent and event as small selectors top right, then **Down**, **↔ Flipped**, **Target player**. The first entry makes a chosen team an opponent of the play. **Undo last entry** removes the last one; delete single entries in the list.
+- **▶ 1:02:05** at an entry opens the YouTube video shortly before that moment.
+- Rename, merge or delete opponents in [Manage teams → Opponents](#opponents); also settable in Draw, Drafts and [Edit several plays](#bulk-edit).
 
 ### Events {#events}
-- An **event** says when in the season a play was used, e.g. “Worldcup” or “Gameday 02.05.”. Optional, a play can have several.
-- Choose the event under **at**, below **vs** – it works the same way: this play's events first (“This play”), then all other events (“Other events”), or “+ new event …” (also added to the play's events). Preselected: the Event filter, otherwise the last event you used.
+- An **event** says when a play was used, e.g. “Worldcup”. Optional, several possible.
+- The event selector works like the opponent one; “+ new event …” also adds it to the play. Preselected: Event filter, else the last event used.
 - Rename, merge or delete events in [Manage teams → Events](#events-manage).
-- Events of a play can also be set with **Edit** in the details, in Draw, Drafts and with [Edit several plays](#bulk-edit).
 
 ### Targets {#targets}
-- One button per receiver and the center (with option routes also per ending, e.g. “+Z·2”), plus **QB run** (QB or 2nd QB run), **No target** (incomplete without a clear receiver, throwaway or sack) and **Played** (target not known).
-- Faster: **double-click** (mouse, pen) or **long press** (finger) on a route or a player in the graphic adds it as target.
-- “Show targets on the graphic” puts small numbers at the targeted route ends.
-- In Plays, **Show targets** does this on every card (off by default). The number of uses always stands next to the ★, e.g. “×7” (no number without uses).
-- Draw and Drafts have the same buttons, so you can record targets while you draw or check a play.
+- **Target player**: one button per receiver and the center (option routes per ending, e.g. “+Z·2”), **QB run**, **No target** (throwaway, sack, no clear receiver – counts in the target share) and **Played** (target not known – counts only as a use).
+- Faster: **double-click** or **long press** a route or player in the graphic.
+- “Show targets on the graphic” numbers the targeted route ends; **Show targets** in Plays does this on every card. Uses stand next to the ★, e.g. “×7”.
 
 ### Downs {#downs}
-- Optional: pick **1st–4th**, **1PAT** or **2PAT** above the target buttons – it applies to the next entries until you tap it again. In the list you can set the down of each entry later. Opening a play starts without a down; in Draw, **Save & next** clears it.
-- The summary shows e.g. “Downs: 1st 2 · 3rd 1 · 2PAT 1”.
-- The **Down** filter (More filters) also lists 1PAT and 2PAT: it finds plays with a use on that down **or** with 1PAT/2PAT in their situation.
+- Optional: **1st–4th**, **1PAT** or **2PAT** – applies to the next entries until tapped again. Change single entries in the list.
+- The summary shows e.g. “Downs: 1st 2 · 3rd 1”. The **Down** filter also finds plays with 1PAT/2PAT in their situation.
 
 ### Flipped {#flipped}
-- **↔ Flipped** next to the downs: the play was run mirrored (left and right swapped). It applies to the next entries until you tap it again and is off for every new play. The target stays the same route, e.g. Z.
-- In the list, **↔** at each entry switches it later. Flipped entries show “↔ flipped”, the summary adds e.g. “2× flipped”.
-- Draw and Drafts have the same switch.
-- In the [heatmap](#count) with Side “Real side” and Count “By frequency” or “Targets only”, flipped uses count on the mirrored side – in the routes view, too. “Strong side right”, the bars and the filters do not change.
+- **↔ Flipped** (below Down): the play ran mirrored; the target stays the same route. Applies to the next entries, off for every new play. **↔** at an entry changes it later. Not in Draw.
+- In the [heatmap](#count) with Side “Real side” and Count “By frequency” or “Targets only”, flipped uses count on the mirrored side.
 
 ### Where the game log counts {#game-log-use}
 - Filters **Opponent**, **Event**, **Target** and **Down** (More filters). With an opponent or event filter only the uses against that opponent or at that event count everywhere; with both, only uses against that opponent at that event.
@@ -273,7 +266,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
 - **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors (also the center's color) stay for the next play. The down for targets is cleared too – pick it again for the next play.
-- Targets: **Down** (optional) and **Target player** – tap the receiver who was thrown to, **QB run**, **No target** (thrown away, sacked or incomplete without a clear receiver – counts in the target share) or **Played** (target not known – counts only as a use). Opponent and event for the targets come from the setup; the small selectors at the top right of Targets change them for the next targets only.
+- Targets: **Down** and **Target player** as in the [game log](#targets); opponent and event come from the setup (small selectors top right change them for the next targets). No Flipped here.
 - Targets: with **1PAT** or **2PAT** in the setup, the same PAT is preselected as the down for targets and is set for every target without a down (also after **Save & next**). With a down 1st–4th selected instead, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
