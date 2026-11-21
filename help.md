@@ -364,10 +364,12 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 “Real side” shows plays as drawn (not mirrored); with Count “By frequency” or “Targets only”, uses marked [flipped](#flipped) count mirrored. “Strong right” mirrors plays with direction Left, so the strong side is always right.
 
 ### Group by {#group-by}
-Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.
+Splits the heatmap into one per formation, team, direction, concept, depth, season, opponent or down. A play with several opponents appears in each of their groups.
+
+- **Down** shows the groups in a fixed order: 1st, 2nd, 3rd, 4th, 1PAT, 2PAT, then “No down”. A play used on several downs appears in each of them; with Count “By frequency” or “Targets only” each group counts only the uses on its down. See [Down](#down-select) for where the down comes from.
 
 ### Options {#heatmap-options}
-- **Options ▸** folds out four settings: **Split option endings** (each ending of an option route counts on its own), **Show routes** (the routes next to the heatmap), **Count** and [Receiver](#receiver).
+- **Options ▸** folds out five settings: **Split option endings** (each ending of an option route counts on its own), **Show routes** (the routes next to the heatmap), **Count**, [Receiver](#receiver) and [Down](#down-select).
 - Folded, settings that differ from the default stay visible as chips; × sets one back.
 
 ### Receiver {#receiver}
@@ -376,6 +378,13 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - Works with Count: with “Targets only” only the targets of these receivers count. Field, Side, Group by, the filters and [Selection](#analysis-scope) work as usual.
 - The label counts, not the alignment: X is X whether it lines up outside or in the slot. A label without a route in the plays shown keeps its chip as “(0)”.
 - Concepts & depth stay per play and ignore the receiver choice.
+
+### Down {#down-select}
+- Under **Options**, choose one or more downs: **1st**, **2nd**, **3rd**, **4th**, **1PAT**, **2PAT** or **No down**. Heatmap and Show routes then count only the uses on these downs, e.g. to see where routes end on 3rd and 4th down.
+- **All** (default) shows every play. Tap a down again to remove it. Folded, the choice stays visible as a chip “Downs: 3rd, 4th ×”.
+- 1st–4th come from the down of each use in the [game log](#game-log). **1PAT and 2PAT come only from the play’s situation**: every use of a PAT play counts as that PAT, a PAT down set on a use counts as “No down”.
+- Plays without a use (or without a down) count as **No down**. With downs chosen they drop out; the line below the heatmap says how many.
+- Works with Count, Group by (with Group by Down only the chosen downs show) and the Down filter at the top (both apply). Concepts & depth ignore this choice.
 
 ### Count {#count}
 “Every play once” – each play counts once. “By frequency” – plays count as often as they were used ([game log](#game-log)); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.
