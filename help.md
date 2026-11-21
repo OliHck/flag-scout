@@ -127,7 +127,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Plays without the value (e.g. without a season) are left out, like with any filter.
 
 ### Must-know {#must-know}
-- Tap ☆ on a card or “☆ Must-know” in the play details to mark a play every player has to know. Tap again to remove it.
+- Tap ☆ on a card or next to the play ID in the play details to mark a play every player has to know. Tap again to remove it.
 - Everyone sees the ★. The ☆ filter next to Formation shows only must-know plays; the PDF notes it in its filter line.
 - The mark belongs to the play ID – if the ID changes (new formation), the mark is lost.
 - The marks are part of the JSON export and the [backup](#backup): Restore brings them back, [Import](#import) puts them on the new IDs.
@@ -164,7 +164,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Delete** asks once with the number of plays. Their game log is deleted too.
 
 ### Archive {#archive}
-- **Archive** takes outdated plays out of the catalog **without deleting them**: in the play details, or **Archive (n)** in the selection bar (asks once with the number). Whole season or team: filter, **Select all**, **Archive**.
+- **Archive** takes outdated plays out of the catalog **without deleting them**: in the play details (**⋯ More → Archive**), or **Archive (n)** in the selection bar (asks once with the number). Whole season or team: filter, **Select all**, **Archive**.
 - Archived plays never count in the [analysis](#heatmap), are not added by Select all and are not printed (PDF, offline version).
 - **More filters → Show archived** shows them greyed out with “Archived”. Open one and tap **Unarchive**, or select them and tap **Unarchive (n)**. Even when shown they do not count in the analysis.
 - Nothing is lost: the game log stay. The JSON export and the backup contain archived plays with their mark, and an import keeps it.
@@ -173,12 +173,14 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Play details {#play}
 
 ### What you see {#play-info}
-- The graphic, the play ID and chips: ★ Must-know, Formation, QB, Direction, Concept, **Depth** ([profile](#depth-profile) and combination, e.g. “Two deep · 2-1-1”), Field and distance, Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
-- Below: team, season, opponents (“vs …”) and events (“@ …”), the comment and when the play was saved or edited.
-- Fold-out areas: [Game log](#game-log) and **JSON** (the play as data).
+- The graphic, the play ID with the ☆/★ for [must-know](#must-know) and chips: Formation, Concept, **Depth** ([profile](#depth-profile) and combination, e.g. “Two deep · 2-1-1”), Situation. A highlighted chip means **unsure** – the value was not clear and is not confirmed yet.
+- QB alignment, direction, field and distance are not shown as chips – change them with **Edit**. Filters, heatmap and PDF still use them.
+- Below: the team in bold, season, opponents (“vs …”) and events (“@ …”), the comment and when the play was saved or edited.
+- Fold-out areas: [Game log](#game-log).
+- At the bottom: **Edit**, **Edit in Draw** and **⋯ More** with the rarer actions ([More](#play-more)).
 
 ### Chips and editing {#play-edit}
-- Tap a chip (Formation, QB, Direction, Concept, Field) to change that entry. **Only the entry changes, never the drawing.**
+- Tap a chip (Formation, Concept) to change that entry. **Only the entry changes, never the drawing.**
 - **Edit** changes all entries at once, plus comment, opponents and events, and confirms unsure values.
 - Opponents and events in Edit: each one is a chip – **×** removes it. **+ add …** picks a known name, **+ new …** opens a field for a new one (**Add**). Nothing is saved until **Save**.
 - A new formation or field changes the play ID.
@@ -190,8 +192,15 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Edit in Draw {#play-draw}
 - **Edit in Draw** opens the play in the [Draw](#draw) tab to change routes and line-up. “Save changes” saves it right back into the catalog with the same ID.
-- **Undo last edit** (tap twice) brings back the version before the last edit in Draw – one step.
-- **Duplicate & draw** opens a copy of the play in Draw. **Save copy** adds it to the catalog as a new play with the next free ID – without game log, targets, opponents, events and must-know. **Cancel editing** saves nothing.
+- **⋯ More → Undo last edit** (tap twice) brings back the version before the last edit in Draw – one step. Only shown when there is one.
+- **⋯ More → Duplicate & draw** opens a copy of the play in Draw. **Save copy** adds it to the catalog as a new play with the next free ID – without game log, targets, opponents, events and must-know. **Cancel editing** saves nothing.
+
+### More {#play-more}
+- **⋯ More** at the bottom of the play details holds the rarer actions. Tap next to it or Esc to close it.
+- **Duplicate & draw** and **Undo last edit** – see [Edit in Draw](#play-draw).
+- **Archive** / **Unarchive** – see [Archive](#archive).
+- **Export JSON (play only)** downloads this play as a file – the same format as the JSON export, ready for [Import](#import).
+- **Export JSON incl. game log** adds the [game log](#game-log) of the play. Restore from backup reads this file too.
 
 ## Game log {#game-log}
 
