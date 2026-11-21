@@ -28,7 +28,7 @@ More: [Heatmap](#heatmap) · [Receiver](#receiver) · [Selection](#analysis-scop
 More: [Drafts](#drafts) · [Duplicates and variants](#duplicates)
 
 ### Draw {#qs-draw}
-1. Set team, season, field, direction and **formation** at the top.
+1. Set field, direction and **formation** at the top; team and season are in the **Save** box.
 2. Tool **Route**: draw from a player. **Option**, **Delay**, **Motion** and **Ball** for the rest; tap a player to change label or colour.
 3. Pick the concept, then **Save & next** – the play goes to Drafts, the field is ready for the next one.
 4. Drawing from a game video: **▶ Video** shows a YouTube video above the field.
@@ -115,15 +115,15 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination, e.g. 2-1-1), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
-- **Clear filters** resets all filters, including Show archived – with a [focus](#focus) back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
+- **Clear filters** resets all filters, including Show archived – with a [focus](#focus) it is called **Reset to focus** and goes back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
 - **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
 - Opponent, Event, Target and Down come from the [game log](#game-log) and the play itself ([events](#events)).
 
 ### Focus {#focus}
 - A focus is a saved set of filters, e.g. the current season and tournament. The page always starts with it, in Plays and Analysis.
-- Set the filters and tap **Set as focus**. Search, must-know and Show archived are never part of it. **Remove focus** deletes it.
+- Set the filters and tap **Set as focus** (in the focus row under the filters). Search, must-know and Show archived are never part of it. **Remove focus** (small, at the right of that row) deletes it.
 - The chip **Focus: …** shows it. Tap it to turn the focus off and see all plays; tap again to turn it back on. Filters you set yourself stay. Off stays off on this device, even after reloading.
-- **Clear filters** goes back to the focus. The counts on Clear filters and More filters only count what differs from the focus.
+- **Reset to focus** goes back to the focus. The counts on Reset to focus and More filters only count what differs from the focus.
 - Plays without the value (e.g. without a season) are left out, like with any filter.
 
 ### Must-know {#must-know}
@@ -198,7 +198,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Uses and opponents {#uses}
 - The **Game log** in the play details records each use: opponent, event, down and target. No result (complete, yards).
 - Folded, it shows a summary like “5× · Z 3 · C 1 · – 1” (– = no target).
-- Layout (same in Draw and Drafts): opponent and event as small selectors top right, then **Down**, **↔ Flipped**, **Target player**. The first entry makes a chosen team an opponent of the play. **Undo last entry** removes the last one; delete single entries in the list.
+- Layout (same in Draw and Drafts): opponent and event as small selectors top right (in Draw only with several opponents or events in the Save box), then **Down**, **↔ Flipped**, **Target player**. The first entry makes a chosen team an opponent of the play. **Undo last entry** removes the last one; delete single entries in the list.
 - **▶ 1:02:05** at an entry opens the YouTube video shortly before that moment.
 - Rename, merge or delete opponents in [Manage teams → Opponents](#opponents); also settable in Draw, Drafts and [Edit several plays](#bulk-edit).
 
@@ -232,8 +232,9 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Good for video analysis: draw many plays in a row, check them later.
 
 ### Line-up {#draw-setup}
-- Top: **Team** (or “+ New team …”; hidden teams are not in the list – a new team with the name of a hidden team is that team, you get a note and it stays hidden), **Season**, **Opponent** (optional – also preselected for the targets; a new name is offered for all plays after the first save), **Events** (optional – stays for **Save & next**, the first is preselected for the targets). Opponents and events are chips: **×** removes one, **+ add …** picks a known name, **+ new …** adds a new one (**Add**), **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd). On a computer, Field, Direction and QB are in their own row.
+- Top: **Field**; for Endzone the **distance** (5, 7, 10 yd or other) and **PAT** (1PAT = 5 yd, 2PAT = 10 yd).
 - **Direction** (strong side left or right), **QB** (Gun 7 yd or Under Center) and **Formation** – each tile shows the standard line-up; the tiles are in the order of the number keys 1–7. Tap the chosen formation again (or press its key again) to flip the direction.
+- In the **Save** box (under the field on a phone): **Team** (or “+ New team …”; hidden teams are not in the list – a new team with the name of a hidden team is that team, you get a note and it stays hidden), **Season**, **Opponent** (optional – also used for the targets; a new name is offered for all plays after the first save), **Events** (optional – stays for **Save & next**, also used for the targets). Opponents and events are chips: **×** removes one, **+ add …** picks a known name, **+ new …** adds a new one (**Add**).
 - The setup stays for the next play and is remembered in this browser.
 - **Formation from the line-up:** if you move players into another formation, the page switches the formation and tells you (“Keep …” goes back).
 - **Motion changes formation:** if a motion moves players into another formation (e.g. the QB runs up to the line next to the center → **Eagle**), a box appears under the tiles. Tick it to list the play under the formation **after** the motion; otherwise the formation before the motion counts. This also appears when the motion only moves the strong side to the other side (“Spread → Spread (other side)”) – the direction follows the box. It is never ticked for you. Eagle has no tile – it only comes from a QB motion.
@@ -251,7 +252,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Line style** for the next lines: **Auto** (sharp bends become cuts), **Curve** (smooth, follows your stroke – shaky finger strokes are smoothed, the curve runs into the arrow without a corner), **Straight** (straight pieces with clear cuts).
 - **Click points**: instead of drawing freehand, each click or tap sets a point and the line runs straight from point to point. Start on the player (or the end of his route) and then click or tap each break. **Mouse:** **double-click** (or Enter) finishes. **Finger and pen:** the point is set when you lift your finger – slide before lifting to place it exactly; to finish, tap the last point again (or tap **Done**). While a line is open, **Done**, **Undo point** and **Cancel** appear under the field (Esc also cancels). Works for Route, Option, Motion and Ball. With a pen, your finger still moves players and is ignored while a line is open. Click points only draws straight pieces: choosing **Curve** switches it off, and switching it on while Curve is chosen sets the line style to Auto. Freehand stays the default.
 - **Straighten** (on by default, remembered in this browser) tidies each line right after you draw it, so drawn plays look like the rest of the catalog: a **go** (no bend, at most 5° off vertical) runs straight up from the player; an **in** or **out** (release roughly vertical, then a cut at roughly a right angle to it) gets a vertical stem and a cut parallel to the line at the depth of the break – even if your release leaned a little, the cut keeps its length and an out ends just inside the sideline; a slightly rounded corner becomes a clean cut; a **hitch** keeps its arrow where you drew it (e.g. on the goal line), goes at least 1.5 yd sideways and gets its turn at a fixed angle above the arrow (1.5 yd sideways → 0.7 yd higher). Long comebacks (2.5 yd or more back) stay as drawn. An in/out cut or a hitch arrow within 0.5 yd of a field line (5, 10, 15 yd; in the end zone the goal line, middle and end line) snaps onto that line. Slants, posts, corners and crossers (also long crossers that gain depth) stay as drawn; a rounded break stays rounded. A note under the field says what changed – **Undo** once shows your line as drawn. When you save, players near the line go onto it and all players onto a 0.5 yd grid (outside receivers less than 1 yd apart in their split get the same split); routes move sideways with them. Switch **Straighten** off to keep everything exactly as drawn.
-- **Undo** / **Redo** (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again – receiver labels and colors, also the center's color, stay; click **Clear** again to reset them to X/Y/Z without colors too).
+- **Undo** ↶ / **Redo** ↷ (Ctrl+Z / Ctrl+Y) and **Clear** (start this play again – receiver labels and colors, also the center's color, stay; click **Clear** again to reset them to X/Y/Z without colors too).
 - **Keyboard shortcuts**: **1** Spread · **2** Pro · **3** 3-Bunch · **4** 4-Bunch · **5** Wing · **6** Trips · **7** Offset Back (the same key again flips the direction); **Ctrl+S** (Mac: Cmd+S) saves. Tools: **X** Route · **C** Option · **V** Delay · **B** Ball · **N** Motion · **M** Move; line style: **,** Auto · **.** Curve · **-** Straight (the three keys right of M on a German keyboard); **Y** switches Click points on and off. The keys count by the letter you type, so they also fit a German keyboard. **Target:** hold **T**, press **1–4** for the down (optional), then click the receiver or the end of his route – the end of an option counts for that option. Shortcuts do nothing while you type in a field (Ctrl+S still saves).
 - Small wobbles are smoothed out – more with a finger (phone) than with a mouse or pen, where short stems and fake steps from about 1 yd stay.
 - A short hook at the very end of a stroke is ignored, so the arrow points the way the route runs. If the end comes back toward the line like a hitch (at least about 0.7 yd, steeper than a flat cut), it stays and **Comeback ^** is set for you – a flatter end stays an out or in.
@@ -266,7 +267,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
 - **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors (also the center's color) stay for the next play. The down for targets is cleared too – pick it again for the next play.
-- Targets: **Down** and **Target player** as in the [game log](#targets); opponent and event come from the setup (small selectors top right change them for the next targets). No Flipped here.
+- Targets: **Down** and **Target player** as in the [game log](#targets); opponent and event come from the Save box; with several opponents or events chosen there, small selectors top right pick the one for the next targets. No Flipped here.
 - Targets: with **1PAT** or **2PAT** in the setup, the same PAT is preselected as the down for targets and is set for every target without a down (also after **Save & next**). With a down 1st–4th selected instead, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
@@ -349,7 +350,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Clearing the selection or reloading the page goes back to Filtered.
 
 ### Side {#side}
-“Real side” shows plays as drawn (not mirrored); with Count “By frequency” or “Targets only”, uses marked [flipped](#flipped) count mirrored. “Strong side right” mirrors plays with direction Left, so the strong side is always right.
+“Real side” shows plays as drawn (not mirrored); with Count “By frequency” or “Targets only”, uses marked [flipped](#flipped) count mirrored. “Strong right” mirrors plays with direction Left, so the strong side is always right.
 
 ### Group by {#group-by}
 Splits the heatmap into one per formation, team, direction, concept, depth, season or opponent. A play with several opponents appears in each of their groups.
