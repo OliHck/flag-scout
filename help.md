@@ -273,6 +273,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ### Save as draft {#draw-save}
 - Pick the **Concept** (a suggestion from the routes is preselected); **Depth** is counted for you. Add a situation (e.g. “3rd & 5”), a comment and targets if you like.
 - **Save & next** saves the play as a draft with the next free number of the team and clears the field for the next play with the same setup. Receiver labels and colors (also the center's color) stay for the next play. The down for targets is cleared too – pick it again for the next play.
+- Targets: **Down** (optional) and **Target player** – tap the receiver who was thrown to, **QB run**, **No target** (thrown away, sacked or incomplete without a clear receiver – counts in the target share) or **Played** (target not known – counts only as a use). Opponent and event for the targets come from the setup; the small selectors at the top right of Targets change them for the next targets only.
 - Targets: with **1PAT** or **2PAT** in the setup, the same PAT is preselected as the down for targets and is set for every target without a down (also after **Save & next**). With a down 1st–4th selected instead, a hint asks if that is intended. You can still add the target and save – a play can also be run on a normal down.
 - Plays of one team on one day form a group in Drafts (“Draw · Team · date”). “Review in Drafts” jumps there.
 - The same play as one in the catalog becomes a draft marked “Same as …” or “Variant of …” – see [Duplicates and variants](#duplicates).
