@@ -254,7 +254,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Option:** draw from the point where a route branches off – the new line becomes a dashed option ending with its own arrow.
 - **Delay:** see [Delay](#delay).
 - **Motion:** pre-snap motion from a player; the route then starts where the motion ends.
-- **Ball:** from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch).
+- **Ball:** from the center to the player who gets the snap (side snap, pitch), or from the ball carrier to a player (handoff, pitch). A handoff can also end **on a route** – for a player who only runs to that spot after the snap and gets the ball there.
 - **Move:** drag players sideways or into the backfield (never past the line); routes move along. With a pen, your finger always moves players.
 - **Press and hold (finger or pen), whatever tool is chosen:** hold your finger on a player for a moment without moving – a green ring shows it is picked up – then drag it like Move. If you move right away, you draw as usual.
 - **With mouse or pen, whatever tool is chosen:** **Ctrl + drag** a player moves it like Move (Mac: Ctrl or Cmd), **Alt + drag** from a player draws its motion (Mac: Option) – always as a curve. After that you are back in your tool with your line style.
