@@ -325,6 +325,8 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Check and approve {#drafts-check}
 - Each draft shows the graphic. Name, field, formation, QB, concept, situation, opponent, events and comment can be changed; every change is saved at once. Opponents and events are chips like in Edit: **×**, **+ add …**, **+ new …**. If a motion changes the formation, tick **Motion changes formation** to list the play under the formation after the motion (the ID follows when you approve).
+- To keep cards short, each draft shows only what usually needs checking: the graphic, **Concept**, every **unsure** value and the buttons (with an open distance also **Situation**). Everything else – name, the other fields, opponent, events, comment and the **targets** – is folded under **All fields ▸**, with a short summary such as “Open Field · Spread · Gun · vs Eagles · 2 targets”. Tap it to open or close that card. An unsure value stays at the top after **OK** until you reload, so nothing jumps.
+- **Expand all** above the list opens every card (**Collapse all** closes them); this device remembers the choice. Double-clicking a route to add a target opens the card, too.
 - **Unsure** values are marked. Tap **OK** next to a value, or **All OK** for the whole play, once it is right.
 - Endzone plays with an **unclear distance** cannot be approved until you set it (“Set 7 yd”, the situation) or choose **Distance unknown**.
 - “Will be saved as …” shows the final play ID.
