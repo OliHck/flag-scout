@@ -115,7 +115,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Several values per filter** (all filters except Field): tap a filter to open its list and tick as many values as you like – e.g. Formation Trips and 4-Bunch, or two opponents. The list stays open; tap next to it or press Esc to close.
   - Plays need to match **one** of the ticked values of a filter and **all** filters, e.g. “Trips or 4-Bunch, and season 2026”.
-  - **Only** at the end of a row keeps just this value (on a computer it shows when you point at the row). **Clear** at the top removes all ticks – nothing ticked means “all”.
+  - **All** at the top removes all ticks – nothing ticked means all values. To pick just one value, tap All and then the value. With a mouse, **Only** at the end of a row (shown when you point at it) keeps just this value.
   - The closed filter shows what is ticked (“Trips, Wing”, from three values “3 formations”); the small **×** next to it clears the filter without opening it.
   - Depth: the profile row (“Vertical (all)”) ticks all its combinations; with only some of them ticked it shows a half tick.
   - Keyboard: arrow keys move, Space ticks, Enter keeps only this value, Esc closes.
