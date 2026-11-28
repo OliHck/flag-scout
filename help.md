@@ -256,7 +256,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Changing the formation after drawing asks: **Replace line-up** (players move to the new standard positions, routes move along) or **Keep line-up** (only the formation entry changes). **⇄ Flip** mirrors the whole play (formation, routes, motion, ball) to the other side; Undo takes it back.
 
 ### Tools {#draw-tools}
-- **Route:** draw from a player; draw from the end of a route to make it longer. While you draw, a faint vertical line above the start helps you keep the stem straight; once you start an in or out cut, a faint horizontal line marks the depth of the break. Tap a player to select it.
+- **Route:** draw from a player; draw from the end of a route to make it longer. While you draw, a faint vertical line above the start helps you keep the stem straight. Tap a player to select it.
 - **Option:** draw from the point where a route branches off – the new line becomes a dashed option ending with its own arrow.
 - **Delay:** see [Delay](#delay).
 - **Motion:** pre-snap motion from a player; the route then starts where the motion ends.
