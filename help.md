@@ -113,13 +113,19 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
 - **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination, e.g. 2-1-1), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
+- **Several values per filter** (all filters except Field): tap a filter to open its list and tick as many values as you like – e.g. Formation Trips and 4-Bunch, or two opponents. The list stays open; tap next to it or press Esc to close.
+  - Plays need to match **one** of the ticked values of a filter and **all** filters, e.g. “Trips or 4-Bunch, and season 2026”.
+  - **Only** at the end of a row keeps just this value (on a computer it shows when you point at the row). **Clear** at the top removes all ticks – nothing ticked means “all”.
+  - The closed filter shows what is ticked (“Trips, Wing”, from three values “3 formations”); the small **×** next to it clears the filter without opening it.
+  - Depth: the profile row (“Vertical (all)”) ticks all its combinations; with only some of them ticked it shows a half tick.
+  - Keyboard: arrow keys move, Space ticks, Enter keeps only this value, Esc closes.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived – with a [focus](#focus) it is called **Reset to focus** and goes back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
 - **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
 - Opponent, Event, Target and Down come from the [game log](#game-log) and the play itself ([events](#events)).
 
 ### Focus {#focus}
-- A focus is a saved set of filters, e.g. the current season and tournament. The page always starts with it, in Plays and Analysis.
+- A focus is a saved set of filters, e.g. the current season and tournament – also with several values, e.g. two teams. The page always starts with it, in Plays and Analysis.
 - Set the filters and tap **Set as focus** (in the focus row under the filters). Search, must-know and Show archived are never part of it. **Remove focus** (small, at the right of that row) deletes it.
 - The chip **Focus: …** shows it. Tap it to turn the focus off and see all plays; tap again to turn it back on. Filters you set yourself stay. Off stays off on this device, even after reloading.
 - **Reset to focus** goes back to the focus. The counts on Reset to focus and More filters only count what differs from the focus.
@@ -388,11 +394,11 @@ Splits the heatmap into one per formation, team, direction, concept, depth, seas
 - Works with Count, Group by (with Group by Down only the chosen downs show) and the Down filter at the top (both apply). Concepts & depth ignore this choice.
 
 ### Count {#count}
-“Every play once” – each play counts once. “By frequency” – plays count as often as they were used ([game log](#game-log)); plays without entries count once. “Targets only” – only route ends that were targeted in the game log.
+“Every play once” – each play counts once. “By frequency” – plays count as often as they were used ([game log](#game-log)); plays without entries count once. “Targets only” – only route ends that were targeted in the game log. With several opponents, events or downs ticked in the filters, their uses count together.
 
 ### Concepts & depth {#concepts}
 - Share of plays (or uses / targeted routes, depending on Count) per concept, per [depth profile](#depth-profile) and per target.
-- Click a bar to filter heatmap and catalog by it, click again to clear. Active filters also show as chips above the heatmap.
+- Click a bar to filter heatmap and catalog by it, click again to clear. With several values ticked in that filter, a click keeps only this one. Active filters also show as chips above the heatmap.
 - Under each depth profile its depth combinations stand small (e.g. “2-0-2 ×4”) – click one to filter by exactly this combination.
 
 ### Depth profile {#depth-profile}
