@@ -46,7 +46,8 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 ## Getting started {#start}
 
 ### The page at a glance {#tabs}
-- **Header:** the number of plays and teams, **PDF export**, the menu **Export ▾** (with [Backup & restore](#backup)), **Import** and **?** (this help).
+- **Header:** the number of plays and teams, **PDF export**, the menu **Export ▾** (with [Backup & restore](#backup)), **Import** and **?** (this help). On a phone these sit in the menu **⋯** next to the title.
+- **Tabs:** the tab row stays at the top while you scroll. If there are more tabs than fit, the edge fades and a small arrow **‹ ›** shows – tap it or swipe the row. Switching tabs further down the page keeps the tab row where it is.
 - **Plays:** all plays as cards, with filters. Tap a card to open the [play details](#play).
 - **Analysis:** the [heatmap](#heatmap) of route ends for the filtered plays.
 - **Drafts:** new plays wait here until you approve them – see [Drafts](#drafts).
@@ -129,6 +130,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - Set the filters and tap **Set as focus** (in the focus row under the filters). Search, must-know and Show archived are never part of it. **Remove focus** (small, at the right of that row) deletes it.
 - The chip **Focus: …** shows it. Tap it to turn the focus off and see all plays; tap again to turn it back on. Filters you set yourself stay. Off stays off on this device, even after reloading.
 - **Reset to focus** goes back to the focus. The counts on Reset to focus and More filters only count what differs from the focus.
+- With More filters closed, the line above the cards shows the focus too, e.g. “200 of 226 plays · Focus: 2026 · @ WC2026”.
 - Plays without the value (e.g. without a season) are left out, like with any filter.
 
 ### Must-know {#must-know}
@@ -157,7 +159,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Select plays {#select}
 - **Select** turns on selection mode: a click on a card adds or removes it (Ctrl/Cmd + click works too), Shift + click adds the range from the last clicked play.
-- The bar at the bottom: **Select all** (all filtered plays, never [archived](#archive) ones), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**.
+- The bar at the bottom: **Select all** (all filtered plays, never [archived](#archive) ones), **Deselect filtered**, **Only selection** (only the selected plays, in the order you picked them), **Clear**, **Done**. On a phone the bar is one line – **n selected · PDF · Actions ▾ · Done** – and everything else is under **Actions ▾**.
 - **PDF** prints the selection in the order you picked it – handy for a training sheet across teams.
 - **Analyze** opens the [Analysis](#analysis-scope) with only the selected plays.
 - **JSON** exports only the selected plays. **★**, **Edit**, **Archive** and **Delete** work on all selected plays.
@@ -446,7 +448,7 @@ The **Depth** filter (More filters) lists the profiles (“Vertical (all)”) wi
 ### Backup and restore {#backup}
 - **Export ▾ → Backup & restore** has everything in one place: when you last backed up, **Back up now** and **Restore from backup**. Manage teams links there, too.
 - **Back up now** (or **Export now** in the backup bar) saves all plays with their game log and must-know marks in one JSON file. Keep it outside this browser, e.g. in your mail or cloud.
-- The bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. “Export all plays as JSON” with “Include game log” counts as a backup, too – without the game log it does not.
+- The bar at the top reminds you when there is no backup yet, or the last one is older than 7 days and plays changed. “Export all plays as JSON” with “Include game log” counts as a backup, too – without the game log it does not. The bar counts plays like the header – hidden teams and archived plays are in the backup too and shown in brackets. On a phone it is one line with **Export now**.
 - **Restore from backup**: choose a backup file. Only what is missing is restored, with the old IDs, game log and must-know marks – existing plays, game log entries and marks are never overwritten.
 - Restore is for your own backups; plays from others come in with [Import](#import).
 
