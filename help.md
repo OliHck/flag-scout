@@ -111,7 +111,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 - **Show targets** shows the targets on every card (off by default). The number of uses from the [game log](#game-log) always stands next to the ★, e.g. “×7”.
 
 ### Filters {#catalog-filters}
-- Always visible: **Team**, **Field** (Open Field / Endzone), **Formation** and the ☆ for must-know plays only.
+- Always visible: **Team**, **Field** (switch **All · Open Field · Endzone**, with the number of plays), **Formation** and the ☆ for must-know plays only.
 - **More filters ▸**: Direction, Concept, Depth ([profile](#depth-profile) or combination, e.g. 2-1-1), Season, Opponent, Event, Target, Down and Search (play ID, comment, concept, opponent, event). Folded, the button shows how many of them are set.
 - Every list only offers values that exist with the other filters, with the number of plays, e.g. “Flood (3)”.
 - **Several values per filter** (all filters except Field): tap a filter to open its list and tick as many values as you like – e.g. Formation Trips and 4-Bunch, or two opponents. The list stays open; tap next to it or press Esc to close.
@@ -122,7 +122,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
   - Keyboard: arrow keys move, Space ticks, Enter keeps only this value, Esc closes.
 - **Show archived** (in More filters) shows [archived plays](#archive) greyed out with the badge “Archived”.
 - **Clear filters** resets all filters, including Show archived – with a [focus](#focus) it is called **Reset to focus** and goes back to the focus. Filters also apply to the [heatmap](#heatmap), the PDF and the exports.
-- **Field** is one filter for Plays and Analysis. The Analysis always shows one field: its switch sets this filter, and “all” becomes the field shown there.
+- **Field** is one switch for Plays and Analysis – a field you pick in one tab also applies in the other. The Analysis always shows one field: with **All** it picks one itself (shown next to the switch, e.g. “Analysis: Open Field”) and the filter stays All, so the Plays tab still shows all plays. A Depth combination that does not exist in the new field is removed.
 - Opponent, Event, Target and Down come from the [game log](#game-log) and the play itself ([events](#events)).
 
 ### Focus {#focus}
@@ -358,7 +358,7 @@ More: [Export and import](#export) · [Backup and restore](#backup) · [Your dat
 
 ### Zones and depth {#zones}
 - Shows the **share of route ends per zone** for the filtered plays (or only the [selected plays](#analysis-scope)); [archived plays](#archive) never count. Zones are the same as in [Depth](#glossary): Open Field depth from the line (short ≤ 7 yd incl. backfield, intermediate 7–12 yd, deep > 12 yd); Endzone depth from the goal line (short more than 1.5 yd before it incl. backfield, **goalline** from 1.5 yd before to 2.5 yd past it, deep more than 2.5 yd past it).
-- **Field:** Open Field or Endzone – the plays of the other field are not counted. It is the same filter as Field in the Plays tab (that one is hidden here): switching sets both, and “all” there becomes the field shown here. With [Selection](#analysis-scope) the switch only changes the analysis.
+- **Field:** the heatmap shows Open Field or Endzone – the plays of the other field are not counted. Use the **Field** switch at the top, the same as in the Plays tab ([filters](#catalog-filters)). With **All** the Analysis shows the field with plays (the last one shown first) and says which one next to the switch; picking a field there filters everywhere, **All** undoes it. With [Selection](#analysis-scope) only the Field switch stays at the top, without All – it only changes the analysis, not the filter.
 - Players **without a route** are not shown in the heatmap (in Depth they count as short).
 - A **route end is not the pass target** – for targets use [Count](#count) → “Targets only”.
 - Few plays give a “small sample” note: read the numbers with care.
